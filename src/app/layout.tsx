@@ -15,27 +15,27 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Task Management System",
-  description: "A comprehensive task and project management system with real-time collaboration",
-  keywords: ["task management", "project management", "collaboration", "productivity", "Next.js"],
-  authors: [{ name: "Task Manager Team" }],
+  title: "PM-App - AI-Powered Project Management",
+  description: "Transform ideas into actionable results with AI-assisted workflows, intelligent task breakdown, and automated document organization",
+  keywords: ["project management", "AI", "task management", "collaboration", "productivity", "automation", "workflow"],
+  authors: [{ name: "PM-App Team" }],
   openGraph: {
-    title: "Task Management System",
-    description: "Comprehensive task and project management system",
-    url: "http://localhost:3000",
-    siteName: "TaskManager",
+    title: "PM-App - AI-Powered Project Management",
+    description: "Transform ideas into actionable results with AI-assisted workflows",
+    url: "http://localhost:3001",
+    siteName: "PM-App",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Task Management System",
-    description: "Comprehensive task and project management system",
+    title: "PM-App - AI-Powered Project Management",
+    description: "Transform ideas into actionable results with AI-assisted workflows",
   },
   manifest: "/manifest.json",
   other: {
     "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-status-bar-style": "default",
-    "apple-mobile-web-app-title": "TaskManager",
+    "apple-mobile-web-app-title": "PM-App",
   },
 };
 
