@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const projectId = searchParams.get('projectId')
+    const workspaceId = searchParams.get('workspaceId')
     const status = searchParams.get('status')
     const priority = searchParams.get('priority')
     const search = searchParams.get('search')
@@ -24,7 +25,12 @@ export async function GET(request: NextRequest) {
     // Get all accessible tasks for the user
     let tasks = await getAccessibleTasks(session.user.id, projectId || undefined)
     
-    // Apply filters
+    // Filter by workspace if specified (through projects)
+    if (workspaceId) {
+      tasks = tasks.filter(task => task.project?.workspaceId === workspaceId)
+    }
+    
+    // Apply other filters
     if (status && Object.values(TaskStatus).includes(status as TaskStatus)) {
       tasks = tasks.filter(task => task.status === status)
     }
@@ -107,28 +113,62 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // If assignee is specified, verify they have access to the project
-    if (assigneeId) {
-      const assigneeHasAccess = await db.project.findFirst({
+    // If assignee is specified and not empty, verify they have access to the project's workspace
+    if (assigneeId && assigneeId.trim() !== '') {
+      // First get the project's workspace
+      const projectWithWorkspace = await db.project.findUnique({
+        where: { id: projectId },
+        select: { workspaceId: true, ownerId: true }
+      })
+
+      if (!projectWithWorkspace) {
+        return NextResponse.json(
+          { error: 'Project not found' },
+          { status: 404 }
+        )
+      }
+
+      // Check user's role in workspace to determine assignment permissions
+      const userWorkspaceMember = await db.workspaceMember.findUnique({
         where: {
-          id: projectId,
-          OR: [
-            { ownerId: assigneeId },
-            { members: { some: { userId: assigneeId } } }
-          ]
+          userId_workspaceId: {
+            userId: session.user.id,
+            workspaceId: projectWithWorkspace.workspaceId
+          }
         }
       })
 
-      if (!assigneeHasAccess) {
+      const isProjectOwner = projectWithWorkspace.ownerId === session.user.id
+      const isWorkspaceOwnerOrAdmin = userWorkspaceMember?.role === 'OWNER' || userWorkspaceMember?.role === 'ADMIN'
+
+      // If user is a regular member and not project owner, they can only assign to themselves
+      if (!isWorkspaceOwnerOrAdmin && !isProjectOwner && assigneeId !== session.user.id) {
         return NextResponse.json(
-          { error: 'Assignee does not have access to this project' },
+          { error: 'Members can only assign tasks to themselves unless they are project owners' },
+          { status: 403 }
+        )
+      }
+
+      // Check if assignee is a member of the project's workspace
+      const assigneeWorkspaceMember = await db.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: {
+            userId: assigneeId,
+            workspaceId: projectWithWorkspace.workspaceId
+          }
+        }
+      })
+
+      if (!assigneeWorkspaceMember) {
+        return NextResponse.json(
+          { error: 'Assignee is not a member of the project workspace' },
           { status: 400 }
         )
       }
     }
 
-    // If no assignee specified, assign to the creator
-    const finalAssigneeId = assigneeId || session.user.id
+    // Use assigneeId if provided and not empty, otherwise leave unassigned (null)
+    const finalAssigneeId = (assigneeId && assigneeId.trim() !== '') ? assigneeId : null
 
     // Create the task
     const task = await db.task.create({

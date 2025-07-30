@@ -36,6 +36,7 @@ interface Project {
   taskCount: number
   completedTaskCount: number
   memberCount: number
+  workspaceId: string
   owner: {
     id: string
     name: string
@@ -54,7 +55,7 @@ export default function ProjectsPage() {
   const router = useRouter()
   const { toast } = useToast()
   const { apiCall } = useAPI()
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, currentWorkspace, user } = useAuth()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [projectDialogOpen, setProjectDialogOpen] = useState(false)
@@ -71,14 +72,16 @@ export default function ProjectsPage() {
       return
     }
     
-    if (isAuthenticated) {
+    if (isAuthenticated && currentWorkspace) {
       fetchProjects()
     }
-  }, [isAuthenticated, isLoading, router])
+  }, [isAuthenticated, isLoading, currentWorkspace, router])
 
   const fetchProjects = async () => {
+    if (!currentWorkspace) return
+    
     try {
-      const response = await apiCall('/api/projects')
+      const response = await apiCall(`/api/projects?workspaceId=${currentWorkspace.id}`)
       if (response.ok) {
         const data = await response.json()
         setProjects(data)
@@ -94,11 +97,7 @@ export default function ProjectsPage() {
     try {
       const response = await apiCall('/api/projects', {
         method: 'POST',
-        body: JSON.stringify({
-          ...projectData,
-          workspaceId: 'default-workspace-id',
-          ownerId: 'default-user-id'
-        })
+        body: JSON.stringify(projectData)
       })
       
       if (response.ok) {
@@ -397,6 +396,7 @@ export default function ProjectsPage() {
                       onDelete={handleDeleteProject}
                       onToggleStar={handleToggleStar}
                       onViewTasks={handleViewTasks}
+                      currentUserId={user?.id}
                     />
                   ))}
                 </div>
@@ -428,6 +428,7 @@ export default function ProjectsPage() {
                     onDelete={handleDeleteProject}
                     onToggleStar={handleToggleStar}
                     onViewTasks={handleViewTasks}
+                    currentUserId={user?.id}
                   />
                 ))}
               </div>

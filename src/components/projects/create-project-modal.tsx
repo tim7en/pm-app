@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -22,9 +22,17 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
-import { Calendar, Palette, Plus } from "lucide-react"
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Calendar, Palette, Plus, Users } from "lucide-react"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
+import { useAuth } from "@/contexts/AuthContext"
 
 const colorOptions = [
   { name: "Blue", value: "#3b82f6" },
@@ -37,25 +45,58 @@ const colorOptions = [
   { name: "Gray", value: "#6b7280" }
 ]
 
+interface Workspace {
+  id: string
+  name: string
+  description?: string
+}
+
 interface CreateProjectModalProps {
   onCreateProject: (project: {
     name: string
     description?: string
     color: string
     dueDate?: Date
+    workspaceId?: string
   }) => void
   children: React.ReactNode
 }
 
 export function CreateProjectModal({ onCreateProject, children }: CreateProjectModalProps) {
   const [open, setOpen] = useState(false)
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     color: "#3b82f6",
-    dueDate: undefined as Date | undefined
+    dueDate: undefined as Date | undefined,
+    workspaceId: ""
   })
   const [showCalendar, setShowCalendar] = useState(false)
+  const { currentWorkspaceId } = useAuth()
+
+  useEffect(() => {
+    fetchWorkspaces()
+  }, [])
+
+  useEffect(() => {
+    // Set default workspace when available
+    if (currentWorkspaceId && !formData.workspaceId) {
+      setFormData(prev => ({ ...prev, workspaceId: currentWorkspaceId }))
+    }
+  }, [currentWorkspaceId, formData.workspaceId])
+
+  const fetchWorkspaces = async () => {
+    try {
+      const response = await fetch('/api/workspaces')
+      if (response.ok) {
+        const data = await response.json()
+        setWorkspaces(data)
+      }
+    } catch (error) {
+      console.error('Error fetching workspaces:', error)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -65,7 +106,8 @@ export function CreateProjectModal({ onCreateProject, children }: CreateProjectM
       name: formData.name.trim(),
       description: formData.description.trim() || undefined,
       color: formData.color,
-      dueDate: formData.dueDate
+      dueDate: formData.dueDate,
+      workspaceId: formData.workspaceId || currentWorkspaceId || undefined
     })
 
     // Reset form
@@ -73,7 +115,8 @@ export function CreateProjectModal({ onCreateProject, children }: CreateProjectM
       name: "",
       description: "",
       color: "#3b82f6",
-      dueDate: undefined
+      dueDate: undefined,
+      workspaceId: currentWorkspaceId || ""
     })
     setOpen(false)
   }
@@ -112,6 +155,35 @@ export function CreateProjectModal({ onCreateProject, children }: CreateProjectM
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               rows={3}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Team/Workspace *</Label>
+            <Select 
+              value={formData.workspaceId} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, workspaceId: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a team">
+                  {workspaces.find(w => w.id === formData.workspaceId)?.name || "Select a team"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {workspaces.map((workspace) => (
+                  <SelectItem key={workspace.id} value={workspace.id}>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      <div>
+                        <div className="font-medium">{workspace.name}</div>
+                        {workspace.description && (
+                          <div className="text-xs text-muted-foreground">{workspace.description}</div>
+                        )}
+                      </div>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

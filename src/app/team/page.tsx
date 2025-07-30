@@ -9,6 +9,7 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { generateInitialsAvatar, getDefaultAvatarByIndex } from "@/lib/avatars"
 import { 
   Plus, 
   Mail, 
@@ -82,15 +83,17 @@ interface WorkspaceMember {
 
 export default function TeamPage() {
   const [members, setMembers] = useState<WorkspaceMember[]>([])
+  const [invitations, setInvitations] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
   const [isInviting, setIsInviting] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [filterRole, setFilterRole] = useState("all")
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
+  const [showInvitations, setShowInvitations] = useState(false)
   
   const { toast } = useToast()
-  const { user } = useAuth()
+  const { user, currentWorkspace, refreshWorkspaces } = useAuth()
   
   const form = useForm<InviteFormData>({
     resolver: zodResolver(inviteSchema),
@@ -100,17 +103,34 @@ export default function TeamPage() {
     },
   })
 
-  // Get the current workspace ID (for now using a default workspace)
-  const workspaceId = "1" // In a real app, this would come from context or params
-
   useEffect(() => {
-    fetchWorkspaceMembers()
-  }, [])
+    if (currentWorkspace) {
+      fetchWorkspaceMembers()
+      fetchInvitations()
+    }
+  }, [currentWorkspace])
+
+  const fetchInvitations = async () => {
+    try {
+      const response = await fetch('/api/invitations')
+      if (response.ok) {
+        const data = await response.json()
+        setInvitations(data)
+      }
+    } catch (error) {
+      console.error('Error fetching invitations:', error)
+    }
+  }
 
   const fetchWorkspaceMembers = async () => {
+    if (!currentWorkspace) {
+      console.error('No current workspace')
+      return
+    }
+
     try {
       setLoading(true)
-      const response = await fetch(`/api/workspaces/${workspaceId}/members`)
+      const response = await fetch(`/api/workspaces/${currentWorkspace.id}/members`)
       if (response.ok) {
         const data = await response.json()
         setMembers(data)
@@ -141,9 +161,18 @@ export default function TeamPage() {
   }
 
   const handleInviteUser = async (data: InviteFormData) => {
+    if (!currentWorkspace) {
+      toast({
+        title: "Error",
+        description: "No workspace selected",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsInviting(true)
     try {
-      const response = await fetch(`/api/workspaces/${workspaceId}/members`, {
+      const response = await fetch(`/api/workspaces/${currentWorkspace.id}/members`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -155,14 +184,15 @@ export default function TeamPage() {
       })
 
       if (response.ok) {
-        const newMember = await response.json()
-        setMembers(prev => [...prev, newMember])
+        const result = await response.json()
         setInviteDialogOpen(false)
         form.reset()
         toast({
           title: "Success",
-          description: `Successfully invited ${data.email} to the team`,
+          description: result.message || `Successfully invited ${data.email} to the team`,
         })
+        // Refresh invitations list to show new pending invitations
+        fetchInvitations()
       } else {
         const error = await response.json()
         toast({
@@ -184,8 +214,17 @@ export default function TeamPage() {
   }
 
   const handleUpdateRole = async (memberId: string, newRole: string) => {
+    if (!currentWorkspace) {
+      toast({
+        title: "Error",  
+        description: "No workspace selected",
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
-      const response = await fetch(`/api/workspaces/${workspaceId}/members/${memberId}`, {
+      const response = await fetch(`/api/workspaces/${currentWorkspace.id}/members/${memberId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -221,12 +260,21 @@ export default function TeamPage() {
   }
 
   const handleRemoveMember = async (memberId: string) => {
+    if (!currentWorkspace) {
+      toast({
+        title: "Error",
+        description: "No workspace selected",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (!confirm("Are you sure you want to remove this member from the team?")) {
       return
     }
 
     try {
-      const response = await fetch(`/api/workspaces/${workspaceId}/members/${memberId}`, {
+      const response = await fetch(`/api/workspaces/${currentWorkspace.id}/members/${memberId}`, {
         method: 'DELETE',
       })
 
@@ -254,9 +302,138 @@ export default function TeamPage() {
     }
   }
 
+  const handleLeaveWorkspace = async () => {
+    if (!currentWorkspace) {
+      toast({
+        title: "Error",
+        description: "No workspace selected",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!confirm("Are you sure you want to leave this workspace? All your activity history will be removed.")) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/workspaces/${currentWorkspace.id}/leave`, {
+        method: 'POST',
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "You have left the workspace successfully",
+        })
+        // Redirect to another workspace or dashboard
+        window.location.href = '/'
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.error || "Failed to leave workspace",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Error leaving workspace:', error)
+      toast({
+        title: "Error",
+        description: "Failed to leave workspace",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleAcceptInvitation = async (invitationId: string) => {
+    try {
+      const response = await fetch(`/api/invitations/${invitationId}/accept`, {
+        method: 'POST',
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        console.log('Invitation accepted successfully:', result)
+        
+        toast({
+          title: "Success",
+          description: "Invitation accepted! Welcome to the team!",
+        })
+        
+        // Refresh all data in parallel
+        const refreshPromises = [
+          fetchInvitations(),
+          fetchWorkspaceMembers(),
+          refreshWorkspaces()
+        ]
+        
+        await Promise.all(refreshPromises)
+        console.log('All data refreshed after accepting invitation')
+        
+        // If the invitation response includes workspace info, we could auto-switch to it
+        if (result.workspace) {
+          console.log('New workspace available:', result.workspace.name)
+        }
+      } else {
+        const error = await response.json()
+        console.error('Failed to accept invitation:', error)
+        toast({
+          title: "Error",
+          description: error.error || "Failed to accept invitation",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Error accepting invitation:', error)
+      toast({
+        title: "Error",
+        description: "Failed to accept invitation",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDeclineInvitation = async (invitationId: string) => {
+    try {
+      const response = await fetch(`/api/invitations/${invitationId}/decline`, {
+        method: 'POST',
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Invitation declined",
+        })
+        fetchInvitations()
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.error || "Failed to decline invitation",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Error declining invitation:', error)
+      toast({
+        title: "Error",
+        description: "Failed to decline invitation",
+        variant: "destructive",
+      })
+    }
+  }
+
   const filteredMembers = members.filter(member => {
-    const matchesSearch = member.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         member.user.email.toLowerCase().includes(searchQuery.toLowerCase())
+    // Ensure member and member.user exist before accessing properties
+    if (!member || !member.user) {
+      return false
+    }
+    
+    const userName = member.user.name || ''
+    const userEmail = member.user.email || ''
+    const matchesSearch = userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         userEmail.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesRole = filterRole === "all" || member.role === filterRole
     return matchesSearch && matchesRole
   })
@@ -318,10 +495,28 @@ export default function TeamPage() {
                 <h1 className="text-3xl font-bold">Team</h1>
                 <p className="text-muted-foreground mt-1">Manage team members and their roles</p>
               </div>
-              <Button onClick={() => setInviteDialogOpen(true)}>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Invite Member
-              </Button>
+              <div className="flex gap-2">
+                {invitations.length > 0 && (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowInvitations(true)}
+                  >
+                    <Mail className="w-4 h-4 mr-2" />
+                    Invitations ({invitations.length})
+                  </Button>
+                )}
+                <Button 
+                  variant="outline"
+                  onClick={handleLeaveWorkspace}
+                  className="text-red-600 hover:bg-red-50"
+                >
+                  Leave Workspace
+                </Button>
+                <Button onClick={() => setInviteDialogOpen(true)}>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Invite Member
+                </Button>
+              </div>
             </div>
 
             {/* Stats */}
@@ -413,13 +608,20 @@ export default function TeamPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-12 w-12">
-                          <AvatarImage src={member.user.avatar} alt={member.user.name} />
-                          <AvatarFallback>
-                            {member.user.name.split(' ').map(n => n[0]).join('')}
+                          <AvatarImage 
+                            src={member.user.avatar || getDefaultAvatarByIndex(member.user.id.charCodeAt(0)).url} 
+                            alt={member.user.name || member.user.email} 
+                          />
+                          <AvatarFallback className={
+                            member.user.avatar 
+                              ? '' 
+                              : generateInitialsAvatar(member.user.name || member.user.email).backgroundColor
+                          }>
+                            {generateInitialsAvatar(member.user.name || member.user.email).initials}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <CardTitle className="text-lg">{member.user.name}</CardTitle>
+                          <CardTitle className="text-lg">{member.user.name || member.user.email}</CardTitle>
                           <CardDescription>{member.user.email}</CardDescription>
                         </div>
                       </div>
@@ -591,6 +793,60 @@ export default function TeamPage() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invitations Dialog */}
+      <Dialog open={showInvitations} onOpenChange={setShowInvitations}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Pending Invitations</DialogTitle>
+            <DialogDescription>
+              Review and respond to your workspace invitations
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {invitations.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">
+                No pending invitations
+              </p>
+            ) : (
+              invitations.map((invitation: any) => (
+                <Card key={invitation.id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-semibold">{invitation.workspace.name}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Invited by {invitation.inviter.name} ({invitation.inviter.email})
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Role: <Badge variant="outline">{invitation.role}</Badge>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Expires: {new Date(invitation.expiresAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleAcceptInvitation(invitation.id)}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeclineInvitation(invitation.id)}
+                      >
+                        Decline
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -34,8 +34,7 @@ const priorityOptions = [
 ]
 
 interface CreateTaskModalProps {
-  projects: Array<{ id: string; name: string; color: string }>
-  users: Array<{ id: string; name: string; avatar?: string }>
+  projects: Array<{ id: string; name: string; color: string; workspaceId: string }>
   onCreateTask: (task: {
     title: string
     description?: string
@@ -48,8 +47,21 @@ interface CreateTaskModalProps {
   children: React.ReactNode
 }
 
-export function CreateTaskModal({ projects, users, onCreateTask, children }: CreateTaskModalProps) {
+interface WorkspaceMember {
+  id: string
+  user: {
+    id: string
+    name: string
+    email: string
+    avatar?: string
+  }
+  role: string
+}
+
+export function CreateTaskModal({ projects, onCreateTask, children }: CreateTaskModalProps) {
   const [open, setOpen] = useState(false)
+  const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMember[]>([])
+  const [loadingMembers, setLoadingMembers] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -61,6 +73,33 @@ export function CreateTaskModal({ projects, users, onCreateTask, children }: Cre
   })
   const [showCalendar, setShowCalendar] = useState(false)
   const [newTag, setNewTag] = useState("")
+
+  // Fetch workspace members when project is selected
+  useEffect(() => {
+    if (formData.projectId) {
+      const selectedProject = projects.find(p => p.id === formData.projectId)
+      if (selectedProject) {
+        fetchWorkspaceMembers(selectedProject.workspaceId)
+      }
+    } else {
+      setWorkspaceMembers([])
+    }
+  }, [formData.projectId, projects])
+
+  const fetchWorkspaceMembers = async (workspaceId: string) => {
+    setLoadingMembers(true)
+    try {
+      const response = await fetch(`/api/workspaces/${workspaceId}/members`)
+      if (response.ok) {
+        const members = await response.json()
+        setWorkspaceMembers(members)
+      }
+    } catch (error) {
+      console.error('Error fetching workspace members:', error)
+    } finally {
+      setLoadingMembers(false)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -108,7 +147,7 @@ export function CreateTaskModal({ projects, users, onCreateTask, children }: Cre
   }
 
   const selectedProject = projects.find(p => p.id === formData.projectId)
-  const selectedUser = users.find(u => u.id === formData.assigneeId)
+  const selectedMember = workspaceMembers.find(m => m.user.id === formData.assigneeId)
   const selectedPriority = priorityOptions.find(p => p.value === formData.priority)
 
   return (
@@ -189,17 +228,17 @@ export function CreateTaskModal({ projects, users, onCreateTask, children }: Cre
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="w-full justify-start">
-                    {selectedUser ? (
+                    {selectedMember ? (
                       <>
                         <div className="w-6 h-6 rounded-full bg-gray-200 mr-2 flex items-center justify-center text-xs">
-                          {selectedUser.name.split(' ').map(n => n[0]).join('')}
+                          {(selectedMember.user.name || selectedMember.user.email).split(' ').map(n => n[0]).join('')}
                         </div>
-                        {selectedUser.name}
+                        {selectedMember.user.name || selectedMember.user.email}
                       </>
                     ) : (
                       <>
                         <User className="mr-2 h-4 w-4" />
-                        Unassigned
+                        {loadingMembers ? "Loading..." : "Unassigned"}
                       </>
                     )}
                   </Button>
@@ -211,18 +250,27 @@ export function CreateTaskModal({ projects, users, onCreateTask, children }: Cre
                     <User className="mr-2 h-4 w-4" />
                     Unassigned
                   </DropdownMenuItem>
-                  {users.map((user) => (
-                    <DropdownMenuItem
-                      key={user.id}
-                      onClick={() => setFormData(prev => ({ ...prev, assigneeId: user.id }))}
-                      className="flex items-center gap-2"
-                    >
-                      <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs">
-                        {user.name.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      {user.name}
+                  {formData.projectId ? (
+                    workspaceMembers.map((member) => (
+                      <DropdownMenuItem
+                        key={member.user.id}
+                        onClick={() => setFormData(prev => ({ ...prev, assigneeId: member.user.id }))}
+                        className="flex items-center gap-2"
+                      >
+                        <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs">
+                          {(member.user.name || member.user.email).split(' ').map(n => n[0]).join('')}
+                        </div>
+                        <div>
+                          <div className="font-medium">{member.user.name || member.user.email}</div>
+                          <div className="text-xs text-muted-foreground">{member.user.email}</div>
+                        </div>
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <DropdownMenuItem disabled>
+                      <div className="text-muted-foreground text-sm">Select a project first</div>
                     </DropdownMenuItem>
-                  ))}
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

@@ -41,9 +41,10 @@ interface SortableTaskCardProps {
   onStatusChange?: (taskId: string, status: TaskStatus) => void
   onEdit?: (task: any) => void
   onDelete?: (taskId: string) => void
+  currentUserId?: string
 }
 
-export function SortableTaskCard({ task, onStatusChange, onEdit, onDelete }: SortableTaskCardProps) {
+export function SortableTaskCard({ task, onStatusChange, onEdit, onDelete, currentUserId }: SortableTaskCardProps) {
   const {
     attributes,
     listeners,
@@ -72,6 +73,7 @@ export function SortableTaskCard({ task, onStatusChange, onEdit, onDelete }: Sor
         onStatusChange={onStatusChange}
         onEdit={onEdit}
         onDelete={onDelete}
+        currentUserId={currentUserId}
       />
     </div>
   )

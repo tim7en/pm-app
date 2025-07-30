@@ -57,6 +57,7 @@ interface DroppableColumnProps {
   onTaskUpdate?: (taskId: string, updates: any) => void
   onTaskDelete?: (taskId: string) => void
   onCreateTask?: (status: TaskStatus) => void
+  currentUserId?: string
 }
 
 export function DroppableColumn({ 
@@ -66,7 +67,8 @@ export function DroppableColumn({
   tasks, 
   onTaskUpdate, 
   onTaskDelete, 
-  onCreateTask 
+  onCreateTask,
+  currentUserId
 }: DroppableColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: status,
@@ -118,12 +120,13 @@ export function DroppableColumn({
             strategy={verticalListSortingStrategy}
           >
             {tasks.map((task) => (
-              <SortableTaskCard
+                            <SortableTaskCard
                 key={task.id}
                 task={task}
                 onStatusChange={(taskId, status) => onTaskUpdate?.(taskId, { status })}
-                onEdit={(task) => console.log('Edit task:', task)}
+                onEdit={(task) => onTaskUpdate?.(task.id, task)}
                 onDelete={onTaskDelete}
+                currentUserId={currentUserId}
               />
             ))}
           </SortableContext>

@@ -5,13 +5,15 @@ interface ProjectManagementProps {
   onProjectEdit: (project: any) => void
   onProjectDelete: (projectId: string) => Promise<boolean>
   onProjectToggleStar: (projectId: string) => void
+  currentUserId?: string
 }
 
 export function ProjectManagement({
   projects,
   onProjectEdit,
   onProjectDelete,
-  onProjectToggleStar
+  onProjectToggleStar,
+  currentUserId
 }: ProjectManagementProps) {
   return (
     <div className="space-y-6">
@@ -24,6 +26,7 @@ export function ProjectManagement({
               onEdit={onProjectEdit}
               onDelete={onProjectDelete}
               onToggleStar={onProjectToggleStar}
+              currentUserId={currentUserId}
             />
           ))
         ) : (

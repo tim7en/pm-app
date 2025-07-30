@@ -6,10 +6,11 @@ import { getAuthSession } from '@/lib/auth'
 // PUT /api/workspaces/[id]/members/[memberId] - Update member role
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; memberId: string } }
+  { params }: { params: Promise<{ id: string; memberId: string }> }
 ) {
   try {
     const session = await getAuthSession(request)
+    const { id, memberId } = await params
     
     if (!session) {
       return NextResponse.json(
@@ -33,7 +34,7 @@ export async function PUT(
       where: {
         userId_workspaceId: {
           userId: session.user.id,
-          workspaceId: params.id
+          workspaceId: id
         }
       }
     })
@@ -47,7 +48,7 @@ export async function PUT(
 
     // Get the member to update
     const memberToUpdate = await db.workspaceMember.findUnique({
-      where: { id: params.memberId },
+      where: { id: memberId },
       include: {
         user: {
           select: { id: true, name: true, email: true, avatar: true }
@@ -55,7 +56,7 @@ export async function PUT(
       }
     })
 
-    if (!memberToUpdate || memberToUpdate.workspaceId !== params.id) {
+    if (!memberToUpdate || memberToUpdate.workspaceId !== id) {
       return NextResponse.json(
         { error: 'Member not found' },
         { status: 404 }
@@ -72,7 +73,7 @@ export async function PUT(
 
     // Update member role
     const updatedMember = await db.workspaceMember.update({
-      where: { id: params.memberId },
+      where: { id: memberId },
       data: { role: role as Role },
       include: {
         user: {
@@ -94,10 +95,11 @@ export async function PUT(
 // DELETE /api/workspaces/[id]/members/[memberId] - Remove member from workspace
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; memberId: string } }
+  { params }: { params: Promise<{ id: string; memberId: string }> }
 ) {
   try {
     const session = await getAuthSession(request)
+    const { id, memberId } = await params
     
     if (!session) {
       return NextResponse.json(
@@ -111,7 +113,7 @@ export async function DELETE(
       where: {
         userId_workspaceId: {
           userId: session.user.id,
-          workspaceId: params.id
+          workspaceId: id
         }
       }
     })
@@ -125,10 +127,10 @@ export async function DELETE(
 
     // Get the member to remove
     const memberToRemove = await db.workspaceMember.findUnique({
-      where: { id: params.memberId }
+      where: { id: memberId }
     })
 
-    if (!memberToRemove || memberToRemove.workspaceId !== params.id) {
+    if (!memberToRemove || memberToRemove.workspaceId !== id) {
       return NextResponse.json(
         { error: 'Member not found' },
         { status: 404 }
@@ -145,7 +147,7 @@ export async function DELETE(
 
     // Remove member from workspace
     await db.workspaceMember.delete({
-      where: { id: params.memberId }
+      where: { id: memberId }
     })
 
     return NextResponse.json({ success: true })

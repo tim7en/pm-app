@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { generateInitialsAvatar, getDefaultAvatarByIndex } from "@/lib/avatars"
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +20,7 @@ import {
   CheckCircle2,
   Circle,
   User,
+  UserCheck,
   Flag
 } from "lucide-react"
 import { TaskStatus, Priority } from "@prisma/client"
@@ -59,6 +61,7 @@ interface TaskCardProps {
   onStatusChange?: (taskId: string, status: TaskStatus) => void
   onEdit?: (task: any) => void
   onDelete?: (taskId: string) => void
+  currentUserId?: string
 }
 
 const statusColors = {
@@ -82,7 +85,7 @@ const priorityLabels = {
   [Priority.URGENT]: "Urgent",
 }
 
-export function TaskCard({ task, onStatusChange, onEdit, onDelete }: TaskCardProps) {
+export function TaskCard({ task, onStatusChange, onEdit, onDelete, currentUserId }: TaskCardProps) {
   const [isHovered, setIsHovered] = useState(false)
 
   const handleStatusToggle = () => {
@@ -170,6 +173,14 @@ export function TaskCard({ task, onStatusChange, onEdit, onDelete }: TaskCardPro
           <span className="text-xs text-muted-foreground">
             {priorityLabels[task.priority]}
           </span>
+          
+          {/* Assignment badge */}
+          {currentUserId && task.assignee?.id === currentUserId && (
+            <Badge variant="outline" className="text-xs text-blue-600 border-blue-200">
+              <UserCheck className="h-3 w-3 mr-1" />
+              Assigned to you
+            </Badge>
+          )}
         </div>
 
         {/* Tags */}
@@ -242,9 +253,16 @@ export function TaskCard({ task, onStatusChange, onEdit, onDelete }: TaskCardPro
             {/* Assignee */}
             {task.assignee ? (
               <Avatar className="h-5 w-5">
-                <AvatarImage src={task.assignee.avatar} alt={task.assignee.name} />
-                <AvatarFallback className="text-xs">
-                  {task.assignee.name.split(' ').map(n => n[0]).join('')}
+                <AvatarImage 
+                  src={task.assignee.avatar || getDefaultAvatarByIndex(task.assignee.id.charCodeAt(0)).url} 
+                  alt={task.assignee.name} 
+                />
+                <AvatarFallback className={`text-xs ${
+                  task.assignee.avatar 
+                    ? '' 
+                    : generateInitialsAvatar(task.assignee.name).backgroundColor
+                }`}>
+                  {generateInitialsAvatar(task.assignee.name).initials}
                 </AvatarFallback>
               </Avatar>
             ) : (

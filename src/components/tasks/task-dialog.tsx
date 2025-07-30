@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -41,6 +41,8 @@ import { CalendarIcon, Plus, X } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { TaskStatus, Priority } from "@prisma/client"
+import { useAuth } from "@/contexts/AuthContext"
+import { TaskAttachments } from "./task-attachments"
 
 const taskSchema = z.object({
   title: z.string().min(1, "Task title is required"),
@@ -62,6 +64,17 @@ const taskSchema = z.object({
 
 type TaskFormData = z.infer<typeof taskSchema>
 
+interface WorkspaceMember {
+  id: string
+  user: {
+    id: string
+    name: string
+    email: string
+    avatar?: string
+  }
+  role: string
+}
+
 interface TaskDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -77,8 +90,14 @@ interface TaskDialogProps {
     tags: Array<{ name: string; color: string }>
     subtasks: Array<{ title: string; isCompleted: boolean }>
   }
-  projects: Array<{ id: string; name: string; color: string }>
-  users: Array<{ id: string; name: string; avatar?: string }>
+  projects: Array<{ 
+    id: string
+    name: string
+    color: string
+    workspaceId: string
+    owner?: { id: string; name: string }
+    isOwner?: boolean
+  }>
   onSubmit: (data: TaskFormData) => Promise<void>
   isSubmitting?: boolean
 }
@@ -99,11 +118,15 @@ export function TaskDialog({
   onOpenChange,
   task,
   projects,
-  users,
   onSubmit,
   isSubmitting = false,
 }: TaskDialogProps) {
+  const { user, currentWorkspace } = useAuth()
   const [calendarOpen, setCalendarOpen] = useState(false)
+  const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMember[]>([])
+  const [loadingMembers, setLoadingMembers] = useState(false)
+  const [userRole, setUserRole] = useState<string>('MEMBER')
+  const [selectedProjectOwnership, setSelectedProjectOwnership] = useState<boolean>(false)
 
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
@@ -120,6 +143,62 @@ export function TaskDialog({
     },
   })
 
+  // Watch project changes to fetch workspace members and check ownership
+  const watchedProjectId = form.watch("projectId")
+
+  useEffect(() => {
+    if (currentWorkspace && user) {
+      // Get user's role in current workspace
+      fetchUserRole()
+    }
+  }, [currentWorkspace, user])
+
+  useEffect(() => {
+    if (watchedProjectId) {
+      const selectedProject = projects.find(p => p.id === watchedProjectId)
+      if (selectedProject) {
+        fetchWorkspaceMembers(selectedProject.workspaceId)
+        // Check if user is project owner
+        setSelectedProjectOwnership(selectedProject.owner?.id === user?.id || selectedProject.isOwner === true)
+      }
+    } else {
+      setWorkspaceMembers([])
+      setSelectedProjectOwnership(false)
+    }
+  }, [watchedProjectId, projects, user])
+
+  const fetchUserRole = async () => {
+    if (!currentWorkspace || !user) return
+    
+    try {
+      const response = await fetch(`/api/workspaces/${currentWorkspace.id}/members`)
+      if (response.ok) {
+        const members = await response.json()
+        const currentMember = members.find((member: any) => member.user.id === user.id)
+        if (currentMember) {
+          setUserRole(currentMember.role)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user role:', error)
+    }
+  }
+
+  const fetchWorkspaceMembers = async (workspaceId: string) => {
+    setLoadingMembers(true)
+    try {
+      const response = await fetch(`/api/workspaces/${workspaceId}/members`)
+      if (response.ok) {
+        const members = await response.json()
+        setWorkspaceMembers(members)
+      }
+    } catch (error) {
+      console.error('Error fetching workspace members:', error)
+    } finally {
+      setLoadingMembers(false)
+    }
+  }
+
   const { fields: tagFields, append: appendTag, remove: removeTag } = useFieldArray({
     control: form.control,
     name: "tags",
@@ -131,15 +210,45 @@ export function TaskDialog({
   })
 
   const handleSubmit = async (data: TaskFormData) => {
-    // Convert "unassigned" to empty string for the API
+    // Check if user can create tasks for this project
+    const selectedProject = projects.find(p => p.id === data.projectId)
+    const isProjectOwner = selectedProject?.owner?.id === user?.id || selectedProject?.isOwner === true
+    const canCreateTask = userRole === 'OWNER' || userRole === 'ADMIN' || isProjectOwner
+
+    if (!canCreateTask) {
+      // This shouldn't happen if UI is properly restricted, but as a safeguard
+      return
+    }
+
+    // Convert "unassigned" to undefined for the API
     const processedData = {
       ...data,
-      assigneeId: data.assigneeId === "unassigned" ? "" : data.assigneeId
+      assigneeId: data.assigneeId === "unassigned" ? undefined : data.assigneeId
     }
     await onSubmit(processedData)
     form.reset()
     onOpenChange(false)
   }
+
+  // Filter projects based on user role
+  const availableProjects = projects.filter(project => {
+    // OWNER and ADMIN can create tasks in any project
+    if (userRole === 'OWNER' || userRole === 'ADMIN') {
+      return true
+    }
+    // MEMBER can only create tasks in projects they own
+    return project.owner?.id === user?.id || project.isOwner === true
+  })
+
+  // Filter assignees based on user role and project ownership
+  const availableAssignees = workspaceMembers.filter(member => {
+    // If user is OWNER/ADMIN or project owner, they can assign to anyone
+    if (userRole === 'OWNER' || userRole === 'ADMIN' || selectedProjectOwnership) {
+      return true
+    }
+    // Otherwise, can only assign to themselves
+    return member.user.id === user?.id
+  })
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -204,17 +313,23 @@ export function TaskDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {projects.map((project) => (
-                          <SelectItem key={project.id} value={project.id}>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: project.color }}
-                              />
-                              {project.name}
-                            </div>
+                        {availableProjects.length > 0 ? (
+                          availableProjects.map((project) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: project.color }}
+                                />
+                                {project.name}
+                              </div>
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="__no_projects__" disabled>
+                            No projects available for task creation
                           </SelectItem>
-                        ))}
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -231,16 +346,35 @@ export function TaskDialog({
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select assignee" />
+                          <SelectValue placeholder={loadingMembers ? "Loading..." : "Select assignee"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="unassigned">Unassigned</SelectItem>
-                        {users.map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.name}
+                        {form.watch("projectId") ? (
+                          availableAssignees.length > 0 ? (
+                            availableAssignees.map((member) => (
+                              <SelectItem key={member.user.id} value={member.user.id}>
+                                <div className="flex items-center gap-2">
+                                  <span>{member.user.name || member.user.email}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    ({member.role})
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="__no_members__" disabled>
+                              {userRole === 'MEMBER' && !selectedProjectOwnership 
+                                ? "You can only assign tasks to yourself" 
+                                : "No members available"}
+                            </SelectItem>
+                          )
+                        ) : (
+                          <SelectItem value="__select_project__" disabled>
+                            Select a project first
                           </SelectItem>
-                        ))}
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -448,6 +582,14 @@ export function TaskDialog({
                 </Button>
               </div>
             </div>
+
+            {/* Attachments - only show for existing tasks */}
+            {task && (
+              <div>
+                <FormLabel>Attachments</FormLabel>
+                <TaskAttachments taskId={task.id} />
+              </div>
+            )}
 
             <DialogFooter>
               <Button

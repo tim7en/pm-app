@@ -50,6 +50,7 @@ interface Task {
     id: string
     name: string
     color: string
+    workspaceId: string
   }
   commentCount: number
   attachmentCount: number
@@ -67,7 +68,7 @@ export default function TasksPage() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const { apiCall } = useAPI()
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, currentWorkspace, user } = useAuth()
   const [tasks, setTasks] = useState<Task[]>([])
   const [projects, setProjects] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
@@ -104,17 +105,19 @@ export default function TasksPage() {
       return
     }
     
-    if (isAuthenticated) {
+    if (isAuthenticated && currentWorkspace) {
       fetchTasks()
       fetchProjects()
       fetchUsers()
     }
-  }, [isAuthenticated, isLoading, router])
+  }, [isAuthenticated, isLoading, currentWorkspace, router])
 
   const fetchTasks = async () => {
+    if (!currentWorkspace) return
+    
     try {
       console.log('Fetching tasks with authentication...')
-      const response = await apiCall('/api/tasks')
+      const response = await apiCall(`/api/tasks?workspaceId=${currentWorkspace.id}`)
       if (response.ok) {
         const data = await response.json()
         console.log('Tasks fetched successfully:', data.length)
@@ -130,8 +133,10 @@ export default function TasksPage() {
   }
 
   const fetchProjects = async () => {
+    if (!currentWorkspace) return
+    
     try {
-      const response = await apiCall('/api/projects')
+      const response = await apiCall(`/api/projects?workspaceId=${currentWorkspace.id}`)
       if (response.ok) {
         const data = await response.json()
         setProjects(data)
@@ -158,17 +163,23 @@ export default function TasksPage() {
     try {
       const response = await apiCall('/api/tasks', {
         method: 'POST',
-        body: JSON.stringify({
-          ...taskData,
-          creatorId: 'default-user-id'
-        })
+        body: JSON.stringify(taskData)
       })
       
       if (response.ok) {
         await fetchTasks()
+        setTaskDialogOpen(false)
+        setEditingTask(null)
         toast({
           title: "Task created",
           description: "Task has been created successfully.",
+        })
+      } else {
+        const errorData = await response.json()
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to create task",
+          variant: "destructive",
         })
       }
     } catch (error) {
@@ -332,10 +343,6 @@ export default function TasksPage() {
                   <Filter className="w-4 h-4 mr-2" />
                   Filter
                 </Button>
-                <Button size="sm" onClick={() => setTaskDialogOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  New Task
-                </Button>
               </div>
             </div>
 
@@ -496,6 +503,7 @@ export default function TasksPage() {
                     setTaskDialogOpen(true)
                   }}
                   onCreateTask={() => setTaskDialogOpen(true)}
+                  currentUserId={user?.id}
                 />
               </TabsContent>
               
@@ -505,6 +513,7 @@ export default function TasksPage() {
                   onTaskUpdate={handleTaskUpdate}
                   onTaskDelete={handleDeleteTask}
                   onCreateTask={() => setTaskDialogOpen(true)}
+                  currentUserId={user?.id}
                 />
               </TabsContent>
             </Tabs>
@@ -521,7 +530,6 @@ export default function TasksPage() {
         }}
         task={editingTask ? convertTaskForDialog(editingTask) : undefined}
         projects={projects}
-        users={users}
         onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
       />
     </div>

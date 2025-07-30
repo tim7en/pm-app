@@ -16,6 +16,8 @@ interface DashboardOverviewProps {
   onProjectDelete: (projectId: string) => Promise<boolean>
   onProjectToggleStar: (projectId: string) => void
   onCreateProject: () => void
+  onClearActivity?: () => void
+  currentUserId?: string
 }
 
 export function DashboardOverview({ 
@@ -28,10 +30,24 @@ export function DashboardOverview({
   onProjectEdit,
   onProjectDelete,
   onProjectToggleStar,
-  onCreateProject
+  onCreateProject,
+  onClearActivity,
+  currentUserId
 }: DashboardOverviewProps) {
-  // Recent tasks (limit to 5 for display)
-  const recentTasks = tasks.slice(0, 5)
+  // Recent tasks - prioritize user's assigned tasks, then created tasks, then others
+  const getUserRecentTasks = () => {
+    if (!currentUserId) return tasks.slice(0, 8) // Show more tasks when scrollable
+    
+    const assignedTasks = tasks.filter(task => task.assigneeId === currentUserId)
+    const createdTasks = tasks.filter(task => task.creatorId === currentUserId && task.assigneeId !== currentUserId)
+    const otherTasks = tasks.filter(task => task.assigneeId !== currentUserId && task.creatorId !== currentUserId)
+    
+    // Combine and limit to 8 total for better display with scrolling
+    const recentTasks = [...assignedTasks, ...createdTasks, ...otherTasks].slice(0, 8)
+    return recentTasks
+  }
+  
+  const recentTasks = getUserRecentTasks()
   
   // Active projects
   const activeProjects = projects.filter(p => p.status === 'ACTIVE')
@@ -44,19 +60,33 @@ export function DashboardOverview({
           <Card>
             <CardHeader>
               <CardTitle>Recent Tasks</CardTitle>
-              <CardDescription>Your latest tasks and updates</CardDescription>
+              <CardDescription>
+                Your assigned and created tasks, prioritized for your attention
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
               {recentTasks.length > 0 ? (
-                recentTasks.map((task) => (
-                  <TaskCard 
-                    key={task.id} 
-                    task={task} 
-                    onStatusChange={onTaskStatusChange}
-                    onEdit={onTaskEdit}
-                    onDelete={onTaskDelete}
-                  />
-                ))
+                <>
+                  <div className="max-h-96 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
+                    {recentTasks.map((task) => (
+                      <TaskCard 
+                        key={task.id} 
+                        task={task} 
+                        onStatusChange={onTaskStatusChange}
+                        onEdit={onTaskEdit}
+                        onDelete={onTaskDelete}
+                        currentUserId={currentUserId}
+                      />
+                    ))}
+                  </div>
+                  {recentTasks.length === 8 && tasks.length > 8 && (
+                    <div className="text-center pt-3 border-t mt-3">
+                      <p className="text-xs text-muted-foreground">
+                        Showing {recentTasks.length} of {tasks.length} tasks • Visit Tasks page for more
+                      </p>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <p>No tasks yet. Create your first task to get started!</p>
@@ -67,14 +97,20 @@ export function DashboardOverview({
         </div>
 
         {/* Activity Feed */}
-        <ActivityFeed activities={activities} />
+        <ActivityFeed 
+          activities={activities} 
+          currentUserId={currentUserId}
+          onClearActivity={onClearActivity}
+        />
       </div>
 
       {/* Active Projects */}
       <Card>
         <CardHeader>
           <CardTitle>Active Projects</CardTitle>
-          <CardDescription>Your ongoing projects and progress</CardDescription>
+          <CardDescription>
+            Projects you own and participate in - manage your work efficiently
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -85,6 +121,7 @@ export function DashboardOverview({
                 onEdit={onProjectEdit}
                 onDelete={onProjectDelete}
                 onToggleStar={onProjectToggleStar}
+                currentUserId={currentUserId}
               />
             ))}
             <Card 

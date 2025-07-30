@@ -47,6 +47,7 @@ async function main() {
 
   // Get Timur as the main user
   const timurUser = createdUsers.find(u => u.email === 'tim7en@gmail.com')!
+  const zusabiUser = createdUsers.find(u => u.email === 'zusabi@gmail.com')!
 
   // Create workspace for Timur
   const workspace = await prisma.workspace.upsert({
@@ -75,7 +76,23 @@ async function main() {
     }
   })
 
-  console.log('✅ Created workspace and ownership')
+  // Add Zusabi as workspace member (invited by Timur)
+  await prisma.workspaceMember.upsert({
+    where: {
+      userId_workspaceId: {
+        userId: zusabiUser.id,
+        workspaceId: workspace.id
+      }
+    },
+    update: {},
+    create: {
+      userId: zusabiUser.id,
+      workspaceId: workspace.id,
+      role: 'ADMIN' // Since person who invites becomes admin
+    }
+  })
+
+  console.log('✅ Created workspace and memberships')
 
   // Create sample projects
   const project1 = await prisma.project.create({

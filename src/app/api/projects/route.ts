@@ -18,11 +18,17 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search')
     const status = searchParams.get('status')
+    const workspaceId = searchParams.get('workspaceId')
 
     // Get all accessible projects for the user
     let projects = await getAccessibleProjects(session.user.id)
     
-    // Apply filters
+    // Filter by workspace if specified
+    if (workspaceId) {
+      projects = projects.filter(project => project.workspaceId === workspaceId)
+    }
+    
+    // Apply other filters
     if (status && Object.values(ProjectStatus).includes(status as ProjectStatus)) {
       projects = projects.filter(project => project.status === status)
     }
@@ -50,6 +56,7 @@ export async function GET(request: NextRequest) {
         description: project.description,
         color: project.color,
         status: project.status,
+        workspaceId: project.workspaceId,
         owner: {
           id: project.owner.id,
           name: project.owner.name,

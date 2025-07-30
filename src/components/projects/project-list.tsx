@@ -35,9 +35,10 @@ interface ProjectListProps {
   projects: Project[]
   onProjectCreate?: () => void
   onProjectUpdate?: (projectId: string, updates: Partial<Project>) => void
+  currentUserId?: string
 }
 
-export function ProjectList({ projects, onProjectCreate, onProjectUpdate }: ProjectListProps) {
+export function ProjectList({ projects, onProjectCreate, onProjectUpdate, currentUserId }: ProjectListProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [sortBy, setSortBy] = useState<string>("updatedAt")
@@ -209,7 +210,7 @@ export function ProjectList({ projects, onProjectCreate, onProjectUpdate }: Proj
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProjects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+            <ProjectCard key={project.id} project={project} currentUserId={currentUserId} />
           ))}
         </div>
       ) : (

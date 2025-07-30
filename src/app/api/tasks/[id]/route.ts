@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { TaskStatus, Priority } from '@prisma/client'
+import { getAuthSession } from '@/lib/auth'
+import { canUserPerformAction, canUserPerformTaskAction } from '@/lib/roles'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getAuthSession(request)
+    
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const task = await db.task.findUnique({
       where: { id: params.id },
       include: {
@@ -17,7 +28,7 @@ export async function GET(
           select: { id: true, name: true, avatar: true }
         },
         project: {
-          select: { id: true, name: true, color: true }
+          select: { id: true, name: true, color: true, workspaceId: true }
         },
         comments: {
           include: {
@@ -45,6 +56,31 @@ export async function GET(
       )
     }
 
+    // Check if user has access to this task
+    // User can access if they are:
+    // 1. A member of the task's workspace
+    // 2. Assigned to the task
+    // 3. The creator of the task
+    const workspaceMember = await db.workspaceMember.findUnique({
+      where: {
+        userId_workspaceId: {
+          userId: session.user.id,
+          workspaceId: task.project.workspaceId
+        }
+      }
+    })
+
+    const hasAccess = workspaceMember || 
+                     task.assigneeId === session.user.id || 
+                     task.creatorId === session.user.id
+
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Access denied to this task' },
+        { status: 403 }
+      )
+    }
+
     // Transform the data
     const transformedTask = {
       ...task,
@@ -69,6 +105,15 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getAuthSession(request)
+    
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const {
       title,
@@ -80,6 +125,98 @@ export async function PUT(
       dueDate,
       tags
     } = body
+
+    // Get the existing task to validate permissions
+    const existingTask = await db.task.findUnique({
+      where: { id: params.id },
+      include: {
+        project: {
+          include: {
+            workspace: true
+          }
+        }
+      }
+    })
+
+    if (!existingTask) {
+      return NextResponse.json(
+        { error: 'Task not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check if user has permission to update this task
+    const hasPermission = await canUserPerformTaskAction(
+      session.user.id,
+      params.id,
+      'canEditTask'
+    )
+
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to update tasks in this workspace' },
+        { status: 403 }
+      )
+    }
+
+    // If changing assignee, validate assignment permissions
+    if (assigneeId !== undefined && assigneeId !== existingTask.assigneeId) {
+      if (assigneeId && assigneeId.trim() !== '') {
+        // Get user's role and project ownership
+        const userWorkspaceMember = await db.workspaceMember.findUnique({
+          where: {
+            userId_workspaceId: {
+              userId: session.user.id,
+              workspaceId: existingTask.project.workspaceId
+            }
+          }
+        })
+
+        const isProjectOwner = existingTask.project.ownerId === session.user.id
+        const isWorkspaceOwnerOrAdmin = userWorkspaceMember?.role === 'OWNER' || userWorkspaceMember?.role === 'ADMIN'
+
+        // If user is a regular member and not project owner, they can only assign to themselves
+        if (!isWorkspaceOwnerOrAdmin && !isProjectOwner && assigneeId !== session.user.id) {
+          return NextResponse.json(
+            { error: 'Members can only assign tasks to themselves unless they are project owners' },
+            { status: 403 }
+          )
+        }
+
+        // Check if assignee is a member of the workspace
+        const assigneeWorkspaceMember = await db.workspaceMember.findUnique({
+          where: {
+            userId_workspaceId: {
+              userId: assigneeId,
+              workspaceId: existingTask.project.workspaceId
+            }
+          }
+        })
+
+        if (!assigneeWorkspaceMember) {
+          return NextResponse.json(
+            { error: 'Assignee is not a member of the project workspace' },
+            { status: 400 }
+          )
+        }
+      }
+    }
+
+    // If changing project, validate project access and creation permissions
+    if (projectId !== undefined && projectId !== existingTask.projectId) {
+      const hasProjectCreatePermission = await canUserPerformAction(
+        session.user.id,
+        existingTask.project.workspaceId,
+        'canCreateTask'
+      )
+
+      if (!hasProjectCreatePermission) {
+        return NextResponse.json(
+          { error: 'Insufficient permissions to move task to this project' },
+          { status: 403 }
+        )
+      }
+    }
 
     const updateData: any = {}
     if (title !== undefined) updateData.title = title
@@ -170,6 +307,48 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getAuthSession(request)
+    
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    // Get the existing task to validate permissions
+    const existingTask = await db.task.findUnique({
+      where: { id: params.id },
+      include: {
+        project: {
+          include: {
+            workspace: true
+          }
+        }
+      }
+    })
+
+    if (!existingTask) {
+      return NextResponse.json(
+        { error: 'Task not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check if user has permission to delete this task
+    const hasPermission = await canUserPerformTaskAction(
+      session.user.id,
+      params.id,
+      'canDeleteTask'
+    )
+
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to delete tasks in this workspace' },
+        { status: 403 }
+      )
+    }
+
     // Delete related tags first
     await db.taskTag.deleteMany({
       where: { taskId: params.id }

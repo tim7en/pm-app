@@ -6,10 +6,11 @@ import { getAuthSession } from '@/lib/auth'
 // GET /api/workspaces/[id]/members - Get workspace members
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getAuthSession(request)
+    const { id } = await params
     
     if (!session) {
       return NextResponse.json(
@@ -23,7 +24,7 @@ export async function GET(
       where: {
         userId_workspaceId: {
           userId: session.user.id,
-          workspaceId: params.id
+          workspaceId: id
         }
       }
     })
@@ -37,7 +38,7 @@ export async function GET(
 
     // Get all workspace members
     const members = await db.workspaceMember.findMany({
-      where: { workspaceId: params.id },
+      where: { workspaceId: id },
       include: {
         user: {
           select: { id: true, name: true, email: true, avatar: true }
@@ -59,10 +60,11 @@ export async function GET(
 // POST /api/workspaces/[id]/members - Invite user to workspace by email
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getAuthSession(request)
+    const { id } = await params
     
     if (!session) {
       return NextResponse.json(
@@ -86,7 +88,7 @@ export async function POST(
       where: {
         userId_workspaceId: {
           userId: session.user.id,
-          workspaceId: params.id
+          workspaceId: id
         }
       }
     })
@@ -103,11 +105,59 @@ export async function POST(
       where: { email: email.toLowerCase() }
     })
 
+    // If user doesn't exist, create invitation for when they register
     if (!userToInvite) {
-      return NextResponse.json(
-        { error: 'User not found. The user must register first.' },
-        { status: 404 }
-      )
+      // Check if invitation already exists
+      const existingInvitation = await db.workspaceInvitation.findUnique({
+        where: {
+          email_workspaceId: {
+            email: email.toLowerCase(),
+            workspaceId: id
+          }
+        }
+      })
+
+      if (existingInvitation && existingInvitation.status === 'PENDING' && existingInvitation.expiresAt > new Date()) {
+        return NextResponse.json(
+          { error: 'Invitation already sent to this email' },
+          { status: 400 }
+        )
+      }
+
+      // Create or update invitation
+      const invitation = await db.workspaceInvitation.upsert({
+        where: {
+          email_workspaceId: {
+            email: email.toLowerCase(),
+            workspaceId: id
+          }
+        },
+        update: {
+          role: role as Role,
+          status: 'PENDING',
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+        },
+        create: {
+          email: email.toLowerCase(),
+          workspaceId: id,
+          role: role as Role,
+          invitedBy: session.user.id,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+        },
+        include: {
+          workspace: {
+            select: { id: true, name: true }
+          },
+          inviter: {
+            select: { id: true, name: true, email: true }
+          }
+        }
+      })
+
+      return NextResponse.json({
+        message: 'Invitation sent successfully. The user will be notified when they register or log in.',
+        invitation
+      }, { status: 201 })
     }
 
     // Check if user is already a member
@@ -115,7 +165,7 @@ export async function POST(
       where: {
         userId_workspaceId: {
           userId: userToInvite.id,
-          workspaceId: params.id
+          workspaceId: id
         }
       }
     })
@@ -127,16 +177,52 @@ export async function POST(
       )
     }
 
-    // Add user to workspace
-    const member = await db.workspaceMember.create({
-      data: {
-        userId: userToInvite.id,
-        workspaceId: params.id,
-        role: role as Role
+    // Check if there's already a pending invitation
+    const existingInvitation = await db.workspaceInvitation.findUnique({
+      where: {
+        email_workspaceId: {
+          email: email.toLowerCase(),
+          workspaceId: id
+        }
+      }
+    })
+
+    if (existingInvitation && existingInvitation.status === 'PENDING' && existingInvitation.expiresAt > new Date()) {
+      return NextResponse.json(
+        { error: 'An invitation is already pending for this user' },
+        { status: 400 }
+      )
+    }
+
+    // Create or update invitation for existing user
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+    
+    const invitation = await db.workspaceInvitation.upsert({
+      where: {
+        email_workspaceId: {
+          email: email.toLowerCase(),
+          workspaceId: id
+        }
+      },
+      update: {
+        role: role as Role,
+        invitedBy: session.user.id,
+        status: 'PENDING',
+        expiresAt
+      },
+      create: {
+        email: email.toLowerCase(),
+        workspaceId: id,
+        role: role as Role,
+        invitedBy: session.user.id,
+        expiresAt
       },
       include: {
-        user: {
-          select: { id: true, name: true, email: true, avatar: true }
+        workspace: {
+          select: { id: true, name: true }
+        },
+        inviter: {
+          select: { id: true, name: true, email: true }
         }
       }
     })
@@ -145,13 +231,16 @@ export async function POST(
     await db.notification.create({
       data: {
         title: 'Workspace Invitation',
-        message: `You have been invited to join a workspace with ${role.toLowerCase()} role`,
-        type: 'PROJECT_INVITE',
+        message: `You have been invited to join ${invitation.workspace.name} with ${role.toLowerCase()} role by ${invitation.inviter.name}`,
+        type: 'WORKSPACE_INVITE',
         userId: userToInvite.id
       }
     })
 
-    return NextResponse.json(member, { status: 201 })
+    return NextResponse.json({
+      message: 'Invitation sent successfully',
+      invitation
+    }, { status: 201 })
   } catch (error) {
     console.error('Error inviting workspace member:', error)
     return NextResponse.json(

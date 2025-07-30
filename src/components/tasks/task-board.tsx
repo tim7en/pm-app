@@ -63,6 +63,7 @@ interface TaskBoardProps {
   onTaskUpdate?: (taskId: string, updates: any) => void
   onTaskDelete?: (taskId: string) => void
   onCreateTask?: (status: TaskStatus) => void
+  currentUserId?: string
 }
 
 const statusColumns = [
@@ -72,7 +73,7 @@ const statusColumns = [
   { id: TaskStatus.DONE, title: "Done", color: "bg-green-100 text-green-800" },
 ]
 
-export function TaskBoard({ tasks, onTaskUpdate, onTaskDelete, onCreateTask }: TaskBoardProps) {
+export function TaskBoard({ tasks, onTaskUpdate, onTaskDelete, onCreateTask, currentUserId }: TaskBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
   
   const sensors = useSensors(
@@ -151,6 +152,7 @@ export function TaskBoard({ tasks, onTaskUpdate, onTaskDelete, onCreateTask }: T
                 onTaskUpdate={onTaskUpdate}
                 onTaskDelete={onTaskDelete}
                 onCreateTask={onCreateTask}
+                currentUserId={currentUserId}
               />
             )
           })}
@@ -164,6 +166,7 @@ export function TaskBoard({ tasks, onTaskUpdate, onTaskDelete, onCreateTask }: T
             onStatusChange={(taskId, status) => onTaskUpdate?.(taskId, { status })}
             onEdit={(task) => console.log('Edit task:', task)}
             onDelete={onTaskDelete}
+            currentUserId={currentUserId}
           />
         ) : null}
       </DragOverlay>

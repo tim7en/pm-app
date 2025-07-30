@@ -3,13 +3,14 @@ import { db } from '@/lib/db'
 import { ProjectRole } from '@prisma/client'
 import { getAuthSession } from '@/lib/auth'
 
-// GET /api/projects/[id]/members - Get project members
+// GET /api/projects/[id]/members - Get project members (includes workspace members)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getAuthSession(request)
+    const { id } = await params
     
     if (!session) {
       return NextResponse.json(
@@ -18,8 +19,22 @@ export async function GET(
       )
     }
 
-    const members = await db.projectMember.findMany({
-      where: { projectId: params.id },
+    // Get project details including workspace
+    const project = await db.project.findUnique({
+      where: { id },
+      select: { workspaceId: true }
+    })
+
+    if (!project) {
+      return NextResponse.json(
+        { error: 'Project not found' },
+        { status: 404 }
+      )
+    }
+
+    // Get direct project members
+    const projectMembers = await db.projectMember.findMany({
+      where: { projectId: id },
       include: {
         user: {
           select: { id: true, name: true, email: true, avatar: true }
@@ -27,7 +42,55 @@ export async function GET(
       }
     })
 
-    return NextResponse.json(members)
+    // Get workspace members who can be assigned to tasks
+    const workspaceMembers = await db.workspaceMember.findMany({
+      where: { workspaceId: project.workspaceId },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true, avatar: true }
+        }
+      }
+    })
+
+    // Combine and deduplicate members
+    const allMembers: any[] = []
+    const seenUserIds = new Set()
+
+    // Add project members first (they have explicit roles)
+    for (const member of projectMembers) {
+      allMembers.push({
+        id: member.id,
+        userId: member.userId,
+        projectId: member.projectId,
+        role: member.role,
+        joinedAt: member.joinedAt,
+        user: member.user,
+        source: 'project'
+      })
+      seenUserIds.add(member.userId)
+    }
+
+    // Add workspace members who aren't already project members
+    for (const wsMember of workspaceMembers) {
+      if (!seenUserIds.has(wsMember.userId)) {
+        // Map workspace role to project role
+        let projectRole: ProjectRole = 'MEMBER'
+        if (wsMember.role === 'OWNER') projectRole = 'ADMIN'
+        else if (wsMember.role === 'ADMIN') projectRole = 'MANAGER'
+
+        allMembers.push({
+          id: `ws-${wsMember.id}`,
+          userId: wsMember.userId,
+          projectId: id,
+          role: projectRole,
+          joinedAt: wsMember.joinedAt,
+          user: wsMember.user,
+          source: 'workspace'
+        })
+      }
+    }
+
+    return NextResponse.json(allMembers)
   } catch (error) {
     console.error('Error fetching project members:', error)
     return NextResponse.json(
@@ -40,10 +103,11 @@ export async function GET(
 // POST /api/projects/[id]/members - Add project member
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getAuthSession(request)
+    const { id } = await params
     
     if (!session) {
       return NextResponse.json(
@@ -82,7 +146,7 @@ export async function POST(
 
     // Check if user has permission to add members (project owner or admin)
     const project = await db.project.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         members: {
           where: { userId: session.user.id }
@@ -114,7 +178,7 @@ export async function POST(
       where: {
         userId_projectId: {
           userId: targetUserId,
-          projectId: params.id
+          projectId: id
         }
       }
     })
@@ -130,7 +194,7 @@ export async function POST(
     const member = await db.projectMember.create({
       data: {
         userId: targetUserId,
-        projectId: params.id,
+        projectId: id,
         role: role as ProjectRole
       },
       include: {

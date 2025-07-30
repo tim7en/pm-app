@@ -13,19 +13,25 @@ interface User {
 interface Workspace {
   id: string
   name: string
+  description?: string
   role: string
+  memberCount: number
+  projectCount: number
 }
 
 interface AuthContextType {
   user: User | null
   workspaces: Workspace[]
   currentWorkspaceId: string | null
+  currentWorkspace: Workspace | null
   isLoading: boolean
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
   logout: () => Promise<void>
   setCurrentWorkspace: (workspaceId: string) => void
+  refreshWorkspaces: () => Promise<void>
+  createWorkspace: (name: string, description?: string) => Promise<Workspace>
   getAuthHeaders: () => Record<string, string>
 }
 
@@ -166,16 +172,77 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentWorkspaceId(workspaceId)
   }
 
+  const refreshWorkspaces = async () => {
+    try {
+      console.log('Refreshing workspaces...')
+      const response = await fetch('/api/workspaces', {
+        headers: {
+          ...getAuthHeaders(),
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Workspaces refreshed:', data.length, 'workspaces found')
+        setWorkspaces(data)
+        
+        // If current workspace is not in the new list, reset it
+        if (currentWorkspaceId && !data.some((ws: Workspace) => ws.id === currentWorkspaceId)) {
+          console.log('Current workspace no longer available, clearing selection')
+          setCurrentWorkspaceId(null)
+        }
+        
+        return data
+      } else {
+        console.error('Failed to refresh workspaces:', response.status, response.statusText)
+        throw new Error('Failed to refresh workspaces')
+      }
+    } catch (error) {
+      console.error('Error refreshing workspaces:', error)
+      throw error
+    }
+  }
+
+  const createWorkspace = async (name: string, description?: string): Promise<Workspace> => {
+    const response = await fetch('/api/workspaces', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ name, description })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Failed to create workspace')
+    }
+
+    const newWorkspace = await response.json()
+    setWorkspaces(prev => [...prev, newWorkspace])
+    
+    // If this is the first workspace, make it current
+    if (workspaces.length === 0) {
+      setCurrentWorkspaceId(newWorkspace.id)
+    }
+    
+    return newWorkspace
+  }
+
+  const currentWorkspace = workspaces.find(w => w.id === currentWorkspaceId) || null
+
   const value: AuthContextType = {
     user,
     workspaces,
     currentWorkspaceId,
+    currentWorkspace,
     isLoading,
     isAuthenticated,
     login,
     register,
     logout,
     setCurrentWorkspace,
+    refreshWorkspaces,
+    createWorkspace,
     getAuthHeaders,
   }
 

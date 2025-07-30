@@ -19,7 +19,9 @@ import {
   Clock, 
   MoreHorizontal,
   Star,
-  FolderOpen
+  FolderOpen,
+  Crown,
+  UserCheck
 } from "lucide-react"
 import { ProjectStatus } from "@prisma/client"
 
@@ -51,6 +53,7 @@ interface ProjectCardProps {
   onDelete?: (projectId: string) => void
   onToggleStar?: (projectId: string) => void
   onViewTasks?: (projectId: string) => void
+  currentUserId?: string
 }
 
 const statusColors = {
@@ -70,7 +73,8 @@ export function ProjectCard({
   onEdit, 
   onDelete, 
   onToggleStar, 
-  onViewTasks 
+  onViewTasks,
+  currentUserId 
 }: ProjectCardProps) {
   const progressPercentage = (project.taskCount || 0) > 0 
     ? Math.round(((project.completedTaskCount || 0) / (project.taskCount || 1)) * 100)
@@ -100,6 +104,19 @@ export function ProjectCard({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-semibold text-base truncate">{project.name}</h3>
+                {/* Project participation badges */}
+                {currentUserId && project.owner?.id === currentUserId && (
+                  <Badge variant="outline" className="text-xs text-amber-600 border-amber-200">
+                    <Crown className="h-3 w-3 mr-1" />
+                    Creator
+                  </Badge>
+                )}
+                {currentUserId && project.owner?.id !== currentUserId && (
+                  <Badge variant="outline" className="text-xs text-blue-600 border-blue-200">
+                    <UserCheck className="h-3 w-3 mr-1" />
+                    Member
+                  </Badge>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"

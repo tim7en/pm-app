@@ -12,12 +12,14 @@ import { DashboardStatsCards } from "./dashboard-stats"
 import { DashboardOverview } from "./dashboard-overview"
 import { TaskManagement } from "./task-management"
 import { ProjectManagement } from "./project-management"
-import { ActivityFeedFull } from "./activity-feed"
+import { ActivityFeed, ActivityFeedFull } from "./activity-feed"
 
 import { useDashboardData } from "@/hooks/use-dashboard-data"
 import { useDashboardActions } from "@/hooks/use-dashboard-actions"
+import { useAuth } from "@/contexts/AuthContext"
 
 export function DashboardContainer() {
+  const { user } = useAuth()
   const {
     stats,
     recentActivity,
@@ -27,7 +29,8 @@ export function DashboardContainer() {
     isLoading,
     refreshData,
     fetchProjects,
-    fetchTasks
+    fetchTasks,
+    addRealtimeActivity
   } = useDashboardData()
 
   const {
@@ -50,7 +53,18 @@ export function DashboardContainer() {
 
   const onCreateProject = async (projectData: any) => {
     const success = await handleCreateProject(projectData)
-    if (success) {
+    if (success && user) {
+      // Add real-time activity for project creation
+      addRealtimeActivity({
+        id: `realtime-project-created-${Date.now()}`,
+        type: 'project', 
+        message: `created project '${projectData.name}'`,
+        user: {
+          name: user.name || 'You',
+          avatar: user.avatar || ''
+        },
+        timestamp: new Date()
+      })
       await fetchProjects()
     }
   }
@@ -66,7 +80,18 @@ export function DashboardContainer() {
 
   const onCreateTask = async (taskData: any) => {
     const success = await handleCreateTask(taskData)
-    if (success) {
+    if (success && user) {
+      // Add real-time activity for task creation
+      addRealtimeActivity({
+        id: `realtime-task-created-${Date.now()}`,
+        type: 'task',
+        message: `created task '${taskData.title}'`,
+        user: {
+          name: user.name || 'You',
+          avatar: user.avatar || ''
+        },
+        timestamp: new Date()
+      })
       await fetchTasks()
     }
   }
@@ -99,6 +124,36 @@ export function DashboardContainer() {
   const onTaskStatusChange = async (taskId: string, status: string) => {
     const success = await handleTaskStatusChange(taskId, status)
     if (success) {
+      // Find the task that was updated
+      const task = tasks.find(t => t.id === taskId)
+      if (task && user) {
+        // Add real-time activity
+        let message = `updated task '${task.title}'`
+        if (status === 'DONE') {
+          message = `completed task '${task.title}'`
+        } else if (status === 'IN_PROGRESS') {
+          message = `started working on '${task.title}'`
+        }
+        
+        addRealtimeActivity({
+          id: `realtime-task-${taskId}-${Date.now()}`,
+          type: 'task',
+          message: message,
+          user: {
+            name: user.name || 'You',
+            avatar: user.avatar || ''
+          },
+          timestamp: new Date()
+        })
+      }
+      await fetchTasks()
+    }
+    return success
+  }
+
+  const onTaskUpdate = async (taskId: string, updates: any) => {
+    const success = await handleUpdateTask(taskId, updates)
+    if (success) {
       await fetchTasks()
     }
     return success
@@ -107,6 +162,47 @@ export function DashboardContainer() {
   const onImportData = async (data: any) => {
     await handleImportData(data)
     await refreshData()
+  }
+
+  const onClearActivity = async () => {
+    if (!user) return
+    
+    try {
+      // Archive current activities to logs
+      const response = await fetch('/api/activity-logs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          activities: recentActivity.map(activity => ({
+            type: activity.type,
+            message: activity.message,
+            userId: user.id,
+            timestamp: activity.timestamp
+          }))
+        }),
+      })
+
+      if (response.ok) {
+        // Clear data and refresh
+        await refreshData()
+        
+        // Add confirmation activity
+        addRealtimeActivity({
+          id: `activity-cleared-${Date.now()}`,
+          type: 'workspace',
+          message: 'cleared recent activity and archived to logs',
+          user: {
+            name: user.name || 'You',
+            avatar: user.avatar || ''
+          },
+          timestamp: new Date()
+        })
+      }
+    } catch (error) {
+      console.error('Failed to clear activity:', error)
+    }
   }
 
   if (isLoading) {
@@ -169,6 +265,8 @@ export function DashboardContainer() {
                     console.log('Toggle star:', projectId)
                   }}
                   onCreateProject={() => setProjectDialogOpen(true)}
+                  onClearActivity={onClearActivity}
+                  currentUserId={user?.id}
                 />
               </TabsContent>
 
@@ -179,6 +277,7 @@ export function DashboardContainer() {
                   taskView={taskView}
                   onTaskViewChange={setTaskView}
                   onTaskStatusChange={onTaskStatusChange}
+                  onTaskUpdate={onTaskUpdate}
                   onTaskDelete={onDeleteTask}
                   onCreateTask={(status) => {
                     if (status) {
@@ -204,7 +303,11 @@ export function DashboardContainer() {
               </TabsContent>
 
               <TabsContent value="activity" className="space-y-6">
-                <ActivityFeedFull activities={recentActivity} />
+                <ActivityFeed 
+                  activities={recentActivity} 
+                  currentUserId={user?.id}
+                  onClearActivity={onClearActivity}
+                />
               </TabsContent>
             </Tabs>
           </div>

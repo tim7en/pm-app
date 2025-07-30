@@ -20,7 +20,7 @@ export async function getUserProjectRole(userId: string, projectId: string): Pro
   // Check if user is the project owner
   const project = await db.project.findUnique({
     where: { id: projectId },
-    select: { ownerId: true }
+    select: { ownerId: true, workspaceId: true }
   })
   
   if (project?.ownerId === userId) {
@@ -38,7 +38,36 @@ export async function getUserProjectRole(userId: string, projectId: string): Pro
     select: { role: true }
   })
   
-  return membership?.role || null
+  if (membership) {
+    return membership.role
+  }
+  
+  // Check workspace membership - workspace members can participate in projects
+  if (project?.workspaceId) {
+    const workspaceMember = await db.workspaceMember.findUnique({
+      where: {
+        userId_workspaceId: {
+          userId,
+          workspaceId: project.workspaceId
+        }
+      },
+      select: { role: true }
+    })
+    
+    if (workspaceMember) {
+      // Workspace owners and admins get ADMIN role in projects
+      if (workspaceMember.role === 'OWNER') {
+        return 'ADMIN'
+      }
+      if (workspaceMember.role === 'ADMIN') {
+        return 'MANAGER'
+      }
+      // Regular workspace members get MEMBER role in projects
+      return 'MEMBER'
+    }
+  }
+  
+  return null
 }
 
 /**
@@ -59,6 +88,12 @@ export async function getAccessibleProjects(userId: string) {
             avatar: true
           }
         },
+        workspace: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
         _count: {
           select: {
             tasks: true,
@@ -70,12 +105,21 @@ export async function getAccessibleProjects(userId: string) {
     })
   }
   
-  // Regular users can only see projects they own or are members of
+  // Get user's accessible workspaces
+  const userWorkspaces = await db.workspaceMember.findMany({
+    where: { userId },
+    select: { workspaceId: true }
+  })
+  
+  const workspaceIds = userWorkspaces.map(w => w.workspaceId)
+  
+  // Regular users can see projects they own, are members of, or are in their accessible workspaces
   return db.project.findMany({
     where: {
       OR: [
         { ownerId: userId },
-        { members: { some: { userId } } }
+        { members: { some: { userId } } },
+        { workspaceId: { in: workspaceIds } }
       ]
     },
     include: {
@@ -85,6 +129,12 @@ export async function getAccessibleProjects(userId: string) {
           name: true,
           email: true,
           avatar: true
+        }
+      },
+      workspace: {
+        select: {
+          id: true,
+          name: true
         }
       },
       _count: {
@@ -133,7 +183,8 @@ export async function getAccessibleTasks(userId: string, projectId?: string) {
       select: {
         id: true,
         name: true,
-        color: true
+        color: true,
+        workspaceId: true
       }
     },
     tags: {
@@ -188,16 +239,25 @@ export async function getAccessibleTasks(userId: string, projectId?: string) {
     })))
   }
   
-  // Regular users can only see tasks from projects they own or are members of
+  // Regular users can see tasks from projects they own, are members of, or are assigned to
   return db.task.findMany({
     where: {
       ...baseWhere,
-      project: {
-        OR: [
-          { ownerId: userId },
-          { members: { some: { userId } } }
-        ]
-      }
+      OR: [
+        // Tasks assigned to the user
+        { assigneeId: userId },
+        // Tasks created by the user
+        { creatorId: userId },
+        // Tasks from projects they own or are members of
+        {
+          project: {
+            OR: [
+              { ownerId: userId },
+              { members: { some: { userId } } }
+            ]
+          }
+        }
+      ]
     },
     include: includeOptions,
     orderBy: { updatedAt: 'desc' }
@@ -211,6 +271,42 @@ export async function getAccessibleTasks(userId: string, projectId?: string) {
 }
 
 /**
+ * Check if user can perform a specific action on a task
+ */
+export async function canUserPerformTaskAction(
+  userId: string, 
+  taskId: string, 
+  action: 'canEditTask' | 'canDeleteTask'
+): Promise<boolean> {
+  // Get the task with project and assignee info
+  const task = await db.task.findUnique({
+    where: { id: taskId },
+    include: {
+      project: {
+        select: { id: true, ownerId: true, workspaceId: true }
+      }
+    }
+  })
+
+  if (!task) {
+    return false
+  }
+
+  // If user is assigned to the task, they can edit it (but maybe not delete it)
+  if (task.assigneeId === userId) {
+    return action === 'canEditTask'
+  }
+
+  // If user is the creator of the task, they can edit and delete it
+  if (task.creatorId === userId) {
+    return true
+  }
+
+  // Otherwise, use project-level permissions
+  return canUserPerformAction(userId, task.project.id, action)
+}
+
+/**
  * Check if user can perform a specific action in a project
  */
 export async function canUserPerformAction(
@@ -218,11 +314,43 @@ export async function canUserPerformAction(
   projectId: string, 
   action: 'canCreateTask' | 'canAssignTask' | 'canEditTask' | 'canDeleteTask' | 'canVerifyTask'
 ): Promise<boolean> {
-  // Get user's system role
+  // Get user's system role (workspace role)
   const systemRole = await getUserSystemRole(userId)
   
-  // System admins and owners can do everything
-  if (systemRole === 'ADMIN' || systemRole === 'OWNER') {
+  // Get project info to check ownership
+  const project = await db.project.findUnique({
+    where: { id: projectId },
+    select: { ownerId: true, workspaceId: true }
+  })
+
+  if (!project) {
+    return false
+  }
+
+  // Check if user is project owner
+  const isProjectOwner = project.ownerId === userId
+
+  // Check workspace role
+  let workspaceRole: string | null = null
+  if (project.workspaceId) {
+    const workspaceMember = await db.workspaceMember.findUnique({
+      where: {
+        userId_workspaceId: {
+          userId,
+          workspaceId: project.workspaceId
+        }
+      }
+    })
+    workspaceRole = workspaceMember?.role || null
+  }
+  
+  // Workspace OWNER and ADMIN can do everything
+  if (workspaceRole === 'OWNER' || workspaceRole === 'ADMIN') {
+    return true
+  }
+  
+  // Project owner can do everything in their project
+  if (isProjectOwner) {
     return true
   }
   
@@ -234,6 +362,12 @@ export async function canUserPerformAction(
     return true
   }
   
+  // For task creation, workspace members can only create tasks in projects they own
+  if (action === 'canCreateTask') {
+    // Only project owners or workspace OWNER/ADMIN can create tasks
+    return isProjectOwner || workspaceRole === 'OWNER' || workspaceRole === 'ADMIN'
+  }
+  
   // Project manager permissions
   if (projectRole === 'MANAGER') {
     return true
@@ -241,12 +375,12 @@ export async function canUserPerformAction(
   
   // Officer permissions
   if (projectRole === 'OFFICER') {
-    return ['canCreateTask', 'canEditTask'].includes(action)
+    return ['canEditTask'].includes(action)
   }
   
-  // Member permissions
+  // Member permissions - members can only edit tasks, not create them in projects they don't own
   if (projectRole === 'MEMBER') {
-    return action === 'canCreateTask'
+    return action === 'canEditTask'
   }
   
   // Default: no permissions
