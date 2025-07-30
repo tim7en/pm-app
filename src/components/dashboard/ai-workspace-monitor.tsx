@@ -33,56 +33,101 @@ interface WorkspaceHealthData {
 
 interface AIWorkspaceMonitorProps {
   workspaceId?: string
-  refreshInterval?: number // in minutes
+  // Remove auto-refresh interval - only manual refresh
 }
 
-export function AIWorkspaceMonitor({ workspaceId, refreshInterval = 5 }: AIWorkspaceMonitorProps) {
+export function AIWorkspaceMonitor({ workspaceId }: AIWorkspaceMonitorProps) {
   const [healthData, setHealthData] = useState<WorkspaceHealthData | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)  // Start with false, not true
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!workspaceId) return
-
-    fetchHealthData()
-    
-    // Set up auto-refresh
-    const interval = setInterval(fetchHealthData, refreshInterval * 60 * 1000)
-    return () => clearInterval(interval)
-  }, [workspaceId, refreshInterval])
+    // Auto-fetch data when workspaceId is available
+    if (workspaceId) {
+      fetchHealthData()
+    }
+  }, [workspaceId])
 
   const fetchHealthData = async () => {
-    if (!workspaceId) return
+    if (!workspaceId) {
+      console.log('❌ No workspaceId provided')
+      return
+    }
 
     try {
       setLoading(true)
       setError(null)
       
-      const response = await fetch(`/api/ai/workspace-health?workspaceId=${workspaceId}`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch workspace health data')
+      console.log('🔍 Fetching workspace health data for:', workspaceId)
+      
+      // Get auth token from localStorage or cookies
+      const authToken = localStorage.getItem('auth-token') 
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
       }
       
-      const data = await response.json()
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`
+      }
+      
+      const url = `/api/ai/workspace-health?workspaceId=${workspaceId}`
+      console.log('🌐 Fetching URL:', url)
+      
+      const response = await fetch(url, { headers })
+      
+      console.log('📡 API Response status:', response.status)
+      console.log('📡 Response headers:', response.headers)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ API Error Response:', errorText)
+        
+        let errorData
+        try {
+          errorData = JSON.parse(errorText)
+        } catch {
+          errorData = { error: errorText }
+        }
+        
+        const errorMessage = errorData.error || `Failed to fetch workspace health data (${response.status})`
+        console.error('❌ API Error:', errorMessage)
+        throw new Error(errorMessage)
+      }
+      
+      const responseText = await response.text()
+      console.log('📄 Raw response:', responseText.substring(0, 200) + '...')
+      
+      let data
+      try {
+        data = JSON.parse(responseText)
+      } catch (parseError) {
+        console.error('❌ JSON Parse Error:', parseError)
+        throw new Error('Invalid JSON response from server')
+      }
+      
+      console.log('✅ Health data received:', data)
       
       // Transform API response to component format
       const healthData: WorkspaceHealthData = {
-        overallScore: data.healthReport.overallScore || 0,
-        productivityScore: data.healthReport.productivityScore || 0,
-        workLifeBalance: data.healthReport.workLifeBalance || 0,
-        activeUsers: data.workspaceData.userActivities.filter((u: any) => !u.isInactive).length,
-        totalUsers: data.workspaceData.workspace.memberCount,
-        isWorkingHours: data.workspaceData.workingHours.isCurrentlyWorkHours,
-        inactiveUsers: data.inactiveUsers.length,
-        needsBreakUsers: data.breakReminders.length,
-        recommendations: data.healthReport.recommendations || []
+        overallScore: data.healthReport?.overallScore || 0,
+        productivityScore: data.healthReport?.productivityScore || 0,
+        workLifeBalance: data.healthReport?.workLifeBalance || 0,
+        activeUsers: data.workspaceData?.userActivities?.filter((u: any) => !u.isInactive)?.length || 0,
+        totalUsers: data.workspaceData?.workspace?.memberCount || 0,
+        isWorkingHours: data.workspaceData?.workingHours?.isCurrentlyWorkHours || false,
+        inactiveUsers: data.inactiveUsers?.length || 0,
+        needsBreakUsers: data.breakReminders?.length || 0,
+        recommendations: data.healthReport?.recommendations || []
       }
       
+      console.log('🔄 Transformed health data:', healthData)
       setHealthData(healthData)
       setLastUpdated(new Date())
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred'
+      console.error('❌ fetchHealthData error:', errorMessage)
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -140,10 +185,49 @@ export function AIWorkspaceMonitor({ workspaceId, refreshInterval = 5 }: AIWorks
             size="sm" 
             onClick={fetchHealthData}
             className="mt-2"
+            disabled={loading}
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Retry
           </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Show initial state when no data is loaded yet
+  if (!healthData && !loading) {
+    return (
+      <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-blue-600" />
+                AI Workspace Monitor
+              </CardTitle>
+              <CardDescription>
+                Click refresh to view AI-powered productivity and wellness insights
+              </CardDescription>
+            </div>
+            <Button 
+              variant="default" 
+              size="sm" 
+              onClick={fetchHealthData}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Get Insights
+            </Button>
+          </div>
+        </CardHeader>
+        
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground">
+            <Brain className="h-12 w-12 mx-auto mb-3 text-blue-400" />
+            <p>Ready to analyze your workspace health</p>
+            <p className="text-xs mt-1">Click "Get Insights" to start monitoring</p>
+          </div>
         </CardContent>
       </Card>
     )

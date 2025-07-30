@@ -82,12 +82,12 @@ export function TaskComments({ taskId, comments, onUpdate }: TaskCommentsProps) 
               <Avatar className="h-8 w-8">
                 <AvatarImage src={comment.user.avatar} />
                 <AvatarFallback className="text-xs">
-                  {comment.user.name.charAt(0)}
+                  {comment.user.name?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-medium">{comment.user.name}</span>
+                  <span className="text-sm font-medium">{comment.user.name || 'Unknown User'}</span>
                   <span className="text-xs text-gray-500">
                     {format(new Date(comment.createdAt), 'MMM d, yyyy at h:mm a')}
                   </span>

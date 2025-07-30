@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Zap, CheckCircle2, FolderOpen, MessageCircle, Users, Bell, GitBranch, Archive } from "lucide-react"
+import { Zap, CheckCircle2, FolderOpen, MessageCircle, Users, Bell, GitBranch, Archive, Activity } from "lucide-react"
 import { ActivityItem } from "@/hooks/use-dashboard-data"
 import { useState } from "react"
 
@@ -11,9 +11,11 @@ interface ActivityFeedProps {
   className?: string
   currentUserId?: string
   onClearActivity?: () => void
+  onRestoreActivity?: () => void
+  activitiesCleared?: boolean
 }
 
-export function ActivityFeed({ activities, className, currentUserId, onClearActivity }: ActivityFeedProps) {
+export function ActivityFeed({ activities, className, currentUserId, onClearActivity, onRestoreActivity, activitiesCleared }: ActivityFeedProps) {
   const formatTimeAgo = (date: Date) => {
     const now = new Date()
     const diff = now.getTime() - date.getTime()
@@ -139,13 +141,38 @@ export function ActivityFeed({ activities, className, currentUserId, onClearActi
           </>
         ) : (
           <div className="text-center py-8">
-            <Zap className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
-              No recent activity to show
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Activity from your workspace will appear here
-            </p>
+            {activitiesCleared ? (
+              <>
+                <Archive className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  Activities have been cleared and archived
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  You can restore recent activities if needed
+                </p>
+                {onRestoreActivity && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onRestoreActivity}
+                    className="mt-3"
+                  >
+                    <Activity className="h-3 w-3 mr-1" />
+                    Restore Activities
+                  </Button>
+                )}
+              </>
+            ) : (
+              <>
+                <Activity className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  No recent activity to show
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Activity from your workspace will appear here
+                </p>
+              </>
+            )}
           </div>
         )}
       </CardContent>
@@ -171,37 +198,8 @@ export function ActivityFeedFull({ activities }: ActivityFeedFullProps) {
     return `${days}d ago`
   }
 
-  // Mock activity data if none provided
-  const activityData: ActivityItem[] = activities.length > 0 ? activities : [
-    {
-      id: "1",
-      type: "task",
-      message: "completed task 'Design new landing page'",
-      user: { name: "John Doe", avatar: "" },
-      timestamp: new Date(Date.now() - 1000 * 60 * 5)
-    },
-    {
-      id: "2",
-      type: "comment",
-      message: "commented on 'Fix authentication bug'",
-      user: { name: "Jane Smith", avatar: "" },
-      timestamp: new Date(Date.now() - 1000 * 60 * 15)
-    },
-    {
-      id: "3",
-      type: "integration",
-      message: "Telegram notification sent for overdue task",
-      user: { name: "System", avatar: "" },
-      timestamp: new Date(Date.now() - 1000 * 60 * 30)
-    },
-    {
-      id: "4",
-      type: "project",
-      message: "created new project 'Marketing Campaign'",
-      user: { name: "Mike Johnson", avatar: "" },
-      timestamp: new Date(Date.now() - 1000 * 60 * 60)
-    }
-  ]
+  // Use real activity data only
+  const activityData: ActivityItem[] = activities
 
   return (
     <Card>
@@ -210,17 +208,18 @@ export function ActivityFeedFull({ activities }: ActivityFeedFullProps) {
         <CardDescription>Real-time updates from your projects and team</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {activityData.map((activity) => (
-          <div key={activity.id} className="flex items-start gap-4 p-4 rounded-lg border">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={activity.user.avatar} alt={activity.user.name} />
-              <AvatarFallback>
-                {activity.user.name.split(' ').map(n => n[0]).join('')}
-              </AvatarFallback>
-            </Avatar>
+        {activityData.length > 0 ? (
+          activityData.map((activity) => (
+            <div key={activity.id} className="flex items-start gap-4 p-4 rounded-lg border">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={activity.user.avatar} alt={activity.user.name || 'User'} />
+                <AvatarFallback>
+                  {activity.user.name ? activity.user.name.split(' ').map(n => n[0]).join('') : 'U'}
+                </AvatarFallback>
+              </Avatar>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <span className="font-medium">{activity.user.name}</span>
+                <span className="font-medium">{activity.user.name || 'Unknown User'}</span>
                 <Badge variant="outline" className="text-xs">
                   {activity.type}
                 </Badge>
@@ -233,7 +232,16 @@ export function ActivityFeedFull({ activities }: ActivityFeedFullProps) {
               </p>
             </div>
           </div>
-        ))}
+        ))
+        ) : (
+          <div className="text-center py-8">
+            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+              <Activity className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground">No recent activity</p>
+            <p className="text-sm text-muted-foreground">Activity will appear here as you work on tasks and projects</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

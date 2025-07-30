@@ -1,11 +1,13 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { ProjectDialog } from "@/components/projects/project-dialog"
 import { TaskDialog } from "@/components/tasks/task-dialog"
+import { ProjectInsightsDialog } from "@/components/projects/project-insights-dialog"
 
 import { DashboardHeader } from "./dashboard-header"
 import { DashboardStatsCards } from "./dashboard-stats"
@@ -27,11 +29,13 @@ export function DashboardContainer() {
     tasks,
     users,
     isLoading,
+    activitiesCleared,
     refreshData,
     fetchProjects,
     fetchTasks,
     addRealtimeActivity,
     clearRecentActivity,
+    restoreRecentActivity,
     setRecentActivity
   } = useDashboardData()
 
@@ -47,14 +51,27 @@ export function DashboardContainer() {
     handleImportData
   } = useDashboardActions()
 
+  const router = useRouter()
   const [projectDialogOpen, setProjectDialogOpen] = useState(false)
   const [taskDialogOpen, setTaskDialogOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<any>(null)
   const [editingTask, setEditingTask] = useState<any>(null)
   const [taskView, setTaskView] = useState<"list" | "board">("list")
+  const [insightsDialog, setInsightsDialog] = useState<{
+    open: boolean
+    projectId: string
+    projectName: string
+  }>({
+    open: false,
+    projectId: '',
+    projectName: ''
+  })
 
   const onCreateProject = async (projectData: any) => {
+    console.log('onCreateProject called with:', projectData)
     const success = await handleCreateProject(projectData)
+    console.log('Project creation result:', success)
+    
     if (success && user) {
       // Add real-time activity for project creation
       addRealtimeActivity({
@@ -67,7 +84,15 @@ export function DashboardContainer() {
         },
         timestamp: new Date()
       })
+      
+      // Refresh projects data
+      console.log('Refreshing projects after creation...')
       await fetchProjects()
+      
+      // Also refresh all data to ensure consistency
+      await refreshData()
+    } else {
+      console.error('Project creation failed')
     }
   }
 
@@ -170,6 +195,10 @@ export function DashboardContainer() {
     if (!user || recentActivity.length === 0) return
     
     try {
+      // Clear activities immediately to prevent re-appearance
+      const activitiesToArchive = [...recentActivity]
+      clearRecentActivity()
+      
       // Archive current activities to logs
       const response = await fetch('/api/activity-logs', {
         method: 'POST',
@@ -177,7 +206,7 @@ export function DashboardContainer() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          activities: recentActivity.map(activity => ({
+          activities: activitiesToArchive.map(activity => ({
             type: activity.type,
             message: activity.message,
             userId: user.id,
@@ -191,14 +220,11 @@ export function DashboardContainer() {
         const result = await response.json()
         console.log('Activities archived:', result)
         
-        // Clear all activities first
-        clearRecentActivity()
-        
-        // Add confirmation activity
+        // Add confirmation activity only if archiving was successful
         const confirmationActivity = {
           id: `activity-cleared-${Date.now()}`,
           type: 'workspace' as const,
-          message: `cleared and archived ${result.count || recentActivity.length} activities to logs`,
+          message: `cleared and archived ${result.count || activitiesToArchive.length} activities to logs`,
           user: {
             name: user.name || 'You',
             avatar: user.avatar || ''
@@ -209,6 +235,11 @@ export function DashboardContainer() {
         // Set only the confirmation activity
         setRecentActivity([confirmationActivity])
         
+        // Auto-clear the confirmation message after 5 seconds
+        setTimeout(() => {
+          setRecentActivity([])
+        }, 5000)
+        
       } else {
         const error = await response.json()
         console.error('Failed to archive activities:', error)
@@ -216,18 +247,39 @@ export function DashboardContainer() {
       }
     } catch (error) {
       console.error('Failed to clear activity:', error)
-      // Show error message to user
-      addRealtimeActivity({
+      
+      // Restore activities if archiving failed and show error
+      const errorActivity = {
         id: `activity-clear-error-${Date.now()}`,
-        type: 'notification',
-        message: 'failed to clear activity feed - please try again',
+        type: 'notification' as const,
+        message: 'System failed to clear activity feed - please try again',
         user: {
           name: 'System',
           avatar: ''
         },
         timestamp: new Date()
-      })
+      }
+      
+      // Show only the error message, don't restore old activities to prevent confusion
+      setRecentActivity([errorActivity])
+      
+      // Auto-clear the error message after 10 seconds
+      setTimeout(() => {
+        setRecentActivity([])
+      }, 10000)
     }
+  }
+
+  const onViewTasks = (projectId: string) => {
+    router.push(`/tasks?project=${projectId}`)
+  }
+
+  const onGenerateInsights = async (projectId: string, projectName: string) => {
+    setInsightsDialog({
+      open: true,
+      projectId,
+      projectName
+    })
   }
 
   if (isLoading) {
@@ -271,7 +323,7 @@ export function DashboardContainer() {
               </TabsList>
 
               <TabsContent value="overview" className="space-y-6">
-                <DashboardOverview
+                                <DashboardOverview
                   tasks={tasks}
                   projects={projects}
                   activities={recentActivity}
@@ -292,6 +344,10 @@ export function DashboardContainer() {
                   }}
                   onCreateProject={() => setProjectDialogOpen(true)}
                   onClearActivity={onClearActivity}
+                  onRestoreActivity={restoreRecentActivity}
+                  activitiesCleared={activitiesCleared}
+                  onViewTasks={onViewTasks}
+                  onGenerateInsights={onGenerateInsights}
                   currentUserId={user?.id}
                 />
               </TabsContent>
@@ -363,6 +419,14 @@ export function DashboardContainer() {
         projects={projects}
         onSubmit={editingTask ? onUpdateTask : onCreateTask}
         isSubmitting={isSubmitting}
+      />
+
+      {/* Project Insights Dialog */}
+      <ProjectInsightsDialog
+        open={insightsDialog.open}
+        onOpenChange={(open) => setInsightsDialog(prev => ({ ...prev, open }))}
+        projectId={insightsDialog.projectId}
+        projectName={insightsDialog.projectName}
       />
     </div>
   )

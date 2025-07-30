@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button"
 import { TaskCard } from "@/components/tasks/task-card"
 import { ProjectCard } from "@/components/projects/project-card"
 import { ActivityFeed } from "./activity-feed"
-import { AIWorkspaceMonitor } from "./ai-workspace-monitor"
-import { Plus, Brain, TrendingUp, Target, Lightbulb, Sparkles } from "lucide-react"
+// import { AIWorkspaceMonitor } from "./ai-workspace-monitor"
+import { TeamMembers } from "./team-members"
+import { Plus, CheckCircle, Clock, AlertTriangle, Users, FolderOpen, Calendar } from "lucide-react"
 import { ActivityItem } from "@/hooks/use-dashboard-data"
 import { useState, useEffect } from "react"
 
@@ -21,6 +22,10 @@ interface DashboardOverviewProps {
   onProjectToggleStar: (projectId: string) => void
   onCreateProject: () => void
   onClearActivity?: () => void
+  onRestoreActivity?: () => void
+  activitiesCleared?: boolean
+  onViewTasks?: (projectId: string) => void
+  onGenerateInsights?: (projectId: string, projectName: string) => void
   currentUserId?: string
   workspaceId?: string
 }
@@ -37,220 +42,219 @@ export function DashboardOverview({
   onProjectToggleStar,
   onCreateProject,
   onClearActivity,
+  onRestoreActivity,
+  activitiesCleared,
+  onViewTasks,
+  onGenerateInsights,
   currentUserId,
   workspaceId
 }: DashboardOverviewProps) {
-  const [aiInsights, setAiInsights] = useState<any>(null)
-  const [loadingInsights, setLoadingInsights] = useState(false)
-
-  // Generate AI insights for dashboard
-  useEffect(() => {
-    generateAiInsights()
-  }, [projects.length, tasks.length])
-
-  const generateAiInsights = async () => {
-    if (projects.length === 0) return
-    
-    setLoadingInsights(true)
-    try {
-      // Get insights for the most active project
-      const activeProject = projects.find(p => p.status === 'ACTIVE') || projects[0]
-      if (activeProject) {
-        const response = await fetch(`/api/ai/assess-project?projectId=${activeProject.id}`)
-        if (response.ok) {
-          const data = await response.json()
-          setAiInsights(data.assessment)
-        }
-      }
-    } catch (error) {
-      console.error('Error generating AI insights:', error)
-    } finally {
-      setLoadingInsights(false)
-    }
-  }
+  
+  // Calculate quick stats
+  const completedTasks = tasks.filter(task => task.status === 'DONE').length
+  const inProgressTasks = tasks.filter(task => task.status === 'IN_PROGRESS').length
+  const overdueTasks = tasks.filter(task => {
+    return task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'DONE'
+  }).length
+  const activeProjects = projects.filter(p => p.status === 'ACTIVE')
 
   // Recent tasks - prioritize user's assigned tasks, then created tasks, then others
   const getUserRecentTasks = () => {
-    if (!currentUserId) return tasks.slice(0, 8) // Show more tasks when scrollable
+    if (!currentUserId) return tasks.slice(0, 6)
     
     const assignedTasks = tasks.filter(task => task.assigneeId === currentUserId)
     const createdTasks = tasks.filter(task => task.creatorId === currentUserId && task.assigneeId !== currentUserId)
     const otherTasks = tasks.filter(task => task.assigneeId !== currentUserId && task.creatorId !== currentUserId)
     
-    // Combine and limit to 8 total for better display with scrolling
-    const recentTasks = [...assignedTasks, ...createdTasks, ...otherTasks].slice(0, 8)
+    // Combine and limit to 6 for better display
+    const recentTasks = [...assignedTasks, ...createdTasks, ...otherTasks].slice(0, 6)
     return recentTasks
   }
   
   const recentTasks = getUserRecentTasks()
-  
-  // Active projects
-  const activeProjects = projects.filter(p => p.status === 'ACTIVE')
 
   return (
     <div className="space-y-6">
-      {/* AI Insights Card */}
-      {aiInsights && (
-        <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-blue-600" />
-              AI Insights & Recommendations
-            </CardTitle>
-            <CardDescription>
-              Intelligent analysis of your workspace productivity
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-green-100">
-                  <Target className="h-4 w-4 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Efficiency Score</p>
-                  <p className="font-semibold">{aiInsights.efficiencyScore || 'N/A'}%</p>
-                </div>
+      {/* Quick Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <CheckCircle className="h-5 w-5 text-primary" />
               </div>
-              
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-blue-100">
-                  <TrendingUp className="h-4 w-4 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Completion Trend</p>
-                  <p className="font-semibold">{aiInsights.trend || 'Stable'}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-purple-100">
-                  <Sparkles className="h-4 w-4 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Focus Area</p>
-                  <p className="font-semibold">{aiInsights.focusArea || 'Balanced'}</p>
-                </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Completed</p>
+                <p className="text-2xl font-bold text-primary">{completedTasks}</p>
               </div>
             </div>
-            
-            {aiInsights.recommendations && aiInsights.recommendations.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium flex items-center gap-2">
-                  <Lightbulb className="h-4 w-4 text-yellow-600" />
-                  Smart Recommendations
-                </h4>
-                <div className="space-y-1">
-                  {aiInsights.recommendations.slice(0, 2).map((rec: string, index: number) => (
-                    <p key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                      <span className="text-blue-600 font-medium">•</span>
-                      {rec}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {loadingInsights && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                Analyzing workspace productivity...
-              </div>
-            )}
           </CardContent>
         </Card>
-      )}
 
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-blue-500/10">
+                <Clock className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">In Progress</p>
+                <p className="text-2xl font-bold text-blue-500">{inProgressTasks}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-red-500/10">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Overdue</p>
+                <p className="text-2xl font-bold text-red-500">{overdueTasks}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-green-500/10">
+                <FolderOpen className="h-5 w-5 text-green-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Active Projects</p>
+                <p className="text-2xl font-bold text-green-500">{activeProjects.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Tasks */}
-        <div className="lg:col-span-2">
+        {/* Left Column - Tasks and Projects */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Recent Tasks */}
           <Card>
-            <CardHeader>
-              <CardTitle>Recent Tasks</CardTitle>
-              <CardDescription>
-                Your assigned and created tasks, prioritized for your attention
-              </CardDescription>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">My Recent Tasks</CardTitle>
+                  <CardDescription>
+                    Your assigned and created tasks
+                  </CardDescription>
+                </div>
+                <Button variant="outline" size="sm" asChild>
+                  <a href="/tasks" className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    View All
+                  </a>
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {recentTasks.length > 0 ? (
-                <>
-                  <div className="max-h-96 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
-                    {recentTasks.map((task) => (
-                      <TaskCard 
-                        key={task.id} 
-                        task={task} 
-                        onStatusChange={onTaskStatusChange}
-                        onEdit={onTaskEdit}
-                        onDelete={onTaskDelete}
+                <div className="space-y-3">
+                  {recentTasks.map((task) => (
+                    <TaskCard 
+                      key={task.id} 
+                      task={task} 
+                      onStatusChange={onTaskStatusChange}
+                      onEdit={onTaskEdit}
+                      onDelete={onTaskDelete}
+                      currentUserId={currentUserId}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No tasks yet</p>
+                  <p className="text-sm text-muted-foreground">Create your first task to get started!</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Active Projects */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">Active Projects</CardTitle>
+                  <CardDescription>
+                    Projects you own and participate in
+                  </CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={onCreateProject} className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  New Project
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {activeProjects.length > 0 ? (
+                <div className="max-h-96 overflow-y-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-2">
+                    {activeProjects.map((project) => (
+                      <ProjectCard 
+                        key={project.id} 
+                        project={project}
+                        onEdit={onProjectEdit}
+                        onDelete={onProjectDelete}
+                        onToggleStar={onProjectToggleStar}
+                        onViewTasks={onViewTasks}
+                        onGenerateInsights={onGenerateInsights}
                         currentUserId={currentUserId}
                       />
                     ))}
                   </div>
-                  {recentTasks.length === 8 && tasks.length > 8 && (
-                    <div className="text-center pt-3 border-t mt-3">
-                      <p className="text-xs text-muted-foreground">
-                        Showing {recentTasks.length} of {tasks.length} tasks • Visit Tasks page for more
-                      </p>
-                    </div>
-                  )}
-                </>
+                </div>
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>No tasks yet. Create your first task to get started!</p>
+                <div className="text-center py-8">
+                  <FolderOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No active projects</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-2"
+                    onClick={onCreateProject}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Your First Project
+                  </Button>
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Activity Feed & AI Monitor */}
+        {/* Right Column - Activity and Team */}
         <div className="space-y-6">
           <ActivityFeed 
             activities={activities} 
             currentUserId={currentUserId}
             onClearActivity={onClearActivity}
+            onRestoreActivity={onRestoreActivity}
+            activitiesCleared={activitiesCleared}
           />
           
-          {/* AI Workspace Monitor */}
+          <TeamMembers 
+            workspaceId={workspaceId}
+            maxHeight="400px"
+          />
+          
+          {/* Commented out AI Workspace Monitor for now */}
+          {/* 
           <AIWorkspaceMonitor 
             workspaceId={workspaceId}
-            refreshInterval={5}
           />
+          */}
         </div>
       </div>
-
-      {/* Active Projects */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Active Projects</CardTitle>
-          <CardDescription>
-            Projects you own and participate in - manage your work efficiently
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {activeProjects.map((project) => (
-              <ProjectCard 
-                key={project.id} 
-                project={project}
-                onEdit={onProjectEdit}
-                onDelete={onProjectDelete}
-                onToggleStar={onProjectToggleStar}
-                currentUserId={currentUserId}
-              />
-            ))}
-            <Card 
-              className="border-dashed border-2 hover:border-primary/50 cursor-pointer transition-colors"
-              onClick={onCreateProject}
-            >
-              <CardContent className="flex flex-col items-center justify-center p-6 min-h-[200px]">
-                <Plus className="h-8 w-8 text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">Create New Project</p>
-              </CardContent>
-            </Card>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

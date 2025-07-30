@@ -58,6 +58,7 @@ interface ProjectCardProps {
   onDelete?: (projectId: string) => void
   onToggleStar?: (projectId: string) => void
   onViewTasks?: (projectId: string) => void
+  onGenerateInsights?: (projectId: string, projectName: string) => void
   currentUserId?: string
 }
 
@@ -79,6 +80,7 @@ export function ProjectCard({
   onDelete, 
   onToggleStar, 
   onViewTasks,
+  onGenerateInsights,
   currentUserId 
 }: ProjectCardProps) {
   const [aiAssessment, setAiAssessment] = useState<any>(null)
@@ -127,10 +129,10 @@ export function ProjectCard({
   const isOverdue = project.dueDate && new Date(project.dueDate) < new Date() && project.status !== ProjectStatus.COMPLETED
 
   return (
-    <Card className="group hover:shadow-md transition-all cursor-pointer">
+    <Card className="group hover:shadow-md transition-all cursor-pointer overflow-hidden">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-3 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
             <div 
               className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
               style={{ backgroundColor: project.color + '20' }}
@@ -138,25 +140,29 @@ export function ProjectCard({
               <FolderOpen className="h-5 w-5" style={{ color: project.color }} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-semibold text-base truncate">{project.name}</h3>
-                {/* Project participation badges */}
-                {currentUserId && project.owner?.id === currentUserId && (
-                  <Badge variant="outline" className="text-xs text-amber-600 border-amber-200">
-                    <Crown className="h-3 w-3 mr-1" />
-                    Creator
-                  </Badge>
-                )}
-                {currentUserId && project.owner?.id !== currentUserId && (
-                  <Badge variant="outline" className="text-xs text-blue-600 border-blue-200">
-                    <UserCheck className="h-3 w-3 mr-1" />
-                    Member
-                  </Badge>
-                )}
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-base break-words line-clamp-2 mb-1">{project.name}</h3>
+                  {/* Project participation badges */}
+                  <div className="flex flex-wrap items-center gap-1">
+                    {currentUserId && project.owner?.id === currentUserId && (
+                      <Badge variant="outline" className="text-xs text-amber-600 border-amber-200 flex-shrink-0">
+                        <Crown className="h-3 w-3 mr-1" />
+                        Creator
+                      </Badge>
+                    )}
+                    {currentUserId && project.owner?.id !== currentUserId && (
+                      <Badge variant="outline" className="text-xs text-blue-600 border-blue-200 flex-shrink-0">
+                        <UserCheck className="h-3 w-3 mr-1" />
+                        Member
+                      </Badge>
+                    )}
+                  </div>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 ml-auto"
+                  className="h-6 w-6 flex-shrink-0"
                   onClick={(e) => {
                     e.stopPropagation()
                     onToggleStar?.(project.id)
@@ -168,14 +174,14 @@ export function ProjectCard({
                 </Button>
               </div>
               {project.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                <p className="text-sm text-muted-foreground break-words line-clamp-2 mb-2 overflow-hidden">
                   {project.description}
                 </p>
               )}
               <div className="flex items-center gap-2">
                 <Badge 
                   variant="secondary" 
-                  className={`text-xs ${statusColors[project.status]}`}
+                  className={`text-xs ${statusColors[project.status]} flex-shrink-0`}
                 >
                   {statusLabels[project.status]}
                 </Badge>
@@ -202,7 +208,8 @@ export function ProjectCard({
           </div>
         </div>
 
-        {/* AI Assessment */}
+        {/* AI Assessment - Commented out automatic generation */}
+        {/* 
         {(aiAssessment || loadingAssessment) && project.status === ProjectStatus.ACTIVE && (
           <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
             <div className="flex items-center gap-2 mb-2">
@@ -242,6 +249,7 @@ export function ProjectCard({
             )}
           </div>
         )}
+        */}
 
         {/* Meta Information */}
         <div className="space-y-3">
@@ -309,6 +317,17 @@ export function ProjectCard({
             }}
           >
             View Tasks
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation()
+              onGenerateInsights?.(project.id, project.name)
+            }}
+            className="flex items-center gap-1"
+          >
+            <Brain className="h-4 w-4" />
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

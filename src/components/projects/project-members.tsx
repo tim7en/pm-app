@@ -285,12 +285,12 @@ export function ProjectMembers({
                   <Avatar>
                     <AvatarImage src={member.user.avatar} />
                     <AvatarFallback>
-                      {member.user.name.split(' ').map(n => n[0]).join('')}
+                      {member.user.name ? member.user.name.split(' ').map(n => n[0]).join('') : member.user.email?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{member.user.name}</span>
+                      <span className="font-medium">{member.user.name || member.user.email || 'Unknown User'}</span>
                       {isOwner && (
                         <div title="Project Owner">
                           <Crown className="h-4 w-4 text-yellow-500" />

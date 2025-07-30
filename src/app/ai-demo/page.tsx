@@ -136,14 +136,14 @@ export default function AIDemo() {
   const getCurrentDemo = () => demoData[activeDemo as keyof typeof demoData]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <h1 className="text-4xl font-bold text-foreground mb-4">
             🎯 UzEffect AI Agent Demo
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Experience the power of AI-driven project management with intelligent task generation, 
             efficiency assessment, and work-life balance monitoring
           </p>

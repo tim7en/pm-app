@@ -47,7 +47,16 @@ export async function GET(
       orderBy: { joinedAt: 'asc' }
     })
 
-    return NextResponse.json(members)
+    // Ensure consistent data structure and handle null values
+    const sanitizedMembers = members.map(member => ({
+      ...member,
+      user: {
+        ...member.user,
+        name: member.user.name || member.user.email || 'Unknown User'
+      }
+    }))
+
+    return NextResponse.json(sanitizedMembers)
   } catch (error) {
     console.error('Error fetching workspace members:', error)
     return NextResponse.json(

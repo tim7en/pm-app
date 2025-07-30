@@ -145,4 +145,93 @@
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.6);
   }
+
+  /* UI Scaling utilities */
+  .ui-scale-text {
+    font-size: calc(1rem * var(--ui-scale-text, 1));
+  }
+  
+  .ui-scale-text-sm {
+    font-size: calc(0.875rem * var(--ui-scale-text, 1));
+  }
+  
+  .ui-scale-text-xs {
+    font-size: calc(0.75rem * var(--ui-scale-text, 1));
+  }
+  
+  .ui-scale-text-lg {
+    font-size: calc(1.125rem * var(--ui-scale-text, 1));
+  }
+  
+  .ui-scale-spacing {
+    padding: calc(1rem * var(--ui-scale-spacing, 1));
+  }
+  
+  .ui-scale-component {
+    transform: scale(var(--ui-scale-component, 1));
+    transform-origin: top left;
+  }
+
+  /* Scale-specific styles */
+  .ui-scale-small {
+    --scale-multiplier: 0.9;
+  }
+  
+  .ui-scale-small .text-sm {
+    font-size: 0.8125rem;
+  }
+  
+  .ui-scale-small .text-xs {
+    font-size: 0.6875rem;
+  }
+  
+  .ui-scale-small .p-4 {
+    padding: 0.75rem;
+  }
+  
+  .ui-scale-small .p-6 {
+    padding: 1.125rem;
+  }
+  
+  .ui-scale-large {
+    --scale-multiplier: 1.1;
+  }
+  
+  .ui-scale-large .text-sm {
+    font-size: 0.9375rem;
+  }
+  
+  .ui-scale-large .text-xs {
+    font-size: 0.8125rem;
+  }
+  
+  .ui-scale-large .p-4 {
+    padding: 1.25rem;
+  }
+  
+  .ui-scale-large .p-6 {
+    padding: 1.625rem;
+  }
+
+  /* Line clamping utilities */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+  
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
 }

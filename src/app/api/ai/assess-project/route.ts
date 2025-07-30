@@ -3,7 +3,7 @@ import { aiAssistant } from '@/lib/ai-assistant'
 import { getAuthSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 
-export async function POST(request: NextRequest) {
+async function handleAssessProject(request: NextRequest) {
   try {
     const session = await getAuthSession(request)
     
@@ -14,8 +14,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
-    const { projectId } = body
+    // Get projectId from query params (GET) or body (POST)
+    const { searchParams } = new URL(request.url)
+    let projectId = searchParams.get('projectId')
+    
+    if (!projectId && request.method === 'POST') {
+      const body = await request.json()
+      projectId = body.projectId
+    }
 
     if (!projectId) {
       return NextResponse.json(
@@ -62,4 +68,13 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+// Support both GET and POST methods
+export async function GET(request: NextRequest) {
+  return handleAssessProject(request)
+}
+
+export async function POST(request: NextRequest) {
+  return handleAssessProject(request)
 }

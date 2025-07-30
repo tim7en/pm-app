@@ -464,7 +464,7 @@ export default function WorkspaceMembersPage() {
                               <Avatar className="h-8 w-8">
                                 <AvatarImage src={member.user.avatar || undefined} />
                                 <AvatarFallback>
-                                  {member.user.name?.charAt(0) || member.user.email.charAt(0)}
+                                  {member.user.name?.charAt(0) || member.user.email?.charAt(0) || 'U'}
                                 </AvatarFallback>
                               </Avatar>
                               <div>

@@ -9,6 +9,7 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { InviteMemberDialog } from "@/components/workspace/invite-member-dialog"
 import { generateInitialsAvatar, getDefaultAvatarByIndex } from "@/lib/avatars"
 import { 
   Plus, 
@@ -711,90 +712,14 @@ export default function TeamPage() {
       </div>
 
       {/* Invite Member Dialog */}
-      <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Invite Team Member</DialogTitle>
-            <DialogDescription>
-              Invite an existing user to join your team by email. They must already have an account.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleInviteUser)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email Address</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Enter user's email (e.g., zusabi@gmail.com)" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Role</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a role" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="MEMBER">
-                          <div className="flex flex-col">
-                            <span>Member</span>
-                            <span className="text-xs text-muted-foreground">Can view and edit assigned tasks</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="ADMIN">
-                          <div className="flex flex-col">
-                            <span>Admin</span>
-                            <span className="text-xs text-muted-foreground">Can manage projects and team members</span>
-                          </div>
-                        </SelectItem>
-                        {currentUserRole === 'OWNER' && (
-                          <SelectItem value="OWNER">
-                            <div className="flex flex-col">
-                              <span>Owner</span>
-                              <span className="text-xs text-muted-foreground">Full access to workspace</span>
-                            </div>
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setInviteDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isInviting}>
-                  {isInviting ? "Inviting..." : "Send Invitation"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <InviteMemberDialog
+        open={inviteDialogOpen}
+        onOpenChange={setInviteDialogOpen}
+        onInviteSuccess={() => {
+          fetchWorkspaceMembers()
+          fetchInvitations()
+        }}
+      />
 
       {/* Invitations Dialog */}
       <Dialog open={showInvitations} onOpenChange={setShowInvitations}>

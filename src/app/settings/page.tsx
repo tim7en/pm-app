@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
+import { useAuth } from "@/contexts/AuthContext"
 import { 
   User, 
   Bell, 
@@ -46,6 +47,8 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { useUIScale } from "@/contexts/UIScaleContext"
+import { useToast } from "@/hooks/use-toast"
 import {
   Select,
   SelectContent,
@@ -84,6 +87,7 @@ const appearanceSchema = z.object({
   fontSize: z.enum(["small", "medium", "large"]),
   density: z.enum(["compact", "comfortable", "spacious"]),
   colorScheme: z.string(),
+  uiScale: z.enum(["small", "medium", "large"]),
 })
 
 type ProfileFormData = z.infer<typeof profileSchema>
@@ -93,15 +97,18 @@ type AppearanceFormData = z.infer<typeof appearanceSchema>
 export default function SettingsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState("profile")
+  const { scale, setScale } = useUIScale()
+  const { toast } = useToast()
+  const { user } = useAuth()
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: "John Doe",
-      email: "john@example.com",
-      phone: "+1 234 567 8900",
-      location: "San Francisco, CA",
-      bio: "Experienced project manager with 10+ years in tech",
+      name: user?.name || "",
+      email: user?.email || "",
+      phone: "",
+      location: "",
+      bio: "",
       timezone: "America/Los_Angeles",
       language: "en",
     },
@@ -128,8 +135,50 @@ export default function SettingsPage() {
       fontSize: "medium",
       density: "comfortable",
       colorScheme: "blue",
+      uiScale: scale,
     },
   })
+
+  // Update profile form when user data changes
+  useEffect(() => {
+    if (user) {
+      profileForm.reset({
+        name: user.name || "",
+        email: user.email || "",
+        phone: "",
+        location: "",
+        bio: "",
+        timezone: "America/Los_Angeles",
+        language: "en",
+      })
+    }
+  }, [user, profileForm])
+
+  // Load saved preferences on mount and when scale changes
+  useEffect(() => {
+    const loadSavedPreferences = () => {
+      // Load theme preference
+      const savedTheme = localStorage.getItem('theme-preference') as "light" | "dark" | "system" || "system"
+      const savedFontSize = localStorage.getItem('font-size-preference') as "small" | "medium" | "large" || "medium"
+      const savedDensity = localStorage.getItem('density-preference') as "compact" | "comfortable" | "spacious" || "comfortable"
+      const savedColorScheme = localStorage.getItem('color-scheme-preference') || "blue"
+      
+      appearanceForm.reset({
+        theme: savedTheme,
+        fontSize: savedFontSize,
+        density: savedDensity,
+        colorScheme: savedColorScheme,
+        uiScale: scale,
+      })
+    }
+    
+    loadSavedPreferences()
+  }, [scale, appearanceForm])
+
+  // Update the uiScale field when scale changes
+  useEffect(() => {
+    appearanceForm.setValue('uiScale', scale)
+  }, [scale, appearanceForm])
 
   const handleProfileSubmit = async (data: ProfileFormData) => {
     setIsSubmitting(true)
@@ -137,8 +186,18 @@ export default function SettingsPage() {
       console.log('Profile updated:', data)
       // Here you would save to your backend
       await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      })
     } catch (error) {
       console.error('Error updating profile:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -150,8 +209,18 @@ export default function SettingsPage() {
       console.log('Notifications updated:', data)
       // Here you would save to your backend
       await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      toast({
+        title: "Notifications updated",
+        description: "Your notification preferences have been saved successfully.",
+      })
     } catch (error) {
       console.error('Error updating notifications:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update notification settings. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -161,10 +230,46 @@ export default function SettingsPage() {
     setIsSubmitting(true)
     try {
       console.log('Appearance updated:', data)
-      // Here you would save to your backend
+      
+      // Update UI scale immediately
+      setScale(data.uiScale)
+      
+      // Apply theme changes if needed
+      if (data.theme === 'dark') {
+        document.documentElement.classList.add('dark')
+        document.documentElement.classList.remove('light')
+      } else if (data.theme === 'light') {
+        document.documentElement.classList.add('light')
+        document.documentElement.classList.remove('dark')
+      } else {
+        // System theme
+        document.documentElement.classList.remove('dark', 'light')
+        const systemIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (systemIsDark) {
+          document.documentElement.classList.add('dark')
+        }
+      }
+      
+      // Save to localStorage for persistence
+      localStorage.setItem('theme-preference', data.theme)
+      localStorage.setItem('font-size-preference', data.fontSize)
+      localStorage.setItem('density-preference', data.density)
+      localStorage.setItem('color-scheme-preference', data.colorScheme)
+      
+      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      toast({
+        title: "Appearance updated",
+        description: "Your appearance preferences have been saved successfully.",
+      })
     } catch (error) {
       console.error('Error updating appearance:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update appearance settings. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -658,6 +763,55 @@ export default function SettingsPage() {
                                   <SelectItem value="spacious">Spacious</SelectItem>
                                 </SelectContent>
                               </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={appearanceForm.control}
+                          name="uiScale"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>UI Scale</FormLabel>
+                              <FormDescription>
+                                Scale the entire interface up or down for better visibility
+                              </FormDescription>
+                              <div className="grid grid-cols-3 gap-2">
+                                {[
+                                  { value: "small", label: "Small", description: "90% scale - Compact interface", icon: "📱" },
+                                  { value: "medium", label: "Medium", description: "100% scale - Default size", icon: "💻" },
+                                  { value: "large", label: "Large", description: "110% scale - Larger interface", icon: "🖥️" }
+                                ].map((option) => (
+                                  <Button
+                                    key={option.value}
+                                    type="button"
+                                    variant={field.value === option.value ? "default" : "outline"}
+                                    className={`flex flex-col gap-1 h-auto p-3 transition-all ${
+                                      field.value === option.value ? 'ring-2 ring-primary ring-offset-2' : ''
+                                    }`}
+                                    onClick={() => {
+                                      field.onChange(option.value)
+                                      setScale(option.value as "small" | "medium" | "large")
+                                      
+                                      // Show immediate feedback
+                                      toast({
+                                        title: "UI Scale Updated",
+                                        description: `Interface scaled to ${option.label.toLowerCase()}`,
+                                        duration: 2000,
+                                      })
+                                    }}
+                                  >
+                                    <span className={`text-lg ${option.value === 'small' ? 'text-sm' : option.value === 'large' ? 'text-xl' : ''}`}>
+                                      {option.icon}
+                                    </span>
+                                    <span className="font-medium">{option.label}</span>
+                                    <span className="text-xs text-muted-foreground text-center leading-tight">
+                                      {option.description}
+                                    </span>
+                                  </Button>
+                                ))}
+                              </div>
                               <FormMessage />
                             </FormItem>
                           )}

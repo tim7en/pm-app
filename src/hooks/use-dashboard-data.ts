@@ -28,7 +28,7 @@ export interface ActivityItem {
 }
 
 export const useDashboardData = () => {
-  const { currentWorkspace } = useAuth()
+  const { currentWorkspaceId } = useAuth()
   const [stats, setStats] = useState<DashboardStats>({
     totalTasks: 0,
     completedTasks: 0,
@@ -46,35 +46,50 @@ export const useDashboardData = () => {
   const [tasks, setTasks] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  
+  // Initialize activitiesCleared from localStorage to persist across navigation
+  const [activitiesCleared, setActivitiesCleared] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('dashboard-activities-cleared')
+      return stored === 'true'
+    }
+    return false
+  })
 
   useEffect(() => {
-    if (currentWorkspace) {
-      // Initialize socket connection for real-time updates
-      const newSocket = socketIoClient(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000')
-      setSocket(newSocket)
+    if (currentWorkspaceId) {
+      // Temporarily disable Socket.IO to prevent 404 errors
+      // TODO: Re-enable when custom server is working properly
+      console.log('🔧 Socket.IO temporarily disabled for development')
+      
+      // Initialize socket connection for real-time updates (disabled for now)
+      // const newSocket = socketIoClient(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
+      //   path: '/api/socketio'
+      // })
+      // setSocket(newSocket)
 
       // Fetch initial data
       fetchInitialData()
 
-      // Listen for real-time updates
-      newSocket.on('task_updated', (data) => {
-        setStats(prev => ({
-          ...prev,
-          totalTasks: data.totalTasks || prev.totalTasks,
-          completedTasks: data.completedTasks || prev.completedTasks,
-          inProgressTasks: data.inProgressTasks || prev.inProgressTasks
-        }))
-      })
+      // Listen for real-time updates (disabled for now)
+      // newSocket.on('task_updated', (data) => {
+      //   setStats(prev => ({
+      //     ...prev,
+      //     totalTasks: data.totalTasks || prev.totalTasks,
+      //     completedTasks: data.completedTasks || prev.completedTasks,
+      //     inProgressTasks: data.inProgressTasks || prev.inProgressTasks
+      //   }))
+      // })
 
-      newSocket.on('new_activity', (activity) => {
-        setRecentActivity(prev => [activity, ...prev.slice(0, 9)])
-      })
+      // newSocket.on('new_activity', (activity) => {
+      //   setRecentActivity(prev => [activity, ...prev.slice(0, 9)])
+      // })
 
-      return () => {
-        newSocket.close()
-      }
+      // return () => {
+      //   newSocket.close()
+      // }
     }
-  }, [currentWorkspace])
+  }, [currentWorkspaceId])
 
   const fetchInitialData = async () => {
     setIsLoading(true)
@@ -92,10 +107,10 @@ export const useDashboardData = () => {
   }
 
   const fetchProjects = async () => {
-    if (!currentWorkspace) return []
+    if (!currentWorkspaceId) return []
     
     try {
-      const response = await fetch(`/api/projects?workspaceId=${currentWorkspace.id}`)
+      const response = await fetch(`/api/projects?workspaceId=${currentWorkspaceId}`)
       if (response.ok) {
         const data = await response.json()
         setProjects(data)
@@ -108,10 +123,10 @@ export const useDashboardData = () => {
   }
 
   const fetchTasks = async () => {
-    if (!currentWorkspace) return []
+    if (!currentWorkspaceId) return []
     
     try {
-      const response = await fetch(`/api/tasks?workspaceId=${currentWorkspace.id}`)
+      const response = await fetch(`/api/tasks?workspaceId=${currentWorkspaceId}`)
       if (response.ok) {
         const data = await response.json()
         setTasks(data)
@@ -124,17 +139,22 @@ export const useDashboardData = () => {
   }
 
   const fetchUsers = async () => {
+    if (!currentWorkspaceId) return []
+    
     try {
-      // Mock users for now
-      const mockUsers = [
-        { id: "1", name: "John Doe", avatar: "" },
-        { id: "2", name: "Jane Smith", avatar: "" },
-        { id: "3", name: "Mike Johnson", avatar: "" }
-      ]
-      setUsers(mockUsers)
-      return mockUsers
+      const response = await fetch(`/api/workspaces/${currentWorkspaceId}/members`)
+      if (response.ok) {
+        const data = await response.json()
+        setUsers(data)
+        return data
+      } else {
+        console.warn('Failed to fetch workspace members, falling back to empty array')
+        setUsers([])
+        return []
+      }
     } catch (error) {
       console.error('Error fetching users:', error)
+      setUsers([])
       return []
     }
   }
@@ -288,9 +308,11 @@ export const useDashboardData = () => {
       unreadMessages: 0
     })
 
-    // Generate real activities from the data
-    const generatedActivities = generateActivitiesFromData(projectsData, tasksData, users)
-    setRecentActivity(generatedActivities)
+    // Generate real activities from the data only if activities haven't been manually cleared
+    if (!activitiesCleared) {
+      const generatedActivities = generateActivitiesFromData(projectsData, tasksData, users)
+      setRecentActivity(generatedActivities)
+    }
   }
 
   // Update stats when projects or tasks change
@@ -299,6 +321,7 @@ export const useDashboardData = () => {
   }, [projects, tasks, users])
 
   const refreshData = async () => {
+    // Don't reset cleared flag - preserve user's choice to clear activities
     await fetchInitialData()
   }
 
@@ -310,6 +333,7 @@ export const useDashboardData = () => {
     tasks,
     users,
     isLoading,
+    activitiesCleared,
     fetchProjects,
     fetchTasks,
     fetchUsers,
@@ -322,9 +346,32 @@ export const useDashboardData = () => {
     },
     clearRecentActivity: () => {
       setRecentActivity([])
+      setActivitiesCleared(true)
+      // Persist the cleared state to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('dashboard-activities-cleared', 'true')
+      }
+    },
+    restoreRecentActivity: () => {
+      setActivitiesCleared(false)
+      // Remove the cleared state from localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('dashboard-activities-cleared')
+      }
+      // Regenerate activities from current data
+      const generatedActivities = generateActivitiesFromData(projects, tasks, users)
+      setRecentActivity(generatedActivities)
     },
     setRecentActivity: (activities: ActivityItem[]) => {
       setRecentActivity(activities)
+      // If setting activities manually, mark as cleared to prevent regeneration
+      if (activities.length === 0 || activities.some(a => a.type === 'workspace' || a.type === 'notification')) {
+        setActivitiesCleared(true)
+        // Persist the cleared state to localStorage
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('dashboard-activities-cleared', 'true')
+        }
+      }
     }
   }
 }

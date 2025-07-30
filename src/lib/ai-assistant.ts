@@ -1,7 +1,11 @@
 import OpenAI from 'openai'
 
+if (!process.env.OPENAI_API_KEY_2) {
+  console.warn('OPENAI_API_KEY_2 is not set. AI features will be limited.')
+}
+
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY_2 || 'dummy-key',
 })
 
 export interface TaskGenerationRequest {
@@ -207,6 +211,12 @@ Keep it concise and positive (2-3 sentences).
     timeRange: { start: Date; end: Date }
   ): Promise<WorkspaceHealthReport> {
     try {
+      // Check if OpenAI API key is available
+      if (!process.env.OPENAI_API_KEY_2 || process.env.OPENAI_API_KEY_2 === 'dummy-key' || process.env.OPENAI_API_KEY_2 === 'your-openai-api-key-here') {
+        console.warn('OpenAI API key not configured, using fallback health report')
+        return this.getFallbackHealthReport(users)
+      }
+
       const workHours = {
         morning: { start: 9, end: 13 },
         lunch: { start: 13, end: 14 },
@@ -265,23 +275,32 @@ Respond with JSON:
         }
         
         // Fallback response
-        return {
-          overallHealth: 75,
-          activeUsers: users.length,
-          inactiveUsers: [],
-          productivityScore: 80,
-          workLifeBalance: 70,
-          recommendations: ['Maintain regular breaks', 'Monitor activity patterns'],
-          hourlyActivity: Array.from({ length: 9 }, (_, i) => ({
-            hour: i + 9,
-            activity: Math.floor(Math.random() * 40) + 60,
-            users: Math.floor(Math.random() * users.length) + 1
-          }))
-        }
+        return this.getFallbackHealthReport(users)
       }
     } catch (error) {
       console.error('Error analyzing workspace health:', error)
-      throw new Error('Failed to analyze workspace health')
+      return this.getFallbackHealthReport(users)
+    }
+  }
+
+  // Fallback health report when AI is not available
+  private getFallbackHealthReport(users: any[]): WorkspaceHealthReport {
+    return {
+      overallHealth: 75,
+      activeUsers: users.length,
+      inactiveUsers: [],
+      productivityScore: 80,
+      workLifeBalance: 70,
+      recommendations: [
+        'Configure OpenAI API key for detailed AI insights',
+        'Monitor team activity patterns regularly',
+        'Encourage regular breaks during work hours'
+      ],
+      hourlyActivity: Array.from({ length: 9 }, (_, i) => ({
+        hour: i + 9,
+        activity: Math.floor(Math.random() * 40) + 60,
+        users: Math.max(1, Math.floor(Math.random() * users.length))
+      }))
     }
   }
 

@@ -1,9 +1,11 @@
 "use client"
 
 import { useState } from "react"
+import { useAuth } from "@/contexts/AuthContext"
 
 export const useDashboardActions = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { user, currentWorkspaceId } = useAuth()
 
   const handleCreateProject = async (projectData: any) => {
     setIsSubmitting(true)
@@ -12,20 +14,33 @@ export const useDashboardActions = () => {
       const cleanProjectData = {
         name: projectData.name,
         description: projectData.description,
-        color: projectData.color,
-        status: projectData.status
+        color: projectData.color || '#3b82f6',
+        workspaceId: projectData.workspaceId || currentWorkspaceId
       }
+      
+      console.log('Creating project with data:', cleanProjectData)
+      console.log('Current workspace ID:', currentWorkspaceId)
+      
+      if (!cleanProjectData.workspaceId) {
+        console.error('No workspace ID available for project creation')
+        return false
+      }
+      
       const response = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...cleanProjectData,
-          workspaceId: 'default-workspace-id',
-          ownerId: 'default-user-id'
-        })
+        body: JSON.stringify(cleanProjectData)
       })
       
-      return response.ok
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('Project creation failed:', errorData)
+        return false
+      }
+      
+      const createdProject = await response.json()
+      console.log('Project created successfully:', createdProject)
+      return true
     } catch (error) {
       console.error('Error creating project:', error)
       return false
