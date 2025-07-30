@@ -34,6 +34,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "My Tasks", href: "/tasks", icon: CheckSquare },
   { name: "Projects", href: "/projects", icon: FolderOpen },
+  { name: "Team", href: "/team", icon: Users },
   { name: "Calendar", href: "/calendar", icon: Calendar },
   { name: "Messages", href: "/messages", icon: MessageSquare },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },

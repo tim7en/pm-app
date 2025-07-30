@@ -53,11 +53,29 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { userId, role = 'MEMBER' } = body
+    const { userId, email, role = 'MEMBER' } = body
 
-    if (!userId) {
+    let targetUserId = userId
+
+    // If email is provided instead of userId, find user by email
+    if (!targetUserId && email) {
+      const userToInvite = await db.user.findUnique({
+        where: { email: email.toLowerCase() }
+      })
+
+      if (!userToInvite) {
+        return NextResponse.json(
+          { error: 'User not found. The user must register first.' },
+          { status: 404 }
+        )
+      }
+
+      targetUserId = userToInvite.id
+    }
+
+    if (!targetUserId) {
       return NextResponse.json(
-        { error: 'User ID is required' },
+        { error: 'User ID or email is required' },
         { status: 400 }
       )
     }
@@ -95,7 +113,7 @@ export async function POST(
     const existingMember = await db.projectMember.findUnique({
       where: {
         userId_projectId: {
-          userId,
+          userId: targetUserId,
           projectId: params.id
         }
       }
@@ -111,7 +129,7 @@ export async function POST(
     // Add member
     const member = await db.projectMember.create({
       data: {
-        userId,
+        userId: targetUserId,
         projectId: params.id,
         role: role as ProjectRole
       },
@@ -119,6 +137,16 @@ export async function POST(
         user: {
           select: { id: true, name: true, email: true, avatar: true }
         }
+      }
+    })
+
+    // Create notification for the invited user
+    await db.notification.create({
+      data: {
+        title: 'Project Invitation',
+        message: `You have been invited to join a project with ${role.toLowerCase()} role`,
+        type: 'PROJECT_INVITE',
+        userId: targetUserId
       }
     })
 

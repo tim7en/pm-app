@@ -109,15 +109,11 @@ export function ProjectMembers({
     }
 
     try {
-      // For now, we'll use a mock user lookup
-      // In a real app, you'd search for users by email
-      const mockUserId = "mock-user-id" // This would come from user lookup
-      
       const response = await fetch(`/api/projects/${projectId}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: mockUserId,
+          email: inviteEmail.trim().toLowerCase(),
           role: inviteRole
         })
       })

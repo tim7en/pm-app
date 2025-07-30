@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { 
   Plus, 
   Mail, 
@@ -17,10 +19,12 @@ import {
   Search,
   MoreHorizontal,
   UserPlus,
-  Mail as MailIcon,
   MessageSquare,
   Video,
-  Filter
+  Filter,
+  Shield,
+  Trash2,
+  Edit
 } from "lucide-react"
 import {
   Dialog,
@@ -29,7 +33,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   Form,
@@ -39,8 +42,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -48,178 +49,258 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/contexts/AuthContext"
 
-const teamMemberSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+const inviteSchema = z.object({
   email: z.string().email("Valid email is required"),
-  role: z.string().min(1, "Role is required"),
-  department: z.string().min(1, "Department is required"),
-  phone: z.string().optional(),
-  bio: z.string().optional(),
+  role: z.enum(["OWNER", "ADMIN", "MEMBER"]),
 })
 
-type TeamMemberFormData = z.infer<typeof teamMemberSchema>
+type InviteFormData = z.infer<typeof inviteSchema>
 
-interface TeamMember {
+interface WorkspaceMember {
   id: string
-  name: string
-  email: string
-  role: string
-  department: string
-  phone?: string
-  bio?: string
-  avatar?: string
-  isActive: boolean
-  lastActive: Date
-  taskCount: number
-  projectCount: number
+  user: {
+    id: string
+    name: string
+    email: string
+    avatar?: string
+  }
+  role: "OWNER" | "ADMIN" | "MEMBER"
+  joinedAt: string
 }
 
 export default function TeamPage() {
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+  const [members, setMembers] = useState<WorkspaceMember[]>([])
   const [loading, setLoading] = useState(true)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
+  const [isInviting, setIsInviting] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [filterDepartment, setFilterDepartment] = useState("all")
-
-  const form = useForm<TeamMemberFormData>({
-    resolver: zodResolver(teamMemberSchema),
+  const [filterRole, setFilterRole] = useState("all")
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
+  
+  const { toast } = useToast()
+  const { user } = useAuth()
+  
+  const form = useForm<InviteFormData>({
+    resolver: zodResolver(inviteSchema),
     defaultValues: {
-      name: "",
       email: "",
-      role: "",
-      department: "",
-      phone: "",
-      bio: "",
+      role: "MEMBER",
     },
   })
 
+  // Get the current workspace ID (for now using a default workspace)
+  const workspaceId = "1" // In a real app, this would come from context or params
+
   useEffect(() => {
-    fetchTeamMembers()
+    fetchWorkspaceMembers()
   }, [])
 
-  const fetchTeamMembers = async () => {
+  const fetchWorkspaceMembers = async () => {
     try {
-      // Mock team members for now
-      const mockTeamMembers: TeamMember[] = [
-        {
-          id: "1",
-          name: "John Doe",
-          email: "john@example.com",
-          role: "Project Manager",
-          department: "Engineering",
-          phone: "+1 234 567 8900",
-          bio: "Experienced project manager with 10+ years in tech",
-          avatar: "/avatars/01.png",
-          isActive: true,
-          lastActive: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-          taskCount: 12,
-          projectCount: 3,
-        },
-        {
-          id: "2",
-          name: "Jane Smith",
-          email: "jane@example.com",
-          role: "Senior Developer",
-          department: "Engineering",
-          phone: "+1 234 567 8901",
-          bio: "Full-stack developer specializing in React and Node.js",
-          avatar: "/avatars/02.png",
-          isActive: true,
-          lastActive: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
-          taskCount: 8,
-          projectCount: 2,
-        },
-        {
-          id: "3",
-          name: "Mike Johnson",
-          email: "mike@example.com",
-          role: "UX Designer",
-          department: "Design",
-          phone: "+1 234 567 8902",
-          bio: "Creative designer with passion for user experience",
-          avatar: "/avatars/03.png",
-          isActive: true,
-          lastActive: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-          taskCount: 6,
-          projectCount: 2,
-        },
-        {
-          id: "4",
-          name: "Sarah Wilson",
-          email: "sarah@example.com",
-          role: "Marketing Specialist",
-          department: "Marketing",
-          phone: "+1 234 567 8903",
-          bio: "Digital marketing expert with focus on growth strategies",
-          avatar: "/avatars/04.png",
-          isActive: false,
-          lastActive: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-          taskCount: 4,
-          projectCount: 1,
-        },
-      ]
-      setTeamMembers(mockTeamMembers)
+      setLoading(true)
+      const response = await fetch(`/api/workspaces/${workspaceId}/members`)
+      if (response.ok) {
+        const data = await response.json()
+        setMembers(data)
+        
+        // Find current user's role in this workspace
+        const currentMember = data.find((member: WorkspaceMember) => member.user.id === user?.id)
+        if (currentMember) {
+          setCurrentUserRole(currentMember.role)
+        }
+      } else {
+        console.error('Failed to fetch workspace members')
+        toast({
+          title: "Error",
+          description: "Failed to load team members",
+          variant: "destructive",
+        })
+      }
     } catch (error) {
-      console.error('Error fetching team members:', error)
+      console.error('Error fetching workspace members:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load team members",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
   }
 
-  const handleCreateTeamMember = async (data: TeamMemberFormData) => {
-    setIsSubmitting(true)
+  const handleInviteUser = async (data: InviteFormData) => {
+    setIsInviting(true)
     try {
-      const newMember: TeamMember = {
-        id: Date.now().toString(),
-        ...data,
-        isActive: true,
-        lastActive: new Date(),
-        taskCount: 0,
-        projectCount: 0,
+      const response = await fetch(`/api/workspaces/${workspaceId}/members`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.email,
+          role: data.role,
+        }),
+      })
+
+      if (response.ok) {
+        const newMember = await response.json()
+        setMembers(prev => [...prev, newMember])
+        setInviteDialogOpen(false)
+        form.reset()
+        toast({
+          title: "Success",
+          description: `Successfully invited ${data.email} to the team`,
+        })
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.error || "Failed to invite user",
+          variant: "destructive",
+        })
       }
-      
-      setTeamMembers(prev => [...prev, newMember])
-      setDialogOpen(false)
-      form.reset()
     } catch (error) {
-      console.error('Error creating team member:', error)
+      console.error('Error inviting user:', error)
+      toast({
+        title: "Error",
+        description: "Failed to invite user",
+        variant: "destructive",
+      })
     } finally {
-      setIsSubmitting(false)
+      setIsInviting(false)
     }
   }
 
-  const filteredTeamMembers = teamMembers.filter(member => {
-    const matchesSearch = member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         member.role.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesDepartment = filterDepartment === "all" || member.department === filterDepartment
-    return matchesSearch && matchesDepartment
+  const handleUpdateRole = async (memberId: string, newRole: string) => {
+    try {
+      const response = await fetch(`/api/workspaces/${workspaceId}/members/${memberId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role: newRole }),
+      })
+
+      if (response.ok) {
+        const updatedMember = await response.json()
+        setMembers(prev => prev.map(member => 
+          member.id === memberId ? updatedMember : member
+        ))
+        toast({
+          title: "Success",
+          description: "Member role updated successfully",
+        })
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.error || "Failed to update member role",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Error updating member role:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update member role",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleRemoveMember = async (memberId: string) => {
+    if (!confirm("Are you sure you want to remove this member from the team?")) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/workspaces/${workspaceId}/members/${memberId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setMembers(prev => prev.filter(member => member.id !== memberId))
+        toast({
+          title: "Success",
+          description: "Member removed from team successfully",
+        })
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.error || "Failed to remove member",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Error removing member:', error)
+      toast({
+        title: "Error",
+        description: "Failed to remove member",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const filteredMembers = members.filter(member => {
+    const matchesSearch = member.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         member.user.email.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesRole = filterRole === "all" || member.role === filterRole
+    return matchesSearch && matchesRole
   })
 
-  const departments = Array.from(new Set(teamMembers.map(member => member.department)))
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case "OWNER":
+        return "bg-purple-100 text-purple-800"
+      case "ADMIN":
+        return "bg-blue-100 text-blue-800"
+      case "MEMBER":
+        return "bg-green-100 text-green-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
+  }
 
-  const formatLastActive = (date: Date) => {
-    const now = new Date()
-    const diff = now.getTime() - date.getTime()
-    const minutes = Math.floor(diff / (1000 * 60))
-    const hours = Math.floor(diff / (1000 * 60 * 60))
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  const formatJoinedDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
 
-    if (minutes < 1) return 'just now'
-    if (minutes < 60) return `${minutes}m ago`
-    if (hours < 24) return `${hours}h ago`
-    return `${days}d ago`
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-background">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-7xl mx-auto">
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-pulse" />
+                  <p className="text-muted-foreground">Loading team members...</p>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -235,11 +316,11 @@ export default function TeamPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold">Team</h1>
-                <p className="text-muted-foreground mt-1">Manage your team members and their roles</p>
+                <p className="text-muted-foreground mt-1">Manage team members and their roles</p>
               </div>
-              <Button onClick={() => setDialogOpen(true)}>
+              <Button onClick={() => setInviteDialogOpen(true)}>
                 <UserPlus className="w-4 h-4 mr-2" />
-                Add Team Member
+                Invite Member
               </Button>
             </div>
 
@@ -250,7 +331,7 @@ export default function TeamPage() {
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-blue-500" />
                     <div>
-                      <p className="text-2xl font-bold">{teamMembers.length}</p>
+                      <p className="text-2xl font-bold">{members.length}</p>
                       <p className="text-xs text-muted-foreground">Total Members</p>
                     </div>
                   </div>
@@ -260,12 +341,12 @@ export default function TeamPage() {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 rounded-full bg-green-500"></div>
+                    <Shield className="h-4 w-4 text-purple-500" />
                     <div>
                       <p className="text-2xl font-bold">
-                        {teamMembers.filter(m => m.isActive).length}
+                        {members.filter(m => m.role === 'ADMIN' || m.role === 'OWNER').length}
                       </p>
-                      <p className="text-xs text-muted-foreground">Active Now</p>
+                      <p className="text-xs text-muted-foreground">Admins</p>
                     </div>
                   </div>
                 </CardContent>
@@ -274,12 +355,12 @@ export default function TeamPage() {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-orange-500" />
+                    <Calendar className="h-4 w-4 text-green-500" />
                     <div>
                       <p className="text-2xl font-bold">
-                        {teamMembers.reduce((sum, member) => sum + member.taskCount, 0)}
+                        {members.filter(m => m.role === 'MEMBER').length}
                       </p>
-                      <p className="text-xs text-muted-foreground">Total Tasks</p>
+                      <p className="text-xs text-muted-foreground">Members</p>
                     </div>
                   </div>
                 </CardContent>
@@ -288,10 +369,10 @@ export default function TeamPage() {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-purple-500" />
+                    <Plus className="h-4 w-4 text-orange-500" />
                     <div>
-                      <p className="text-2xl font-bold">{departments.length}</p>
-                      <p className="text-xs text-muted-foreground">Departments</p>
+                      <p className="text-2xl font-bold">∞</p>
+                      <p className="text-xs text-muted-foreground">Invite Capacity</p>
                     </div>
                   </div>
                 </CardContent>
@@ -304,138 +385,120 @@ export default function TeamPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
-                    placeholder="Search team members..."
+                    placeholder="Search members..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10 pr-4 w-full"
                   />
                 </div>
               </div>
-              <Select value={filterDepartment} onValueChange={setFilterDepartment}>
+              <Select value={filterRole} onValueChange={setFilterRole}>
                 <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Filter by department" />
+                  <SelectValue placeholder="Filter by role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  {departments.map(dept => (
-                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                  ))}
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="OWNER">Owner</SelectItem>
+                  <SelectItem value="ADMIN">Admin</SelectItem>
+                  <SelectItem value="MEMBER">Member</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Team Members Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredTeamMembers.map((member) => (
+              {filteredMembers.map((member) => (
                 <Card key={member.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader className="pb-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-12 w-12">
-                          <AvatarImage src={member.avatar} alt={member.name} />
+                          <AvatarImage src={member.user.avatar} alt={member.user.name} />
                           <AvatarFallback>
-                            {member.name.split(' ').map(n => n[0]).join('')}
+                            {member.user.name.split(' ').map(n => n[0]).join('')}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <CardTitle className="text-lg">{member.name}</CardTitle>
-                          <CardDescription>{member.role}</CardDescription>
+                          <CardTitle className="text-lg">{member.user.name}</CardTitle>
+                          <CardDescription>{member.user.email}</CardDescription>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className={`h-2 w-2 rounded-full ${member.isActive ? 'bg-green-500' : 'bg-gray-400'}`} />
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Mail className="mr-2 h-4 w-4" />
-                              Send Email
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <MessageSquare className="mr-2 h-4 w-4" />
-                              Send Message
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Video className="mr-2 h-4 w-4" />
-                              Start Call
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Settings className="mr-2 h-4 w-4" />
-                              Edit Profile
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Badge className={getRoleColor(member.role)}>
+                          {member.role}
+                        </Badge>
+                        {user?.id !== member.user.id && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem>
+                                <Mail className="mr-2 h-4 w-4" />
+                                Send Email
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <MessageSquare className="mr-2 h-4 w-4" />
+                                Send Message
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Video className="mr-2 h-4 w-4" />
+                                Start Call
+                              </DropdownMenuItem>
+                              {(currentUserRole === 'OWNER' || currentUserRole === 'ADMIN') && member.role !== 'OWNER' && (
+                                <>
+                                  <DropdownMenuItem onClick={() => {
+                                    const newRole = member.role === 'ADMIN' ? 'MEMBER' : 'ADMIN'
+                                    handleUpdateRole(member.id, newRole)
+                                  }}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    {member.role === 'ADMIN' ? 'Remove Admin' : 'Make Admin'}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => handleRemoveMember(member.id)}
+                                    className="text-red-600"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Remove Member
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                     </div>
                   </CardHeader>
                   
                   <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span>{member.email}</span>
-                      </div>
-                      {member.phone && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <Phone className="h-4 w-4 text-muted-foreground" />
-                          <span>{member.phone}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 text-sm">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span>{member.department}</span>
-                      </div>
-                    </div>
-                    
-                    {member.bio && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {member.bio}
-                      </p>
-                    )}
-                    
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">
-                        Last active: {formatLastActive(member.lastActive)}
+                        Joined: {formatJoinedDate(member.joinedAt)}
                       </span>
-                      <Badge variant={member.isActive ? "default" : "secondary"}>
-                        {member.isActive ? "Active" : "Offline"}
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="flex items-center gap-1">
-                        <span className="font-medium">{member.taskCount}</span>
-                        <span className="text-muted-foreground">tasks</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="font-medium">{member.projectCount}</span>
-                        <span className="text-muted-foreground">projects</span>
-                      </div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
 
-            {filteredTeamMembers.length === 0 && (
+            {/* Empty State */}
+            {filteredMembers.length === 0 && (
               <Card>
                 <CardContent className="p-8 text-center">
                   <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">No team members found</h3>
                   <p className="text-muted-foreground mb-4">
-                    {searchQuery || filterDepartment !== "all" 
+                    {searchQuery || filterRole !== "all" 
                       ? "Try adjusting your search or filters"
-                      : "Get started by adding your first team member"
+                      : "Get started by inviting your first team member"
                     }
                   </p>
-                  {(!searchQuery && filterDepartment === "all") && (
-                    <Button onClick={() => setDialogOpen(true)}>
+                  {(!searchQuery && filterRole === "all") && (
+                    <Button onClick={() => setInviteDialogOpen(true)}>
                       <UserPlus className="w-4 h-4 mr-2" />
-                      Add Team Member
+                      Invite Team Member
                     </Button>
                   )}
                 </CardContent>
@@ -445,86 +508,29 @@ export default function TeamPage() {
         </main>
       </div>
 
-      {/* Add Team Member Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* Invite Member Dialog */}
+      <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Add Team Member</DialogTitle>
+            <DialogTitle>Invite Team Member</DialogTitle>
             <DialogDescription>
-              Invite a new member to join your team
+              Invite an existing user to join your team by email. They must already have an account.
             </DialogDescription>
           </DialogHeader>
           
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleCreateTeamMember)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter full name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter email address" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Role</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter role" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="department"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Department</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter department" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
+            <form onSubmit={form.handleSubmit(handleInviteUser)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="phone"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone (Optional)</FormLabel>
+                    <FormLabel>Email Address</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter phone number" {...field} />
+                      <Input 
+                        placeholder="Enter user's email (e.g., zusabi@gmail.com)" 
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -533,18 +539,39 @@ export default function TeamPage() {
 
               <FormField
                 control={form.control}
-                name="bio"
+                name="role"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Bio (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Enter short bio"
-                        className="resize-none"
-                        rows={3}
-                        {...field}
-                      />
-                    </FormControl>
+                    <FormLabel>Role</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="MEMBER">
+                          <div className="flex flex-col">
+                            <span>Member</span>
+                            <span className="text-xs text-muted-foreground">Can view and edit assigned tasks</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="ADMIN">
+                          <div className="flex flex-col">
+                            <span>Admin</span>
+                            <span className="text-xs text-muted-foreground">Can manage projects and team members</span>
+                          </div>
+                        </SelectItem>
+                        {currentUserRole === 'OWNER' && (
+                          <SelectItem value="OWNER">
+                            <div className="flex flex-col">
+                              <span>Owner</span>
+                              <span className="text-xs text-muted-foreground">Full access to workspace</span>
+                            </div>
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -554,12 +581,12 @@ export default function TeamPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setDialogOpen(false)}
+                  onClick={() => setInviteDialogOpen(false)}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Adding..." : "Add Member"}
+                <Button type="submit" disabled={isInviting}>
+                  {isInviting ? "Inviting..." : "Send Invitation"}
                 </Button>
               </DialogFooter>
             </form>
