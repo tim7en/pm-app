@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,7 +22,11 @@ import {
   Star,
   FolderOpen,
   Crown,
-  UserCheck
+  UserCheck,
+  Brain,
+  TrendingUp,
+  Target,
+  Zap
 } from "lucide-react"
 import { ProjectStatus } from "@prisma/client"
 
@@ -76,6 +81,37 @@ export function ProjectCard({
   onViewTasks,
   currentUserId 
 }: ProjectCardProps) {
+  const [aiAssessment, setAiAssessment] = useState<any>(null)
+  const [loadingAssessment, setLoadingAssessment] = useState(false)
+
+  // Generate AI assessment on hover for active projects
+  useEffect(() => {
+    if (project.status === ProjectStatus.ACTIVE && (project.taskCount || 0) > 0) {
+      const timer = setTimeout(() => {
+        generateAssessment()
+      }, 1000) // Delay to avoid excessive API calls
+      
+      return () => clearTimeout(timer)
+    }
+  }, [project.id])
+
+  const generateAssessment = async () => {
+    if (loadingAssessment || aiAssessment) return
+    
+    setLoadingAssessment(true)
+    try {
+      const response = await fetch(`/api/ai/assess-project?projectId=${project.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setAiAssessment(data.assessment)
+      }
+    } catch (error) {
+      console.error('Error generating project assessment:', error)
+    } finally {
+      setLoadingAssessment(false)
+    }
+  }
+
   const progressPercentage = (project.taskCount || 0) > 0 
     ? Math.round(((project.completedTaskCount || 0) / (project.taskCount || 1)) * 100)
     : 0
@@ -165,6 +201,47 @@ export function ProjectCard({
             </div>
           </div>
         </div>
+
+        {/* AI Assessment */}
+        {(aiAssessment || loadingAssessment) && project.status === ProjectStatus.ACTIVE && (
+          <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-2 mb-2">
+              <Brain className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-800">AI Insights</span>
+            </div>
+            
+            {loadingAssessment ? (
+              <div className="flex items-center gap-2 text-xs text-blue-600">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                Analyzing project efficiency...
+              </div>
+            ) : aiAssessment && (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center gap-1">
+                    <Target className="h-3 w-3 text-green-600" />
+                    <span className="text-xs text-muted-foreground">Efficiency:</span>
+                    <span className="text-xs font-medium">{aiAssessment.efficiencyScore || 'N/A'}%</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <TrendingUp className="h-3 w-3 text-blue-600" />
+                    <span className="text-xs text-muted-foreground">Trend:</span>
+                    <span className="text-xs font-medium">{aiAssessment.trend || 'Stable'}</span>
+                  </div>
+                </div>
+                
+                {aiAssessment.quickInsight && (
+                  <div className="flex items-start gap-1">
+                    <Zap className="h-3 w-3 text-yellow-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {aiAssessment.quickInsight}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Meta Information */}
         <div className="space-y-3">

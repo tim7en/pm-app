@@ -19,7 +19,7 @@ import { useDashboardActions } from "@/hooks/use-dashboard-actions"
 import { useAuth } from "@/contexts/AuthContext"
 
 export function DashboardContainer() {
-  const { user } = useAuth()
+  const { user, currentWorkspaceId, currentWorkspace } = useAuth()
   const {
     stats,
     recentActivity,
@@ -275,6 +275,7 @@ export function DashboardContainer() {
                   tasks={tasks}
                   projects={projects}
                   activities={recentActivity}
+                  workspaceId={currentWorkspaceId || undefined}
                   onTaskStatusChange={onTaskStatusChange}
                   onTaskEdit={(task) => {
                     setEditingTask(task)

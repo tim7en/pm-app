@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { generateInitialsAvatar, getDefaultAvatarByIndex } from "@/lib/avatars"
 import { 
   DropdownMenu,
@@ -21,7 +22,10 @@ import {
   Circle,
   User,
   UserCheck,
-  Flag
+  Flag,
+  Brain,
+  Sparkles,
+  Loader2
 } from "lucide-react"
 import { TaskStatus, Priority } from "@prisma/client"
 
@@ -87,10 +91,50 @@ const priorityLabels = {
 
 export function TaskCard({ task, onStatusChange, onEdit, onDelete, currentUserId }: TaskCardProps) {
   const [isHovered, setIsHovered] = useState(false)
+  const [showAiFeedback, setShowAiFeedback] = useState(false)
+  const [aiFeedback, setAiFeedback] = useState<string>("")
+  const [loadingFeedback, setLoadingFeedback] = useState(false)
 
-  const handleStatusToggle = () => {
+  const handleStatusToggle = async () => {
     const newStatus = task.status === TaskStatus.DONE ? TaskStatus.TODO : TaskStatus.DONE
+    
+    // If marking as complete, get AI feedback
+    if (newStatus === TaskStatus.DONE && task.assignee?.id === currentUserId) {
+      await generateAiFeedback()
+    }
+    
     onStatusChange?.(task.id, newStatus)
+  }
+
+  const generateAiFeedback = async () => {
+    setLoadingFeedback(true)
+    try {
+      const response = await fetch('/api/ai/task-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          taskId: task.id,
+          completionTime: 1 // Could be calculated from task creation/start time
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setAiFeedback(data.feedback)
+        setShowAiFeedback(true)
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+          setShowAiFeedback(false)
+        }, 5000)
+      }
+    } catch (error) {
+      console.error('Error getting AI feedback:', error)
+    } finally {
+      setLoadingFeedback(false)
+    }
   }
 
   const formatDate = (date: Date) => {
@@ -274,6 +318,29 @@ export function TaskCard({ task, onStatusChange, onEdit, onDelete, currentUserId
           </div>
         </div>
       </CardContent>
+
+      {/* AI Feedback Display */}
+      {(showAiFeedback || loadingFeedback) && (
+        <div className="px-4 pb-4">
+          <Alert className="border-green-200 bg-green-50">
+            <div className="flex items-center gap-2">
+              {loadingFeedback ? (
+                <Loader2 className="h-4 w-4 animate-spin text-green-600" />
+              ) : (
+                <Sparkles className="h-4 w-4 text-green-600" />
+              )}
+              <span className="text-sm font-medium text-green-800">AI Feedback</span>
+            </div>
+            <AlertDescription className="mt-2 text-sm text-green-700">
+              {loadingFeedback ? (
+                "Generating personalized feedback..."
+              ) : (
+                aiFeedback
+              )}
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
     </Card>
   )
 }

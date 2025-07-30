@@ -5,8 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
+import { ProductivityDashboard } from "@/components/dashboard/productivity-dashboard"
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -20,10 +22,14 @@ import {
   Activity,
   Zap,
   Award,
-  AlertTriangle
+  AlertTriangle,
+  Brain,
+  Coffee,
+  Heart
 } from "lucide-react"
 import { TaskStatus, Priority, ProjectStatus } from "@prisma/client"
 import { useAPI } from "@/hooks/use-api"
+import { useAuth } from "@/contexts/AuthContext"
 
 interface Task {
   id: string
@@ -110,6 +116,7 @@ interface AnalyticsData {
 
 export default function AnalyticsPage() {
   const { apiCall } = useAPI()
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth()
   const [tasks, setTasks] = useState<Task[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
@@ -117,23 +124,56 @@ export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter'>('month')
 
   useEffect(() => {
-    fetchData()
-  }, [timeRange])
+    // Debug authentication state
+    console.log('Analytics Auth Debug:', {
+      isAuthenticated,
+      authLoading,
+      user: user?.email,
+      token: typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null
+    })
+
+    // Only fetch data if user is authenticated
+    if (isAuthenticated && !authLoading) {
+      console.log('Fetching analytics data for authenticated user')
+      fetchData()
+    } else if (!authLoading && !isAuthenticated) {
+      console.log('User not authenticated, stopping loading')
+      setLoading(false)
+    }
+  }, [timeRange, isAuthenticated, authLoading])
 
   const fetchData = async () => {
     try {
+      console.log('Starting fetchData - making API calls...')
       const [tasksResponse, projectsResponse] = await Promise.all([
         apiCall('/api/tasks'),
         apiCall('/api/projects')
       ])
 
+      console.log('API responses:', {
+        tasksStatus: tasksResponse.status,
+        projectsStatus: projectsResponse.status,
+        tasksOk: tasksResponse.ok,
+        projectsOk: projectsResponse.ok
+      })
+
       if (tasksResponse.ok && projectsResponse.ok) {
         const tasksData = await tasksResponse.json()
         const projectsData = await projectsResponse.json()
         
+        console.log('Data loaded successfully:', {
+          tasksCount: tasksData.length,
+          projectsCount: projectsData.length
+        })
+        
         setTasks(tasksData)
         setProjects(projectsData)
         calculateAnalytics(tasksData, projectsData)
+      } else {
+        console.error('API calls failed:', {
+          tasksStatus: tasksResponse.status,
+          projectsStatus: projectsResponse.status
+        })
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -253,6 +293,42 @@ export default function AnalyticsPage() {
     )
   }
 
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex h-screen bg-background">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Activity className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p>Checking authentication...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show login prompt if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="flex h-screen bg-background">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center max-w-md">
+            <AlertTriangle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
+            <p className="text-muted-foreground mb-4">
+              Please log in to access analytics and AI insights.
+            </p>
+            <Button onClick={() => window.location.href = '/auth'}>
+              Go to Login
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
@@ -265,8 +341,8 @@ export default function AnalyticsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold">Analytics</h1>
-                <p className="text-muted-foreground mt-1">Track your productivity and project metrics</p>
+                <h1 className="text-3xl font-bold">Analytics & Insights</h1>
+                <p className="text-muted-foreground mt-1">Track productivity, project metrics, and AI-powered insights</p>
               </div>
               <div className="flex items-center gap-4">
                 <Select value={timeRange} onValueChange={(value) => setTimeRange(value as any)}>
@@ -285,6 +361,25 @@ export default function AnalyticsPage() {
                 </Button>
               </div>
             </div>
+
+            {/* Tabs for different analytics views */}
+            <Tabs defaultValue="overview" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="overview" className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger value="ai-insights" className="flex items-center gap-2">
+                  <Brain className="h-4 w-4" />
+                  AI Insights
+                </TabsTrigger>
+                <TabsTrigger value="productivity" className="flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Workspace Health
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="overview" className="space-y-6">
 
             {/* Key Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -515,6 +610,220 @@ export default function AnalyticsPage() {
                 </div>
               </CardContent>
             </Card>
+              </TabsContent>
+
+              <TabsContent value="ai-insights" className="space-y-6">
+                {/* AI Features Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">AI Task Generation</CardTitle>
+                      <Brain className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-green-600">Active</div>
+                      <p className="text-xs text-muted-foreground">
+                        Intelligent task suggestions ready
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Project Assessment</CardTitle>
+                      <Target className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-blue-600">Real-time</div>
+                      <p className="text-xs text-muted-foreground">
+                        Efficiency analysis available
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Task Feedback</CardTitle>
+                      <Award className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-purple-600">Smart</div>
+                      <p className="text-xs text-muted-foreground">
+                        Personalized completion insights
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Workspace Health</CardTitle>
+                      <Heart className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-red-600">Monitoring</div>
+                      <p className="text-xs text-muted-foreground">
+                        Work-life balance tracking
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* AI Features Detail */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Brain className="h-5 w-5" />
+                        AI-Powered Task Generation
+                      </CardTitle>
+                      <CardDescription>
+                        Generate intelligent task suggestions based on project context
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium">How it works:</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• Analyzes your project context and existing tasks</li>
+                          <li>• Considers team roles and workload distribution</li>
+                          <li>• Generates 3-5 actionable, specific tasks</li>
+                          <li>• Suggests priority levels and time estimates</li>
+                        </ul>
+                      </div>
+                      <Badge variant="outline" className="text-green-600">
+                        API: /api/ai/generate-tasks
+                      </Badge>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Target className="h-5 w-5" />
+                        Project Efficiency Assessment
+                      </CardTitle>
+                      <CardDescription>
+                        Real-time analysis of project health and completion rates
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Key Metrics:</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• Task completion velocity</li>
+                          <li>• Resource allocation efficiency</li>
+                          <li>• Bottleneck identification</li>
+                          <li>• Timeline prediction accuracy</li>
+                        </ul>
+                      </div>
+                      <Badge variant="outline" className="text-blue-600">
+                        API: /api/ai/assess-project
+                      </Badge>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Award className="h-5 w-5" />
+                        Task Completion Feedback
+                      </CardTitle>
+                      <CardDescription>
+                        Personalized encouragement and performance insights
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Feedback Features:</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• Personalized completion messages</li>
+                          <li>• Performance streak tracking</li>
+                          <li>• Productivity trend analysis</li>
+                          <li>• Motivational insights</li>
+                        </ul>
+                      </div>
+                      <Badge variant="outline" className="text-purple-600">
+                        API: /api/ai/task-feedback
+                      </Badge>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Coffee className="h-5 w-5" />
+                        Smart Break Reminders
+                      </CardTitle>
+                      <CardDescription>
+                        Work-life balance optimization with intelligent reminders
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Balance Features:</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• 1-2 hour work block detection</li>
+                          <li>• 15-20 minute break suggestions</li>
+                          <li>• Overwork pattern identification</li>
+                          <li>• Manager notification system</li>
+                        </ul>
+                      </div>
+                      <Badge variant="outline" className="text-orange-600">
+                        API: /api/ai/inactivity-reminder
+                      </Badge>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="productivity" className="space-y-6">
+                {/* Productivity Dashboard will go here once we have workspace context */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Activity className="h-5 w-5" />
+                      Workspace Health Monitoring
+                    </CardTitle>
+                    <CardDescription>
+                      Coming soon: Real-time productivity insights and work-life balance analytics
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-8">
+                      <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Enhanced Productivity Dashboard</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Track team activity during work hours (9-13, 14-18), monitor work-life balance, 
+                        and receive AI-powered recommendations for optimal productivity.
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                        <div className="p-4 border rounded-lg">
+                          <Clock className="h-6 w-6 text-blue-500 mb-2" />
+                          <h4 className="font-medium mb-1">Work Hours Tracking</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Monitor activity during core hours with lunch break detection
+                          </p>
+                        </div>
+                        <div className="p-4 border rounded-lg">
+                          <Users className="h-6 w-6 text-green-500 mb-2" />
+                          <h4 className="font-medium mb-1">Team Activity</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Real-time team member activity and productivity metrics
+                          </p>
+                        </div>
+                        <div className="p-4 border rounded-lg">
+                          <AlertTriangle className="h-6 w-6 text-orange-500 mb-2" />
+                          <h4 className="font-medium mb-1">Smart Alerts</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Automated reminders and manager notifications
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
       </div>

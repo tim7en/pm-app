@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { 
   Dialog, 
   DialogContent, 
@@ -22,7 +23,18 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
-import { Calendar, User, Flag, Plus, Tag } from "lucide-react"
+import { 
+  Calendar, 
+  User, 
+  Flag, 
+  Plus, 
+  Tag, 
+  Brain, 
+  Sparkles, 
+  Loader2,
+  Lightbulb,
+  Target
+} from "lucide-react"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { format } from "date-fns"
 
@@ -73,6 +85,12 @@ export function CreateTaskModal({ projects, onCreateTask, children }: CreateTask
   })
   const [showCalendar, setShowCalendar] = useState(false)
   const [newTag, setNewTag] = useState("")
+  
+  // AI Task Generation states
+  const [aiSuggestions, setAiSuggestions] = useState<any[]>([])
+  const [loadingAi, setLoadingAi] = useState(false)
+  const [aiPrompt, setAiPrompt] = useState("")
+  const [showAiSuggestions, setShowAiSuggestions] = useState(false)
 
   // Fetch workspace members when project is selected
   useEffect(() => {
@@ -99,6 +117,50 @@ export function CreateTaskModal({ projects, onCreateTask, children }: CreateTask
     } finally {
       setLoadingMembers(false)
     }
+  }
+
+  // AI Task Generation
+  const generateAiTasks = async () => {
+    if (!aiPrompt.trim() || !formData.projectId) return
+
+    setLoadingAi(true)
+    try {
+      const selectedProject = projects.find(p => p.id === formData.projectId)
+      const response = await fetch('/api/ai/generate-tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          description: aiPrompt,
+          projectId: formData.projectId,
+          projectContext: selectedProject?.name || '',
+          userRole: 'MEMBER'
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setAiSuggestions(data.suggestions || [])
+        setShowAiSuggestions(true)
+      } else {
+        console.error('Failed to generate AI tasks')
+      }
+    } catch (error) {
+      console.error('Error generating AI tasks:', error)
+    } finally {
+      setLoadingAi(false)
+    }
+  }
+
+  const applyAiSuggestion = (suggestion: any) => {
+    setFormData(prev => ({
+      ...prev,
+      title: suggestion.title,
+      description: suggestion.description,
+      priority: suggestion.priority || 'MEDIUM'
+    }))
+    setShowAiSuggestions(false)
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -185,6 +247,78 @@ export function CreateTaskModal({ projects, onCreateTask, children }: CreateTask
               rows={3}
             />
           </div>
+
+          {/* AI Task Generation */}
+          <Card className="border-dashed border-blue-200 bg-blue-50/30">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Brain className="h-4 w-4 text-blue-600" />
+                AI Task Assistant
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Describe what you want to accomplish and get intelligent task suggestions
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="e.g., 'Implement user authentication system' or 'Prepare quarterly report'"
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  disabled={!formData.projectId}
+                />
+                <Button 
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={generateAiTasks}
+                  disabled={!aiPrompt.trim() || !formData.projectId || loadingAi}
+                >
+                  {loadingAi ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              
+              {!formData.projectId && (
+                <Alert>
+                  <Lightbulb className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    Select a project first to enable AI task generation
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {showAiSuggestions && aiSuggestions.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">AI Suggestions:</Label>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {aiSuggestions.map((suggestion, index) => (
+                      <Card key={index} className="p-3 cursor-pointer hover:bg-blue-50 transition-colors">
+                        <div onClick={() => applyAiSuggestion(suggestion)}>
+                          <div className="flex items-center justify-between mb-1">
+                            <h4 className="text-sm font-medium">{suggestion.title}</h4>
+                            <Badge variant="outline" className="text-xs">
+                              {suggestion.priority}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {suggestion.description}
+                          </p>
+                          <div className="flex items-center gap-1 mt-1">
+                            <Target className="h-3 w-3 text-blue-500" />
+                            <span className="text-xs text-blue-600">Click to apply</span>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
