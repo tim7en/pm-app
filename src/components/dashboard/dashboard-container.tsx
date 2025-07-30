@@ -30,7 +30,9 @@ export function DashboardContainer() {
     refreshData,
     fetchProjects,
     fetchTasks,
-    addRealtimeActivity
+    addRealtimeActivity,
+    clearRecentActivity,
+    setRecentActivity
   } = useDashboardData()
 
   const {
@@ -165,7 +167,7 @@ export function DashboardContainer() {
   }
 
   const onClearActivity = async () => {
-    if (!user) return
+    if (!user || recentActivity.length === 0) return
     
     try {
       // Archive current activities to logs
@@ -179,29 +181,52 @@ export function DashboardContainer() {
             type: activity.type,
             message: activity.message,
             userId: user.id,
-            timestamp: activity.timestamp
+            timestamp: activity.timestamp,
+            user: activity.user
           }))
         }),
       })
 
       if (response.ok) {
-        // Clear data and refresh
-        await refreshData()
+        const result = await response.json()
+        console.log('Activities archived:', result)
+        
+        // Clear all activities first
+        clearRecentActivity()
         
         // Add confirmation activity
-        addRealtimeActivity({
+        const confirmationActivity = {
           id: `activity-cleared-${Date.now()}`,
-          type: 'workspace',
-          message: 'cleared recent activity and archived to logs',
+          type: 'workspace' as const,
+          message: `cleared and archived ${result.count || recentActivity.length} activities to logs`,
           user: {
             name: user.name || 'You',
             avatar: user.avatar || ''
           },
           timestamp: new Date()
-        })
+        }
+
+        // Set only the confirmation activity
+        setRecentActivity([confirmationActivity])
+        
+      } else {
+        const error = await response.json()
+        console.error('Failed to archive activities:', error)
+        throw new Error(error.error || 'Failed to archive activities')
       }
     } catch (error) {
       console.error('Failed to clear activity:', error)
+      // Show error message to user
+      addRealtimeActivity({
+        id: `activity-clear-error-${Date.now()}`,
+        type: 'notification',
+        message: 'failed to clear activity feed - please try again',
+        user: {
+          name: 'System',
+          avatar: ''
+        },
+        timestamp: new Date()
+      })
     }
   }
 
@@ -335,7 +360,6 @@ export function DashboardContainer() {
         }}
         task={editingTask}
         projects={projects}
-        users={users}
         onSubmit={editingTask ? onUpdateTask : onCreateTask}
         isSubmitting={isSubmitting}
       />

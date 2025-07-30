@@ -15,15 +15,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PM-App - AI-Powered Project Management",
-  description: "Transform ideas into actionable results with AI-assisted workflows, intelligent task breakdown, and automated document organization",
-  keywords: ["project management", "AI", "task management", "collaboration", "productivity", "automation", "workflow"],
-  authors: [{ name: "PM-App Team" }],
+  title: "UzEffect - Complete Project Management",
+  description: "Complete project management platform with file attachments, universal search, activity logging, and intelligent team collaboration tools",
+  keywords: ["project management", "task management", "team collaboration", "file sharing", "productivity", "workflow", "search"],
+  authors: [{ name: "UzEffect Team" }],
   openGraph: {
-    title: "PM-App - AI-Powered Project Management",
-    description: "Transform ideas into actionable results with AI-assisted workflows",
+    title: "UzEffect - Complete Project Management",
+    description: "Complete project management platform with advanced collaboration tools",
     url: "http://localhost:3001",
-    siteName: "PM-App",
+    siteName: "UzEffect",
     type: "website",
   },
   twitter: {

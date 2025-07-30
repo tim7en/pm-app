@@ -24,30 +24,68 @@ import {
   Globe,
   Star,
   ChevronRight,
-  Play
+  Play,
+  Upload,
+  Download,
+  Archive,
+  MessageSquare,
+  Paperclip
 } from 'lucide-react'
 
 export default function LandingPage() {
   const [activePhase, setActivePhase] = useState(0)
 
+  const features = [
+    {
+      icon: <Target className="h-6 w-6" />,
+      title: "Smart Task Management",
+      description: "AI-powered task breakdown with dynamic activity feeds and real-time collaboration"
+    },
+    {
+      icon: <Upload className="h-6 w-6" />,
+      title: "File Attachments",
+      description: "Upload, download, and manage files directly within tasks with 10MB storage per file"
+    },
+    {
+      icon: <Search className="h-6 w-6" />,
+      title: "Universal Search",
+      description: "Search across tasks, projects, and team members with intelligent filtering and results"
+    },
+    {
+      icon: <Archive className="h-6 w-6" />,
+      title: "Activity Logging",
+      description: "Clear and archive activity feeds with persistent storage and audit trails"
+    },
+    {
+      icon: <Users className="h-6 w-6" />,
+      title: "Team Management",
+      description: "Default avatars, role-based permissions, and seamless team collaboration"
+    },
+    {
+      icon: <BarChart3 className="h-6 w-6" />,
+      title: "Dynamic Analytics",
+      description: "Real-time dashboard with live data generation from actual project activities"
+    }
+  ]
+
   const aiWorkflowSteps = [
     {
-      title: "Task Assignment by PM",
-      description: "PM creates high-level tasks with context",
-      aiAction: "AI analyzes and suggests structured action lists",
-      example: "Transform 'Prepare financial feasibility report' into 6 actionable subtasks"
+      title: "Task Creation & Assignment",
+      description: "Create tasks with file attachments and assign to team members",
+      aiAction: "AI analyzes task context and suggests optimal workflow structures",
+      example: "Transform complex projects into manageable subtasks with file organization"
     },
     {
-      title: "Employee Onboarding",
-      description: "Structured steps appear on employee dashboard",
-      aiAction: "AI provides contextual resources and templates",
-      example: "Auto-suggests relevant documents and best practices"
+      title: "Real-time Collaboration",
+      description: "Team members receive notifications and can access shared files instantly",
+      aiAction: "Smart activity tracking with searchable history and archival",
+      example: "Automatic progress updates and file versioning across team workspace"
     },
     {
-      title: "Task Progression",
-      description: "Interactive checklists with real-time updates",
-      aiAction: "Automatic notifications and milestone tracking",
-      example: "PM receives instant updates on completion status"
+      title: "Progress Analytics",
+      description: "Dynamic dashboards showing real task completion and team performance",
+      aiAction: "AI-generated insights from actual project data and team patterns",
+      example: "Predictive analytics for project timelines and resource allocation"
     },
     {
       title: "Document Management",
@@ -212,27 +250,27 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto">
           <Badge className="mb-6 bg-blue-100 text-blue-700 hover:bg-blue-200">
             <Star className="mr-1 h-3 w-3" />
-            AI-Powered Project Management
+            Complete Project Management Suite
           </Badge>
           <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent">
-            Transform Ideas Into
+            UzEffect
             <br />
-            Actionable Results
+            Project Excellence
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Experience the future of project management with AI-assisted workflows, 
-            intelligent task breakdown, and automated document organization.
+            Complete project management platform with file attachments, universal search, 
+            activity logging, and intelligent team collaboration tools.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/auth">
               <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-3">
                 <Play className="mr-2 h-5 w-5" />
-                Start Free Trial
+                Get Started Free
               </Button>
             </Link>
             <Button size="lg" variant="outline" className="text-lg px-8 py-3">
               <Calendar className="mr-2 h-5 w-5" />
-              Schedule Demo
+              View Features
             </Button>
           </div>
         </div>
@@ -242,13 +280,13 @@ export default function LandingPage() {
       <section id="features" className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Powerful Features for Modern Teams</h2>
+            <h2 className="text-4xl font-bold mb-4">Complete Project Management Suite</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Built for the way teams work today, with AI at the core of every feature
+              Everything you need for modern project management with advanced file handling and team collaboration
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {coreFeatures.map((feature, index) => (
+            {features.map((feature, index) => (
               <Card key={index} className="hover:shadow-lg transition-shadow duration-300 border-0 shadow-md">
                 <CardHeader>
                   <div className="w-16 h-16 bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg flex items-center justify-center mb-4">
@@ -273,9 +311,10 @@ export default function LandingPage() {
       <section id="ai-workflow" className="py-20 bg-gradient-to-r from-blue-50 to-purple-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">AI-Assisted Project Management Workflow</h2>
+            <h2 className="text-4xl font-bold mb-4">Streamlined Project Workflow</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              See how AI transforms every step of your project lifecycle, from initial task creation to final delivery
+              See how UzEffect transforms your project lifecycle with intelligent task management, 
+              file organization, and real-time team collaboration
             </p>
           </div>
           
@@ -422,27 +461,132 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Current Achievements Section */}
+      <section className="py-20 bg-gradient-to-r from-green-50 to-blue-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">What We've Built</h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              UzEffect is a fully functional project management platform with all the features modern teams need
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <Card className="text-center hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Paperclip className="h-8 w-8 text-green-600" />
+                </div>
+                <CardTitle>File Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Upload, download, and manage files directly within tasks. 10MB file limit with secure storage.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Search className="h-8 w-8 text-blue-600" />
+                </div>
+                <CardTitle>Universal Search</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Search across tasks, projects, and team members with real-time results and intelligent filtering.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Archive className="h-8 w-8 text-purple-600" />
+                </div>
+                <CardTitle>Activity Logging</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Clear and archive activity feeds with persistent storage. Full audit trail of all project activities.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="h-8 w-8 text-orange-600" />
+                </div>
+                <CardTitle>Team Collaboration</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Default avatars, role-based permissions, seamless invitations, and real-time collaboration tools.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BarChart3 className="h-8 w-8 text-red-600" />
+                </div>
+                <CardTitle>Live Analytics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Dynamic dashboards with real-time data generation from actual project activities and team performance.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Target className="h-8 w-8 text-indigo-600" />
+                </div>
+                <CardTitle>Smart Task Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Comprehensive task management with drag-and-drop boards, priority levels, and automated notifications.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center mt-12">
+            <Badge className="bg-green-100 text-green-700 px-4 py-2 text-lg">
+              <CheckCircle className="mr-2 h-5 w-5" />
+              All Features Fully Functional & Ready to Use
+            </Badge>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600">
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-3xl mx-auto text-white">
             <h2 className="text-4xl font-bold mb-4">
-              Ready to Transform Your Project Management?
+              Ready to Experience UzEffect?
             </h2>
             <p className="text-xl mb-8 text-blue-100">
-              Join the AI revolution and experience project management like never before. 
-              Start your free trial today and see the difference intelligent automation makes.
+              Join us and experience complete project management with all features fully functional. 
+              Start managing your projects with advanced file handling, search, and team collaboration today.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/auth">
                 <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-3">
                   <Play className="mr-2 h-5 w-5" />
-                  Start Free Trial
+                  Get Started Now
                 </Button>
               </Link>
               <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 text-lg px-8 py-3">
-                <Calendar className="mr-2 h-5 w-5" />
-                Schedule Demo
+                <Target className="mr-2 h-5 w-5" />
+                Explore Features
               </Button>
             </div>
           </div>
@@ -458,10 +602,10 @@ export default function LandingPage() {
                 <div className="w-6 h-6 bg-gradient-to-r from-blue-400 to-purple-400 rounded-lg flex items-center justify-center">
                   <Target className="h-4 w-4 text-white" />
                 </div>
-                <span className="text-lg font-bold">PM-App</span>
+                <span className="text-lg font-bold">UzEffect</span>
               </div>
               <p className="text-gray-400">
-                AI-powered project management for modern teams.
+                Complete project management platform for modern teams.
               </p>
             </div>
             <div>
@@ -493,7 +637,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 flex justify-between items-center">
-            <p className="text-gray-400">© 2025 PM-App. All rights reserved.</p>
+            <p className="text-gray-400">© 2025 UzEffect. All rights reserved.</p>
             <div className="flex space-x-6 text-gray-400">
               <div>Privacy Policy</div>
               <div>Terms of Service</div>

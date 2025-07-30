@@ -319,6 +319,12 @@ export const useDashboardData = () => {
     setUsers,
     addRealtimeActivity: (activity: ActivityItem) => {
       setRecentActivity(prev => [activity, ...prev].slice(0, 15))
+    },
+    clearRecentActivity: () => {
+      setRecentActivity([])
+    },
+    setRecentActivity: (activities: ActivityItem[]) => {
+      setRecentActivity(activities)
     }
   }
 }

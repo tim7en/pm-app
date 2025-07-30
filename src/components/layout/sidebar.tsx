@@ -88,9 +88,9 @@ export function Sidebar() {
         {!isCollapsed && (
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold">A</span>
+              <span className="text-primary-foreground font-bold">U</span>
             </div>
-            <span className="font-semibold text-lg">Asana Pro</span>
+            <span className="font-semibold text-lg">UzEffect</span>
           </div>
         )}
         <Button

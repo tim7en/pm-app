@@ -1,7 +1,7 @@
 {
-  "name": "PM-App - AI-Powered Project Management",
-  "short_name": "PM-App",
-  "description": "Transform ideas into actionable results with AI-assisted workflows",
+  "name": "UzEffect - Complete Project Management",
+  "short_name": "UzEffect",
+  "description": "Complete project management platform with advanced collaboration tools",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
