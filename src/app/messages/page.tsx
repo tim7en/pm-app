@@ -18,6 +18,7 @@ export default function MessagesPage() {
     loading,
     composing,
     draftEmail,
+    teamMembers,
     setActiveConversation,
     setActiveFolder,
     setSearchQuery,
@@ -25,14 +26,53 @@ export default function MessagesPage() {
     stopComposing,
     updateDraftEmail,
     sendEmail,
+    sendInternalMessage,
     generateDraftReply,
     uploadAttachment
   } = useMessenger()
 
   const handleSendMessage = async (content: string) => {
-    // For internal messages, this would send through websocket
-    // For now, we'll just add it to the local state
-    console.log('Sending message:', content)
+    if (activeConversation?.type === 'internal') {
+      return await sendInternalMessage(content)
+    } else {
+      // Handle other message types
+      console.log('Sending message:', content)
+      return true
+    }
+  }
+
+  const handleStartChat = (memberId: string) => {
+    // Find the member and create/select conversation
+    const member = teamMembers.find(m => m.id === memberId)
+    if (member) {
+      const conversation = {
+        id: `chat-${memberId}`,
+        participants: [
+          {
+            id: 'current-user',
+            name: 'You',
+            email: 'current@user.com'
+          },
+          {
+            id: member.id,
+            name: member.name,
+            email: member.email,
+            avatar: member.avatar
+          }
+        ],
+        lastMessage: {
+          content: 'Start a new conversation',
+          timestamp: new Date(),
+          senderId: 'current-user'
+        },
+        unreadCount: 0,
+        isGroup: false,
+        type: 'internal' as const,
+        isOnline: member.isOnline
+      }
+      setActiveConversation(conversation)
+      setActiveFolder('INTERNAL')
+    }
   }
 
   const handleSendEmail = async (draft: any) => {
@@ -59,10 +99,12 @@ export default function MessagesPage() {
               activeFolder={activeFolder}
               searchQuery={searchQuery}
               loading={loading}
+              teamMembers={teamMembers}
               onConversationSelect={setActiveConversation}
               onFolderSelect={setActiveFolder}
               onSearchChange={setSearchQuery}
               onCompose={startComposing}
+              onStartChat={handleStartChat}
             />
 
             <MessageThread

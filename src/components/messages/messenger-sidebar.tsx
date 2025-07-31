@@ -28,10 +28,12 @@ interface MessengerSidebarProps {
   activeFolder: string
   searchQuery: string
   loading: boolean
+  teamMembers?: any[]
   onConversationSelect: (conversation: Conversation) => void
   onFolderSelect: (folder: string) => void
   onSearchChange: (query: string) => void
   onCompose: () => void
+  onStartChat?: (memberId: string) => void
 }
 
 const folderIcons: Record<string, any> = {
@@ -57,10 +59,12 @@ export function MessengerSidebar({
   activeFolder,
   searchQuery,
   loading,
+  teamMembers = [],
   onConversationSelect,
   onFolderSelect,
   onSearchChange,
-  onCompose
+  onCompose,
+  onStartChat
 }: MessengerSidebarProps) {
   const [sidebarMode, setSidebarMode] = useState<'folders' | 'conversations'>('folders')
 
@@ -208,6 +212,66 @@ export function MessengerSidebar({
               <div className="p-4 text-center text-muted-foreground">
                 Loading conversations...
               </div>
+            ) : activeFolder === 'TEAMS' && teamMembers.length > 0 ? (
+              /* Team Members View */
+              <div className="p-2">
+                <h3 className="text-sm font-medium text-muted-foreground mb-3 px-2">Team Members</h3>
+                {teamMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className={cn(
+                      "p-3 rounded-lg cursor-pointer hover:bg-accent transition-colors",
+                      "border-b border-border/50 last:border-0"
+                    )}
+                    onClick={() => onStartChat?.(member.id)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={member.avatar} alt={member.name} />
+                          <AvatarFallback>
+                            {member.name.split(' ').map((n: string) => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        {/* Online status indicator */}
+                        <div className={cn(
+                          "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background",
+                          member.isOnline ? "bg-green-500" : "bg-gray-400"
+                        )} />
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <h3 className="font-medium text-sm truncate">
+                            {member.name}
+                          </h3>
+                          <div className="flex items-center gap-1">
+                            <div className={cn(
+                              "w-2 h-2 rounded-full",
+                              member.isOnline ? "bg-green-500" : "bg-gray-400"
+                            )} />
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground truncate">
+                            {member.email}
+                          </p>
+                          <span className="text-xs text-muted-foreground">
+                            {member.isOnline ? 'Online' : formatTimeAgo(new Date(member.lastSeen))}
+                          </span>
+                        </div>
+
+                        <div className="mt-1">
+                          <Badge variant="outline" className="text-xs">
+                            {member.workspaceRole}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : conversations.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground">
                 No conversations found
@@ -215,6 +279,8 @@ export function MessengerSidebar({
             ) : (
               conversations.map((conversation) => {
                 const otherParticipant = getOtherParticipant(conversation)
+                const isOnline = (conversation as any).isOnline
+                
                 return (
                   <div
                     key={conversation.id}
@@ -225,12 +291,21 @@ export function MessengerSidebar({
                     onClick={() => onConversationSelect(conversation)}
                   >
                     <div className="flex items-start gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={otherParticipant.avatar} alt={otherParticipant.name} />
-                        <AvatarFallback>
-                          {otherParticipant.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="relative">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={otherParticipant.avatar} alt={otherParticipant.name} />
+                          <AvatarFallback>
+                            {otherParticipant.name.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        {/* Online status for internal conversations */}
+                        {conversation.type === 'internal' && (
+                          <div className={cn(
+                            "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background",
+                            isOnline ? "bg-green-500" : "bg-gray-400"
+                          )} />
+                        )}
+                      </div>
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
@@ -240,6 +315,9 @@ export function MessengerSidebar({
                             </h3>
                             {conversation.type === 'email' && (
                               <Bot className="h-3 w-3 text-blue-500" />
+                            )}
+                            {conversation.type === 'internal' && isOnline && (
+                              <div className="w-2 h-2 rounded-full bg-green-500" />
                             )}
                           </div>
                           <div className="flex items-center gap-1">
