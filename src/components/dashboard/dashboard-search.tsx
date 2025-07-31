@@ -15,6 +15,7 @@ import {
   ArrowRight 
 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useTranslation } from "@/hooks/use-translation"
 
 interface SearchResult {
   id: string
@@ -37,6 +38,7 @@ interface DashboardSearchProps {
 }
 
 export function DashboardSearch({ onResultClick }: DashboardSearchProps) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<{
     tasks: SearchResult[]
@@ -137,7 +139,7 @@ export function DashboardSearch({ onResultClick }: DashboardSearchProps) {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search tasks, projects, team..."
+          placeholder={t("dashboard.searchPlaceholder")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="pl-10 pr-10"

@@ -30,6 +30,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/contexts/AuthContext"
+import { useTranslation } from "@/hooks/use-translation"
 
 interface TeamMember {
   id: string
@@ -50,6 +51,7 @@ interface TeamMembersProps {
 }
 
 export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: TeamMembersProps) {
+  const { t } = useTranslation()
   const [members, setMembers] = useState<TeamMember[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
@@ -109,6 +111,19 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
       console.error('Error fetching team members:', error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'OWNER':
+        return t("dashboard.owner")
+      case 'ADMIN':
+        return 'ADMIN' // Keep ADMIN in English or add translation if needed
+      case 'MEMBER':
+        return 'MEMBER' // Keep MEMBER in English or add translation if needed
+      default:
+        return role
     }
   }
 
@@ -174,10 +189,10 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
           <div>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Users className="h-5 w-5" />
-              Team Members
+              {t("dashboard.teamMembers")}
             </CardTitle>
             <CardDescription>
-              {onlineCount} of {totalCount} members online
+              {onlineCount} {t("dashboard.membersOnline", { count: totalCount })}
             </CardDescription>
           </div>
           <Button 
@@ -186,7 +201,7 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
             onClick={() => setInviteDialogOpen(true)}
           >
             <UserPlus className="h-4 w-4 mr-2" />
-            Invite
+            {t("dashboard.invite")}
           </Button>
         </div>
       </CardHeader>
@@ -207,7 +222,7 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
             ) : members.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">No team members found</p>
+                <p className="text-sm text-muted-foreground">{t("dashboard.noTeamMembersFound")}</p>
               </div>
             ) : (
               members.map((member) => (
@@ -245,10 +260,10 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
                         variant="outline" 
                         className={`text-xs px-1.5 py-0 ${getRoleBadgeColor(member.role)}`}
                       >
-                        {member.role}
+                        {getRoleLabel(member.role)}
                       </Badge>
                       {member.isOnline ? (
-                        <span className="text-xs text-green-600 font-medium">Online</span>
+                        <span className="text-xs text-green-600 font-medium">{t("common.online")}</span>
                       ) : (
                         <span className="text-xs text-muted-foreground">
                           {member.lastSeen && formatLastSeen(member.lastSeen)}

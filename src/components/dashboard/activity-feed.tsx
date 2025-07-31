@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Zap, CheckCircle2, FolderOpen, MessageCircle, Users, Bell, GitBranch, Archive, Activity } from "lucide-react"
 import { ActivityItem } from "@/hooks/use-dashboard-data"
+import { useTranslation } from "@/hooks/use-translation"
 import { useState } from "react"
 
 interface ActivityFeedProps {
@@ -16,6 +17,8 @@ interface ActivityFeedProps {
 }
 
 export function ActivityFeed({ activities, className, currentUserId, onClearActivity, onRestoreActivity, activitiesCleared }: ActivityFeedProps) {
+  const { t } = useTranslation()
+  
   const formatTimeAgo = (date: Date) => {
     const now = new Date()
     const diff = now.getTime() - date.getTime()
@@ -23,10 +26,10 @@ export function ActivityFeed({ activities, className, currentUserId, onClearActi
     const hours = Math.floor(diff / (1000 * 60 * 60))
     const days = Math.floor(diff / (1000 * 60 * 60 * 24))
 
-    if (minutes < 1) return 'just now'
-    if (minutes < 60) return `${minutes}m ago`
-    if (hours < 24) return `${hours}h ago`
-    return `${days}d ago`
+    if (minutes < 1) return t("dashboard.timeFormat.justNow")
+    if (minutes < 60) return t("dashboard.timeFormat.minutesAgo", { minutes })
+    if (hours < 24) return t("dashboard.timeFormat.hoursAgo", { hours })
+    return t("dashboard.timeFormat.daysAgo", { days })
   }
 
   // Process and prioritize activities for the current user
@@ -69,14 +72,14 @@ export function ActivityFeed({ activities, className, currentUserId, onClearActi
 
   const getActivityTypeLabel = (type: string) => {
     switch (type) {
-      case 'task': return 'Task'
-      case 'project': return 'Project'
-      case 'comment': return 'Comment'
-      case 'integration': return 'Integration'
-      case 'team': return 'Team'
-      case 'workspace': return 'Workspace'
-      case 'notification': return 'Notification'
-      default: return 'Activity'
+      case 'task': return t("dashboard.activityTypes.task")
+      case 'project': return t("dashboard.activityTypes.project")
+      case 'comment': return t("dashboard.activityTypes.comment")
+      case 'integration': return t("dashboard.activityTypes.integration")
+      case 'team': return t("dashboard.activityTypes.team")
+      case 'workspace': return t("dashboard.activityTypes.workspace")
+      case 'notification': return t("dashboard.activityTypes.notification")
+      default: return t("dashboard.activityTypes.activity")
     }
   }
 
@@ -85,11 +88,11 @@ export function ActivityFeed({ activities, className, currentUserId, onClearActi
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>{t("dashboard.recentActivity")}</CardTitle>
             <CardDescription>
               {activityData.length > 0 
-                ? `${activityData.length} recent updates from tasks, projects, and team activities` 
-                : "Activity updates will appear here"
+                ? t("dashboard.activityFeed.recentUpdatesCount", { count: activityData.length })
+                : t("dashboard.activityUpdatesWillAppearHere")
               }
             </CardDescription>
           </div>
@@ -101,7 +104,7 @@ export function ActivityFeed({ activities, className, currentUserId, onClearActi
               className="text-xs"
             >
               <Archive className="h-3 w-3 mr-1" />
-              Clear & Archive
+              {t("dashboard.activityFeed.clearAndArchive")}
             </Button>
           )}
         </div>
@@ -134,7 +137,7 @@ export function ActivityFeed({ activities, className, currentUserId, onClearActi
             {activityData.length >= 8 && (
               <div className="text-center pt-3 border-t mt-3">
                 <p className="text-xs text-muted-foreground">
-                  Recent activity from tasks, projects, and team workspace
+                  {t("dashboard.activityFeed.recentActivityFromWorkspace")}
                 </p>
               </div>
             )}
@@ -145,10 +148,10 @@ export function ActivityFeed({ activities, className, currentUserId, onClearActi
               <>
                 <Archive className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">
-                  Activities have been cleared and archived
+                  {t("dashboard.activitiesCleared")}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  You can restore recent activities if needed
+                  {t("dashboard.canRestoreRecentActivities")}
                 </p>
                 {onRestoreActivity && (
                   <Button
@@ -158,7 +161,7 @@ export function ActivityFeed({ activities, className, currentUserId, onClearActi
                     className="mt-3"
                   >
                     <Activity className="h-3 w-3 mr-1" />
-                    Restore Activities
+                    {t("dashboard.restoreActivities")}
                   </Button>
                 )}
               </>
@@ -166,10 +169,10 @@ export function ActivityFeed({ activities, className, currentUserId, onClearActi
               <>
                 <Activity className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">
-                  No recent activity to show
+                  {t("dashboard.activityFeed.noRecentActivity")}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Activity from your workspace will appear here
+                  {t("dashboard.activityFeed.workspaceActivityWillAppearHere")}
                 </p>
               </>
             )}
@@ -185,6 +188,8 @@ interface ActivityFeedFullProps {
 }
 
 export function ActivityFeedFull({ activities }: ActivityFeedFullProps) {
+  const { t } = useTranslation()
+  
   const formatTimeAgo = (date: Date) => {
     const now = new Date()
     const diff = now.getTime() - date.getTime()
@@ -192,10 +197,10 @@ export function ActivityFeedFull({ activities }: ActivityFeedFullProps) {
     const hours = Math.floor(diff / (1000 * 60 * 60))
     const days = Math.floor(diff / (1000 * 60 * 60 * 24))
 
-    if (minutes < 1) return 'just now'
-    if (minutes < 60) return `${minutes}m ago`
-    if (hours < 24) return `${hours}h ago`
-    return `${days}d ago`
+    if (minutes < 1) return t("dashboard.timeFormat.justNow")
+    if (minutes < 60) return t("dashboard.timeFormat.minutesAgo", { minutes })
+    if (hours < 24) return t("dashboard.timeFormat.hoursAgo", { hours })
+    return t("dashboard.timeFormat.daysAgo", { days })
   }
 
   // Use real activity data only
@@ -204,8 +209,8 @@ export function ActivityFeedFull({ activities }: ActivityFeedFullProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Activity Feed</CardTitle>
-        <CardDescription>Real-time updates from your projects and team</CardDescription>
+        <CardTitle>{t("dashboard.activityFeed.activityFeed")}</CardTitle>
+        <CardDescription>{t("dashboard.activityFeed.realTimeUpdates")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {activityData.length > 0 ? (
@@ -238,8 +243,8 @@ export function ActivityFeedFull({ activities }: ActivityFeedFullProps) {
             <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
               <Activity className="h-6 w-6 text-muted-foreground" />
             </div>
-            <p className="text-muted-foreground">No recent activity</p>
-            <p className="text-sm text-muted-foreground">Activity will appear here as you work on tasks and projects</p>
+            <p className="text-muted-foreground">{t("dashboard.activityFeed.noRecentActivity")}</p>
+            <p className="text-sm text-muted-foreground">{t("dashboard.activityFeed.activityWillAppearHere")}</p>
           </div>
         )}
       </CardContent>

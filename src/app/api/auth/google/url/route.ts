@@ -38,7 +38,8 @@ export async function GET() {
         'https://www.googleapis.com/auth/userinfo.profile',
         'https://www.googleapis.com/auth/userinfo.email'
       ],
-      include_granted_scopes: true
+      include_granted_scopes: true,
+      prompt: 'select_account' // Always show account selector
     })
 
     return NextResponse.json({

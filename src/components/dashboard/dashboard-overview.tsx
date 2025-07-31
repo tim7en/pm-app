@@ -12,6 +12,7 @@ import { TeamMembers } from "./team-members"
 import { Plus, CheckCircle, Clock, AlertTriangle, Users, FolderOpen, Calendar, MessageSquare } from "lucide-react"
 import { ActivityItem } from "@/hooks/use-dashboard-data"
 import { useState, useEffect } from "react"
+import { useTranslation } from "@/hooks/use-translation"
 
 interface DashboardOverviewProps {
   tasks: any[]
@@ -54,6 +55,7 @@ export function DashboardOverview({
 }: DashboardOverviewProps) {
   const [chatWindowOpen, setChatWindowOpen] = useState(false)
   const [teamMembers, setTeamMembers] = useState<any[]>([])
+  const { t } = useTranslation()
   
   // Calculate quick stats
   const completedTasks = tasks.filter(task => task.status === 'DONE').length
@@ -127,7 +129,7 @@ export function DashboardOverview({
                 <CheckCircle className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Completed</p>
+                <p className="text-sm text-muted-foreground">{t("dashboard.completed")}</p>
                 <p className="text-2xl font-bold text-primary">{completedTasks}</p>
               </div>
             </div>
@@ -141,7 +143,7 @@ export function DashboardOverview({
                 <Clock className="h-5 w-5 text-blue-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">In Progress</p>
+                <p className="text-sm text-muted-foreground">{t("dashboard.inProgress")}</p>
                 <p className="text-2xl font-bold text-blue-500">{inProgressTasks}</p>
               </div>
             </div>
@@ -155,7 +157,7 @@ export function DashboardOverview({
                 <AlertTriangle className="h-5 w-5 text-red-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Overdue</p>
+                <p className="text-sm text-muted-foreground">{t("dashboard.overdue")}</p>
                 <p className="text-2xl font-bold text-red-500">{overdueTasks}</p>
               </div>
             </div>
@@ -169,7 +171,7 @@ export function DashboardOverview({
                 <FolderOpen className="h-5 w-5 text-green-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Active Projects</p>
+                <p className="text-sm text-muted-foreground">{t("dashboard.activeProjects")}</p>
                 <p className="text-2xl font-bold text-green-500">{activeProjects.length}</p>
               </div>
             </div>
@@ -197,14 +199,14 @@ export function DashboardOverview({
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-lg">Active Projects</CardTitle>
+                  <CardTitle className="text-lg">{t("dashboard.activeProjects")}</CardTitle>
                   <CardDescription>
-                    Projects you own and participate in
+                    {t("dashboard.projectsYouOwnAndParticipate")}
                   </CardDescription>
                 </div>
                 <Button variant="outline" size="sm" onClick={onCreateProject} className="flex items-center gap-2">
                   <Plus className="h-4 w-4" />
-                  New Project
+                  {t("dashboard.newProject")}
                 </Button>
               </div>
             </CardHeader>
@@ -229,14 +231,14 @@ export function DashboardOverview({
               ) : (
                 <div className="text-center py-8">
                   <FolderOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No active projects</p>
+                  <p className="text-muted-foreground">{t("dashboard.noActiveProjects")}</p>
                   <Button 
                     variant="outline" 
                     className="mt-2"
                     onClick={onCreateProject}
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Create Your First Project
+                    {t("dashboard.createYourFirstProject")}
                   </Button>
                 </div>
               )}
@@ -265,18 +267,18 @@ export function DashboardOverview({
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <MessageSquare className="h-5 w-5" />
-                Team Communication
+                {t("dashboard.teamCommunication")}
               </CardTitle>
               <CardDescription>
-                Chat with your team members in real-time. Messages are saved and accessible even when team members are offline.
+                {t("dashboard.chatWithTeamMembers")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Team members online:</span>
+                  <span className="text-muted-foreground">{t("dashboard.teamMembersOnlineStatus")}</span>
                   <span className="font-medium">
-                    {teamMembers.filter(m => m.isOnline).length} of {teamMembers.length}
+                    {teamMembers.filter(m => m.isOnline).length} {t("dashboard.membersOnline", { count: teamMembers.length })}
                   </span>
                 </div>
                 
@@ -287,12 +289,12 @@ export function DashboardOverview({
                     size="lg"
                   >
                     <MessageSquare className="h-4 w-4 mr-2" />
-                    Open Team Chat
+                    {t("dashboard.openTeamChat")}
                   </Button>
                 </div>
                 
                 <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-                  💡 Messages persist across sessions - your team can read messages even if they were offline when you sent them.
+                  {t("dashboard.messagesPersistInfo")}
                 </div>
               </div>
             </CardContent>

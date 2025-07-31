@@ -21,9 +21,11 @@ import { ActivityFeed, ActivityFeedFull } from "./activity-feed"
 import { useDashboardData } from "@/hooks/use-dashboard-data"
 import { useDashboardActions } from "@/hooks/use-dashboard-actions"
 import { useAuth } from "@/contexts/AuthContext"
+import { useTranslation } from "@/hooks/use-translation"
 
 export function DashboardContainer() {
   const { user, currentWorkspaceId, currentWorkspace } = useAuth()
+  const { t } = useTranslation()
   const {
     stats,
     recentActivity,
@@ -348,10 +350,10 @@ export function DashboardContainer() {
             {/* Main Content Tabs */}
             <Tabs defaultValue="overview" className="space-y-6">
               <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="tasks">My Tasks</TabsTrigger>
-                <TabsTrigger value="projects">Projects</TabsTrigger>
-                <TabsTrigger value="activity">Activity</TabsTrigger>
+                <TabsTrigger value="overview">{t("dashboard.overview")}</TabsTrigger>
+                <TabsTrigger value="tasks">{t("dashboard.myTasks")}</TabsTrigger>
+                <TabsTrigger value="projects">{t("dashboard.projects")}</TabsTrigger>
+                <TabsTrigger value="activity">{t("dashboard.activity")}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-6">

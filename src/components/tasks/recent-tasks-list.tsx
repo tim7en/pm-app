@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { TaskCard } from "./task-card"
+import { useTranslation } from "@/hooks/use-translation"
 import { 
   Calendar, 
   Clock, 
@@ -76,6 +77,7 @@ export function RecentTasksList({
 }: RecentTasksListProps) {
   const [filterAge, setFilterAge] = useState<'all' | '1day' | '3days' | '7days'>('all')
   const [sortBy, setSortBy] = useState<'recent' | 'priority' | 'status'>('recent')
+  const { t } = useTranslation()
 
   // Calculate task age and opacity based on recency
   const getTaskAge = (task: Task) => {
@@ -205,10 +207,10 @@ export function RecentTasksList({
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
               <Clock className="h-5 w-5" />
-              Recent Tasks
+              {t("dashboard.recentTasks")}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              {filteredAndSortedTasks.length} tasks • Auto-fading by age
+              {filteredAndSortedTasks.length} {t("dashboard.totalTasks")} • {t("dashboard.autoFadingByAge")}
             </p>
           </div>
           
@@ -245,9 +247,9 @@ export function RecentTasksList({
             {filteredAndSortedTasks.length === 0 ? (
               <div className="text-center py-8">
                 <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No recent tasks</p>
+                <p className="text-muted-foreground">{t("dashboard.noRecentTasks")}</p>
                 <p className="text-sm text-muted-foreground">
-                  Tasks will appear here as you work on them
+                  {t("dashboard.tasksWillAppearHere")}
                 </p>
               </div>
             ) : (

@@ -10,8 +10,10 @@ import { ProjectDialog } from "@/components/projects/project-dialog"
 import { DownloadMenu } from "@/components/layout/download-menu"
 import { NotificationsDropdown } from "@/components/layout/notifications-dropdown"
 import { BugReportDialog } from "@/components/bug-report/bug-report-dialog"
+import { LanguageSelector } from "@/components/ui/language-selector"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
+import { useTranslation } from "@/hooks/use-translation"
 import { 
   Search, 
   Bell, 
@@ -46,6 +48,7 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { user, logout, getAuthHeaders } = useAuth()
   const { toast } = useToast()
+  const { t } = useTranslation()
 
   const handleCreateProject = async (projectData: any) => {
     setIsSubmitting(true)
@@ -61,8 +64,8 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
         const newProject = await response.json()
         setProjectDialogOpen(false)
         toast({
-          title: "Project created",
-          description: `Project "${newProject.name}" has been created successfully.`,
+          title: t("header.projectCreated"),
+          description: t("header.projectCreatedSuccess", { name: newProject.name }),
         })
         // Call the callback to refresh data
         if (onProjectCreated) {
@@ -72,16 +75,16 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
         const data = await response.json()
         console.error('Error creating project:', data.error)
         toast({
-          title: "Failed to create project",
-          description: data.error || "An error occurred while creating the project.",
+          title: t("header.projectCreationFailed"),
+          description: data.error || t("header.projectCreationError"),
           variant: "destructive",
         })
       }
     } catch (error) {
       console.error('Error creating project:', error)
       toast({
-        title: "Failed to create project",
-        description: "An unexpected error occurred. Please try again.",
+        title: t("header.projectCreationFailed"),
+        description: t("header.unexpectedError"),
         variant: "destructive",
       })
     } finally {
@@ -95,8 +98,8 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
     } catch (error) {
       console.error('Logout failed:', error)
       toast({
-        title: "Logout failed",
-        description: "An error occurred while logging out. Please try again.",
+        title: t("header.logoutFailed"),
+        description: t("header.logoutError"),
         variant: "destructive",
       })
     }
@@ -136,7 +139,7 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
           <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-sm">PM</span>
           </div>
-          <span className="font-semibold text-lg">Project Manager</span>
+          <span className="font-semibold text-lg">{t("header.projectManager")}</span>
         </div>
 
         {/* Search */}
@@ -144,7 +147,7 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search projects, tasks, or people..."
+              placeholder={t("header.searchPlaceholder")}
               className="pl-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -159,18 +162,18 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2">
                 <Plus className="h-4 w-4" />
-                Create
+                {t("header.create")}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem onClick={() => setProjectDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
-                New Project
+                {t("header.newProject")}
               </DropdownMenuItem>
               <DropdownMenuItem disabled>
                 <Plus className="mr-2 h-4 w-4" />
-                New Task
-                <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
+                {t("header.newTask")}
+                <Badge variant="secondary" className="ml-auto text-xs">{t("header.soon")}</Badge>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -179,14 +182,14 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
           <Button variant="ghost" size="sm" asChild>
             <Link href="/calendar" className="gap-2">
               <Calendar className="h-4 w-4" />
-              Calendar
+              {t("navigation.calendar")}
             </Link>
           </Button>
 
           <Button variant="ghost" size="sm" className="gap-2" asChild>
             <Link href="/team">
               <Users className="h-4 w-4" />
-              Team
+              {t("navigation.team")}
             </Link>
           </Button>
 
@@ -201,13 +204,16 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
           {/* Notifications */}
           <NotificationsDropdown />
 
+          {/* Language Selector */}
+          <LanguageSelector />
+
           {/* Bug Report Button */}
           <BugReportDialog>
             <Button 
               variant="ghost" 
               size="sm" 
               className="text-muted-foreground hover:text-foreground"
-              title="Report a bug"
+              title={t("header.reportBug")}
             >
               <Bug className="h-4 w-4" />
             </Button>
@@ -239,17 +245,17 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
               <DropdownMenuSeparator />
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
+                <span>{t("ui.settings")}</span>
               </DropdownMenuItem>
               <DropdownMenuItem disabled>
                 <MessageSquare className="mr-2 h-4 w-4" />
-                <span>Feedback</span>
-                <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
+                <span>{t("header.feedback")}</span>
+                <Badge variant="secondary" className="ml-auto text-xs">{t("header.soon")}</Badge>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
+                <span>{t("ui.logout")}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -28,6 +28,7 @@ import {
   ArrowUpDown,
   Plus
 } from "lucide-react"
+import { useTranslation } from "@/hooks/use-translation"
 import { TaskStatus, Priority } from "@prisma/client"
 import { 
   DropdownMenu,
@@ -109,6 +110,7 @@ export function TaskList({
   currentUserId,
   taskType = 'assigned'
 }: TaskListProps) {
+  const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
@@ -171,7 +173,7 @@ export function TaskList({
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              placeholder="Search tasks..."
+              placeholder={t("tasks.searchTasks")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Search, Filter, Plus, SortAsc, Grid, List } from "lucide-react"
 import { ProjectStatus } from "@prisma/client"
+import { useTranslation } from "@/hooks/use-translation"
 
 interface ProjectMember {
   id: string
@@ -39,6 +40,7 @@ interface ProjectListProps {
 }
 
 export function ProjectList({ projects, onProjectCreate, onProjectUpdate, currentUserId }: ProjectListProps) {
+  const { t } = useTranslation()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [sortBy, setSortBy] = useState<string>("updatedAt")
@@ -123,7 +125,7 @@ export function ProjectList({ projects, onProjectCreate, onProjectUpdate, curren
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search projects..."
+            placeholder={t("projects.searchProjects")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
