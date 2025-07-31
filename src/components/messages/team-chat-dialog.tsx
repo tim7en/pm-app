@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import DOMPurify from 'dompurify'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -54,6 +55,7 @@ import {
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
+import MessagingErrorBoundary from "./messaging-error-boundary"
 
 interface TeamMember {
   id: string
@@ -102,6 +104,22 @@ export function TeamChatDialog({
   onOpenChange,
   workspaceId
 }: TeamChatDialogProps) {
+  return (
+    <MessagingErrorBoundary>
+      <TeamChatDialogContent 
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        workspaceId={workspaceId}
+      />
+    </MessagingErrorBoundary>
+  )
+}
+
+function TeamChatDialogContent({
+  isOpen,
+  onOpenChange,
+  workspaceId
+}: TeamChatDialogProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -144,8 +162,53 @@ export function TeamChatDialog({
     }
   }, [isOpen, workspaceId, currentUserId])
 
-  // Load team members
+  // Enhanced error handling for API calls
+  const handleApiError = useCallback((error: any, context: string) => {
+    console.error(`API Error in ${context}:`, error)
+    
+    let errorMessage = 'An unexpected error occurred'
+    let shouldRetry = false
+    
+    if (error.name === 'NetworkError' || error.message?.includes('fetch')) {
+      errorMessage = 'Network connection failed. Please check your internet connection.'
+      shouldRetry = true
+    } else if (error.status === 401) {
+      errorMessage = 'Session expired. Please log in again.'
+    } else if (error.status === 403) {
+      errorMessage = 'You do not have permission to perform this action.'
+    } else if (error.status === 429) {
+      errorMessage = 'Too many requests. Please wait a moment and try again.'
+      shouldRetry = true
+    } else if (error.status >= 500) {
+      errorMessage = 'Server error. Please try again later.'
+      shouldRetry = true
+    }
+    
+    toast({
+      title: "Error",
+      description: errorMessage,
+      variant: "destructive",
+      action: shouldRetry ? (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => {
+            // Retry logic would go here based on context
+            console.log(`Retrying ${context}`)
+          }}
+        >
+          Retry
+        </Button>
+      ) : undefined
+    })
+    
+    return { errorMessage, shouldRetry }
+  }, [toast])
+
+  // Load team members with improved error handling
   const loadTeamMembers = async () => {
+    if (isLoading) return // Prevent concurrent requests
+    
     try {
       const currentWorkspaceId = workspaceId || 
         (typeof window !== 'undefined' ? localStorage.getItem('currentWorkspaceId') : null) || 
@@ -161,38 +224,34 @@ export function TeamChatDialog({
         return
       }
 
+      setIsLoading(true)
       const response = await fetch(`/api/messages/team-members?workspaceId=${currentWorkspaceId}`)
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.members) {
-          setTeamMembers(data.members)
-        } else {
-          console.warn('Team members API returned no data:', data)
-          setTeamMembers([])
-        }
-      } else {
-        console.error('Failed to load team members:', response.status, response.statusText)
-        if (response.status === 401) {
-          toast({
-            title: "Authentication Required",
-            description: "Please log in to view team members",
-            variant: "destructive"
-          })
-        } else {
-          toast({
-            title: "Error",
-            description: `Failed to load team members: ${response.statusText}`,
-            variant: "destructive"
-          })
+      
+      if (!response.ok) {
+        throw {
+          status: response.status,
+          statusText: response.statusText,
+          message: `HTTP ${response.status}: ${response.statusText}`
         }
       }
+
+      const data = await response.json()
+      if (data.success && data.members) {
+        setTeamMembers(data.members)
+      } else {
+        console.warn('Team members API returned no data:', data)
+        setTeamMembers([])
+        toast({
+          title: "No Data",
+          description: "No team members found for this workspace",
+          variant: "default"
+        })
+      }
     } catch (error) {
-      console.error('Error loading team members:', error)
-      toast({
-        title: "Error",
-        description: "Failed to load team members",
-        variant: "destructive"
-      })
+      handleApiError(error, 'loading team members')
+      setTeamMembers([]) // Set empty array as fallback
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -304,31 +363,31 @@ export function TeamChatDialog({
     }
   }
 
-  // Auto-scroll to bottom when new messages arrive or conversation changes
+  // Auto-scroll to bottom when messages change or conversation opens
   useEffect(() => {
-    if (messagesEndRef.current && activeConversation) {
-      // Use setTimeout to ensure DOM is updated before scrolling
-      setTimeout(() => {
-        if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
-        }
-      }, 100)
-    }
-  }, [activeConversation?.messages, activeConversation?.id])
+    if (!messagesEndRef.current || !activeConversation) return
 
-  // Auto-scroll when conversation is first opened
-  useEffect(() => {
-    if (messagesEndRef.current && activeConversation && !loadingMessages) {
-      setTimeout(() => {
-        if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
-        }
-      }, 200)
+    const scrollToBottom = () => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+      }
     }
-  }, [activeConversation?.id, loadingMessages])
+
+    // Immediate scroll for conversation change
+    if (activeConversation?.id) {
+      scrollToBottom()
+    }
+
+    // Delayed scroll for new messages
+    const timeoutId = setTimeout(scrollToBottom, 100)
+    
+    return () => {
+      clearTimeout(timeoutId)
+    }
+  }, [activeConversation?.messages, activeConversation?.id, loadingMessages])
 
   // Clean up duplicate conversations and invalid entries
-  useEffect(() => {
+  const deduplicateConversations = useCallback(() => {
     setConversations(prev => {
       // Remove duplicates and invalid entries
       const seenIds = new Set<string>()
@@ -359,7 +418,13 @@ export function TeamChatDialog({
       
       return cleanedConversations.length !== prev.length ? cleanedConversations : prev
     })
-  }, [conversations.length])
+  }, [])
+
+  // Debounce deduplication to prevent excessive calls
+  useEffect(() => {
+    const timeoutId = setTimeout(deduplicateConversations, 500)
+    return () => clearTimeout(timeoutId)
+  }, [conversations.length, deduplicateConversations])
 
   // Clear recent conversations
   const clearRecentConversations = () => {
@@ -406,7 +471,7 @@ export function TeamChatDialog({
     setLoadingMessages(true)
     try {
       // Check if conversation already exists in current list
-      let existingConv = conversations.find(conv => 
+      const existingConv = conversations.find(conv => 
         !conv.isGroup && conv.participants.some(p => p.id === member.id)
       )
 
@@ -513,11 +578,23 @@ export function TeamChatDialog({
 
   // Send a message
   const sendMessage = async () => {
-    if (!newMessage.trim() || !activeConversation) return
+    const trimmedMessage = newMessage.trim()
+    if (!trimmedMessage || !activeConversation) return
+
+    // Sanitize message content before sending
+    const sanitizedContent = sanitizeMessage(trimmedMessage)
+    if (!sanitizedContent) {
+      toast({
+        title: "Invalid Message",
+        description: "Message content contains invalid characters",
+        variant: "destructive"
+      })
+      return
+    }
 
     const tempMessage: Message = {
       id: `temp-${Date.now()}`,
-      content: newMessage.trim(),
+      content: sanitizedContent,
       senderId: currentUserId,
       senderName: currentUserName || 'You',
       timestamp: new Date(),
@@ -554,7 +631,7 @@ export function TeamChatDialog({
       
       const requestBody: any = {
         receiverId: participant.id,
-        content: tempMessage.content
+        content: sanitizedContent
       }
       
       // Only include conversationId if this is an existing conversation
@@ -624,6 +701,16 @@ export function TeamChatDialog({
       sendMessage()
     }
   }
+
+  // Sanitize message content to prevent XSS
+  const sanitizeMessage = useCallback((content: string) => {
+    return DOMPurify.sanitize(content, {
+      ALLOWED_TAGS: [], // No HTML tags allowed
+      ALLOWED_ATTR: [], // No attributes allowed
+      RETURN_DOM: false,
+      RETURN_DOM_FRAGMENT: false,
+    })
+  }, [])
 
   // Format message time
   const formatMessageTime = (timestamp: Date | string) => {
@@ -756,19 +843,27 @@ export function TeamChatDialog({
     return colors[colorIndex]
   }
 
-  // Filter team members based on search
-  const filteredMembers = teamMembers
-    .filter(member => 
-      member.id !== currentUserId && (
-        member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.department?.toLowerCase().includes(searchQuery.toLowerCase())
+  // Optimized search filtering with memoization
+  const filteredMembers = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return teamMembers.filter(member => member.id !== currentUserId)
+    }
+    
+    const searchLower = searchQuery.toLowerCase()
+    
+    return teamMembers
+      .filter(member => member.id !== currentUserId)
+      .filter(member => {
+        const nameMatch = member.name?.toLowerCase().includes(searchLower)
+        const emailMatch = member.email?.toLowerCase().includes(searchLower)
+        const deptMatch = member.department?.toLowerCase().includes(searchLower)
+        return nameMatch || emailMatch || deptMatch
+      })
+      .filter((member, index, array) => 
+        // Ensure unique member IDs
+        array.findIndex(m => m.id === member.id) === index
       )
-    )
-    .filter((member, index, array) => 
-      // Ensure unique member IDs
-      array.findIndex(m => m.id === member.id) === index
-    )
+  }, [teamMembers, searchQuery, currentUserId])
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -777,6 +872,7 @@ export function TeamChatDialog({
           "p-0 gap-0 border-0 shadow-2xl overflow-hidden",
           isExpanded ? "max-w-7xl w-[90vw] h-[85vh]" : "max-w-5xl w-[80vw] h-[75vh]"
         )}
+        aria-describedby="team-chat-description"
       >
         {/* Header */}
         <DialogHeader className="p-4 border-b bg-card/50 backdrop-blur-sm shrink-0">
@@ -788,6 +884,7 @@ export function TeamChatDialog({
                   size="icon"
                   className="h-8 w-8"
                   onClick={() => setActiveConversation(null)}
+                  aria-label="Go back to team member list"
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
@@ -813,6 +910,7 @@ export function TeamChatDialog({
                 size="icon"
                 className="h-8 w-8 ml-4"
                 onClick={() => setIsExpanded(!isExpanded)}
+                aria-label={isExpanded ? "Minimize dialog" : "Maximize dialog"}
                 title={isExpanded ? "Minimize dialog" : "Maximize dialog"}
               >
                 {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
@@ -1132,7 +1230,7 @@ export function TeamChatDialog({
                                   : `${userColors.bg} ${userColors.text} rounded-bl-md`
                               )}>
                                 <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                                  {message.content}
+                                  {sanitizeMessage(message.content)}
                                 </p>
                                 
                                 {/* Message tail/pointer */}
