@@ -253,7 +253,7 @@ export default function LandingPage() {
             Complete Project Management Suite
           </Badge>
           <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent">
-            UzEffect
+            Project Manager
             <br />
             Project Excellence
           </h1>
@@ -313,7 +313,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Streamlined Project Workflow</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              See how UzEffect transforms your project lifecycle with intelligent task management, 
+              See how Project Manager transforms your project lifecycle with intelligent task management, 
               file organization, and real-time team collaboration
             </p>
           </div>
@@ -467,7 +467,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">What We've Built</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              UzEffect is a fully functional project management platform with all the features modern teams need
+              Project Manager is a fully functional project management platform with all the features modern teams need
             </p>
           </div>
           
@@ -571,7 +571,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-3xl mx-auto text-white">
             <h2 className="text-4xl font-bold mb-4">
-              Ready to Experience UzEffect?
+              Ready to Experience Project Manager?
             </h2>
             <p className="text-xl mb-8 text-blue-100">
               Join us and experience complete project management with all features fully functional. 
@@ -602,7 +602,7 @@ export default function LandingPage() {
                 <div className="w-6 h-6 bg-gradient-to-r from-blue-400 to-purple-400 rounded-lg flex items-center justify-center">
                   <Target className="h-4 w-4 text-white" />
                 </div>
-                <span className="text-lg font-bold">UzEffect</span>
+                <span className="text-lg font-bold">Project Manager</span>
               </div>
               <p className="text-gray-400">
                 Complete project management platform for modern teams.
@@ -637,7 +637,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 flex justify-between items-center">
-            <p className="text-gray-400">© 2025 UzEffect. All rights reserved.</p>
+            <p className="text-gray-400">© 2025 Project Manager. All rights reserved.</p>
             <div className="flex space-x-6 text-gray-400">
               <div>Privacy Policy</div>
               <div>Terms of Service</div>

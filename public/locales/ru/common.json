@@ -1,0 +1,52 @@
+{
+  "invitations": {
+    "workspaceInvitation": "Приглашение в рабочее пространство",
+    "invitedBy": "Приглашён {{name}}",
+    "expires": "Истекает {{date}}",
+    "accept": "Принять",
+    "decline": "Отклонить",
+    "processing": "Обработка...",
+    "acceptSuccess": "Приглашение принято!",
+    "welcomeMessage": "Добро пожаловать в {{workspaceName}}!",
+    "declineSuccess": "Приглашение отклонено",
+    "declineMessage": "Вы отклонили приглашение в рабочее пространство",
+    "acceptError": "Не удалось принять",
+    "declineError": "Не удалось отклонить",
+    "genericError": "Ошибка",
+    "acceptErrorMessage": "Не удалось принять приглашение",
+    "declineErrorMessage": "Не удалось отклонить приглашение"
+  },
+  "navigation": {
+    "dashboard": "Панель управления",
+    "tasks": "Мои задачи",
+    "projects": "Проекты",
+    "team": "Команда",
+    "calendar": "Календарь",
+    "messages": "Сообщения",
+    "analytics": "Аналитика",
+    "settings": "Настройки",
+    "workspaces": "Рабочие пространства",
+    "workspaceSettings": "Настройки рабочего пространства",
+    "memberManagement": "Управление участниками"
+  },
+  "ui": {
+    "logout": "Выйти",
+    "profile": "Профиль",
+    "notifications": "Уведомления",
+    "settings": "Настройки"
+  },
+  "common": {
+    "loading": "Загрузка...",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "create": "Создать",
+    "update": "Обновить",
+    "search": "Поиск",
+    "filter": "Фильтр",
+    "sort": "Сортировка",
+    "export": "Экспорт",
+    "import": "Импорт"
+  }
+}

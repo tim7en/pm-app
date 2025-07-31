@@ -1,0 +1,52 @@
+{
+  "invitations": {
+    "workspaceInvitation": "Workspace Invitation",
+    "invitedBy": "Invited by {{name}}",
+    "expires": "Expires {{date}}",
+    "accept": "Accept",
+    "decline": "Decline",
+    "processing": "Processing...",
+    "acceptSuccess": "Invitation Accepted!",
+    "welcomeMessage": "Welcome to {{workspaceName}}!",
+    "declineSuccess": "Invitation Declined",
+    "declineMessage": "You have declined the workspace invitation",
+    "acceptError": "Failed to Accept",
+    "declineError": "Failed to Decline",
+    "genericError": "Error",
+    "acceptErrorMessage": "Failed to accept invitation",
+    "declineErrorMessage": "Failed to decline invitation"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "tasks": "My Tasks",
+    "projects": "Projects",
+    "team": "Team",
+    "calendar": "Calendar",
+    "messages": "Messages",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "workspaces": "Workspaces",
+    "workspaceSettings": "Workspace Settings",
+    "memberManagement": "Member Management"
+  },
+  "ui": {
+    "logout": "Log out",
+    "profile": "Profile",
+    "notifications": "Notifications",
+    "settings": "Settings"
+  },
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "update": "Update",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "export": "Export",
+    "import": "Import"
+  }
+}

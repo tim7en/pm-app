@@ -141,7 +141,7 @@ export default function AIDemo() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-4">
-            🎯 UzEffect AI Agent Demo
+            🎯 Project Manager AI Agent Demo
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Experience the power of AI-driven project management with intelligent task generation, 
@@ -194,7 +194,7 @@ export default function AIDemo() {
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-2 block">Project Context</label>
-                    <Input placeholder="UzEffect - Project Management Platform" />
+                    <Input placeholder="Project Manager - Project Management Platform" />
                   </div>
                   <Button 
                     onClick={generateTasks} 
@@ -291,7 +291,7 @@ export default function AIDemo() {
             <CardHeader>
               <CardTitle>Live Demo Results</CardTitle>
               <CardDescription>
-                See how UzEffect AI processes and responds to your requests
+                See how Project Manager AI processes and responds to your requests
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -454,7 +454,7 @@ export default function AIDemo() {
         {/* Feature Summary */}
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle className="text-center">🚀 UzEffect AI Agent Features</CardTitle>
+            <CardTitle className="text-center">🚀 Project Manager AI Agent Features</CardTitle>
             <CardDescription className="text-center">
               Complete AI-powered project management with work-life balance focus
             </CardDescription>

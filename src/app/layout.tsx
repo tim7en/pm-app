@@ -17,15 +17,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "UzEffect - Complete Project Management",
+  title: "Project Manager - Complete Project Management",
   description: "Complete project management platform with file attachments, universal search, activity logging, and intelligent team collaboration tools",
   keywords: ["project management", "task management", "team collaboration", "file sharing", "productivity", "workflow", "search"],
-  authors: [{ name: "UzEffect Team" }],
+  authors: [{ name: "Project Manager Team" }],
   openGraph: {
-    title: "UzEffect - Complete Project Management",
+    title: "Project Manager - Complete Project Management",
     description: "Complete project management platform with advanced collaboration tools",
     url: "http://localhost:3001",
-    siteName: "UzEffect",
+    siteName: "Project Manager",
     type: "website",
   },
   twitter: {
@@ -64,13 +64,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="ru" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#3b82f6" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="TaskManager" />
+        <meta name="apple-mobile-web-app-title" content="Project Manager" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}

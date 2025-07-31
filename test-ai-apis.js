@@ -1,15 +1,15 @@
-// Real API Test for UzEffect AI Features
+// Real API Test for Project Manager AI Features
 // This script tests actual API endpoints
 
 // Test configuration
 const API_BASE = 'http://localhost:3000/api';
 
 // Test configuration
-const TEST_USER_EMAIL = 'demo@uzeffect.com';
+const TEST_USER_EMAIL = 'demo@projectmanager.com';
 const TEST_PROJECT_ID = 'test-project-id';
 const TEST_WORKSPACE_ID = 'test-workspace-id';
 
-console.log('🎯 UzEffect AI Agent - Real API Testing');
+console.log('🎯 Project Manager AI Agent - Real API Testing');
 console.log('======================================');
 
 // Test 1: AI Task Generation
@@ -27,7 +27,7 @@ async function testTaskGeneration() {
       },
       body: JSON.stringify({
         description: "Build a comprehensive dashboard for project analytics with real-time data visualization",
-        projectContext: "UzEffect Analytics Module",
+        projectContext: "Project Manager Analytics Module",
         userRole: "PROJECT_MANAGER",
         existingTasks: [
           { title: "Setup database schema", status: "DONE" },

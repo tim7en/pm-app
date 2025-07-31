@@ -19,7 +19,7 @@ async function seedNotifications() {
     // Create sample notifications
     const notifications = [
       {
-        title: 'Welcome to UzEffect!',
+        title: 'Welcome to Project Manager!',
         message: 'You have successfully joined the project management platform. Start by creating your first project.',
         type: NotificationType.WORKSPACE_INVITE,
         userId: firstUser.id,

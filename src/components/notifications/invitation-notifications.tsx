@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
+import { useTranslation } from '@/hooks/use-translation'
 import { format } from 'date-fns'
 
 interface WorkspaceInvitation {
@@ -51,6 +52,7 @@ export function InvitationNotifications({
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const { user, refreshWorkspaces } = useAuth()
   const { toast } = useToast()
+  const { t } = useTranslation()
 
   const fetchInvitations = async () => {
     if (!user) return
@@ -84,8 +86,8 @@ export function InvitationNotifications({
       if (response.ok) {
         const result = await response.json()
         toast({
-          title: "Invitation Accepted!",
-          description: `Welcome to ${result.workspace?.name || 'the team'}!`,
+          title: t('invitations.acceptSuccess'),
+          description: t('invitations.welcomeMessage', { workspaceName: result.workspace?.name || 'the team' }),
         })
         
         // Remove the accepted invitation from the list
@@ -101,16 +103,16 @@ export function InvitationNotifications({
       } else {
         const error = await response.json()
         toast({
-          title: "Failed to Accept",
-          description: error.error || "Failed to accept invitation",
+          title: t('invitations.acceptError'),
+          description: error.error || t('invitations.acceptErrorMessage'),
           variant: "destructive",
         })
       }
     } catch (error) {
       console.error('Error accepting invitation:', error)
       toast({
-        title: "Error",
-        description: "Failed to accept invitation",
+        title: t('invitations.genericError'),
+        description: t('invitations.acceptErrorMessage'),
         variant: "destructive",
       })
     } finally {
@@ -127,8 +129,8 @@ export function InvitationNotifications({
 
       if (response.ok) {
         toast({
-          title: "Invitation Declined",
-          description: "You have declined the workspace invitation",
+          title: t('invitations.declineSuccess'),
+          description: t('invitations.declineMessage'),
         })
         
         // Remove the declined invitation from the list
@@ -137,16 +139,16 @@ export function InvitationNotifications({
       } else {
         const error = await response.json()
         toast({
-          title: "Failed to Decline",
-          description: error.error || "Failed to decline invitation",
+          title: t('invitations.declineError'),
+          description: error.error || t('invitations.declineErrorMessage'),
           variant: "destructive",
         })
       }
     } catch (error) {
       console.error('Error declining invitation:', error)
       toast({
-        title: "Error",
-        description: "Failed to decline invitation",
+        title: t('invitations.genericError'),
+        description: t('invitations.declineErrorMessage'),
         variant: "destructive",
       })
     } finally {
@@ -182,7 +184,7 @@ export function InvitationNotifications({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="font-semibold text-sm text-blue-900">
-                      Workspace Invitation
+                      {t('invitations.workspaceInvitation')}
                     </h3>
                     <Badge variant="secondary" className="text-xs">
                       {invitation.role}
@@ -203,14 +205,14 @@ export function InvitationNotifications({
                     
                     <div className="flex items-center gap-2 pl-5">
                       <span className="text-xs text-muted-foreground">
-                        Invited by {invitation.inviter.name || invitation.inviter.email}
+                        {t('invitations.invitedBy', { name: invitation.inviter.name || invitation.inviter.email })}
                       </span>
                     </div>
                     
                     <div className="flex items-center gap-2 pl-5">
                       <Clock className="h-3 w-3 text-muted-foreground" />
                       <span className="text-xs text-muted-foreground">
-                        Expires {format(new Date(invitation.expiresAt), 'MMM dd, yyyy')}
+                        {t('invitations.expires', { date: format(new Date(invitation.expiresAt), 'MMM dd, yyyy') })}
                       </span>
                     </div>
                   </div>
@@ -226,12 +228,12 @@ export function InvitationNotifications({
                       {actionLoading === invitation.id ? (
                         <>
                           <div className="animate-spin rounded-full h-3 w-3 border-b border-white mr-1"></div>
-                          Processing...
+                          {t('invitations.processing')}
                         </>
                       ) : (
                         <>
                           <Check className="h-3 w-3 mr-1" />
-                          Accept
+                          {t('invitations.accept')}
                         </>
                       )}
                     </Button>
@@ -245,7 +247,7 @@ export function InvitationNotifications({
                       aria-label={`Decline invitation to ${invitation.workspace.name}`}
                     >
                       <X className="h-3 w-3 mr-1" />
-                      Decline
+                      {t('invitations.decline')}
                     </Button>
                   </div>
                 </div>

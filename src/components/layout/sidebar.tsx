@@ -33,31 +33,35 @@ import {
   Cog
 } from "lucide-react"
 import { WorkspaceSelector } from "./workspace-selector"
+import { LanguageSelector } from "@/components/ui/language-selector"
 import { useAuth } from "@/contexts/AuthContext"
+import { useTranslation } from "@/hooks/use-translation"
 import { projectColorGenerator } from "@/lib/project-color-generator"
-
-const navigation = [
-  { name: "Dashboard", href: "/", icon: Home },
-  { name: "My Tasks", href: "/tasks", icon: CheckSquare },
-  { name: "Projects", href: "/projects", icon: FolderOpen },
-  { name: "Team", href: "/team", icon: Users },
-  { name: "Calendar", href: "/calendar", icon: Calendar },
-  { name: "Messages", href: "/messages", icon: MessageSquare },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
-]
-
-const workspaceNavigation = [
-  { name: "Workspaces", href: "/workspaces", icon: Building2 },
-  { name: "Workspace Settings", href: "/workspace/settings", icon: Cog },
-  { name: "Member Management", href: "/workspace/members", icon: UserCog },
-]
 
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, currentWorkspace, refreshWorkspaces } = useAuth()
+  const { t } = useTranslation()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [workspaceProjects, setWorkspaceProjects] = useState<any[]>([])
+
+  // Dynamic navigation items with translations
+  const navigation = [
+    { name: t('navigation.dashboard'), href: "/", icon: Home },
+    { name: t('navigation.tasks'), href: "/tasks", icon: CheckSquare },
+    { name: t('navigation.projects'), href: "/projects", icon: FolderOpen },
+    { name: t('navigation.team'), href: "/team", icon: Users },
+    { name: t('navigation.calendar'), href: "/calendar", icon: Calendar },
+    { name: t('navigation.messages'), href: "/messages", icon: MessageSquare },
+    { name: t('navigation.analytics'), href: "/analytics", icon: BarChart3 },
+  ]
+
+  const workspaceNavigation = [
+    { name: t('navigation.workspaces'), href: "/workspaces", icon: Building2 },
+    { name: t('navigation.workspaceSettings'), href: "/workspace/settings", icon: Cog },
+    { name: t('navigation.memberManagement'), href: "/workspace/members", icon: UserCog },
+  ]
 
   // Fetch workspace projects when workspace changes
   useEffect(() => {
@@ -114,9 +118,9 @@ export function Sidebar() {
         {!isCollapsed && (
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold">U</span>
+              <span className="text-primary-foreground font-bold">PM</span>
             </div>
-            <span className="font-semibold text-lg">UzEffect</span>
+            <span className="font-semibold text-lg">Project Manager</span>
           </div>
         )}
         <Button
@@ -375,13 +379,19 @@ export function Sidebar() {
               <DropdownMenuItem asChild>
                 <Link href="/notifications">
                   <Bell className="mr-2 h-4 w-4" />
-                  <span>Notifications</span>
+                  <span>{t('ui.notifications')}</span>
                 </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <div className="w-full">
+                  <LanguageSelector className="w-full justify-start p-0 h-auto font-normal" />
+                </div>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
+                <span>{t('ui.logout')}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
