@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
+import { Building2 } from "lucide-react"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { ProjectDialog } from "@/components/projects/project-dialog"
@@ -288,6 +290,36 @@ export function DashboardContainer() {
         <Sidebar />
         <div className="flex-1 flex items-center justify-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+        </div>
+      </div>
+    )
+  }
+
+  // Add workspace validation
+  if (!currentWorkspace) {
+    return (
+      <div className="flex h-screen bg-background">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center py-12">
+                <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h2 className="text-xl font-semibold mb-2">No Workspace Selected</h2>
+                <p className="text-muted-foreground mb-4">
+                  Please select a workspace to continue, or create a new one to get started.
+                </p>
+                <Button 
+                  onClick={() => router.push('/workspaces')}
+                  className="mr-2"
+                >
+                  <Building2 className="h-4 w-4 mr-2" />
+                  View Workspaces
+                </Button>
+              </div>
+            </div>
+          </main>
         </div>
       </div>
     )

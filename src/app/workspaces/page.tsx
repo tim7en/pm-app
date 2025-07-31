@@ -195,7 +195,7 @@ export default function WorkspacesPage() {
         
         // Switch to the new workspace
         setCurrentWorkspace(newWorkspace.id)
-        router.push('/dashboard')
+        router.push('/')
       } else {
         const error = await response.json()
         toast({
@@ -218,7 +218,7 @@ export default function WorkspacesPage() {
 
   const handleSwitchWorkspace = (workspaceId: string) => {
     setCurrentWorkspace(workspaceId)
-    router.push('/dashboard')
+    router.push('/')
   }
 
   const getRoleIcon = (role: string) => {
