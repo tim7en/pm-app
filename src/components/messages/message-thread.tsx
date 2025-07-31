@@ -67,33 +67,45 @@ export function MessageThread({
     )
   }
 
-  const formatMessageTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', {
+  const formatMessageTime = (date: Date | string) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date
+    
+    // Handle invalid dates
+    if (isNaN(dateObj.getTime())) {
+      return 'Invalid time'
+    }
+    
+    return dateObj.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: true
     })
   }
 
-  const formatMessageDate = (date: Date) => {
+  const formatMessageDate = (date: Date | string) => {
     const today = new Date()
-    const messageDate = new Date(date)
+    const dateObj = typeof date === 'string' ? new Date(date) : date
     
-    if (messageDate.toDateString() === today.toDateString()) {
+    // Handle invalid dates
+    if (isNaN(dateObj.getTime())) {
+      return 'Invalid date'
+    }
+    
+    if (dateObj.toDateString() === today.toDateString()) {
       return 'Today'
     }
     
     const yesterday = new Date(today)
     yesterday.setDate(yesterday.getDate() - 1)
     
-    if (messageDate.toDateString() === yesterday.toDateString()) {
+    if (dateObj.toDateString() === yesterday.toDateString()) {
       return 'Yesterday'
     }
     
-    return messageDate.toLocaleDateString('en-US', {
+    return dateObj.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: messageDate.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+      year: dateObj.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
     })
   }
 

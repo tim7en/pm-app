@@ -60,12 +60,29 @@ export function useMessenger() {
       const data = await response.json()
       
       if (response.ok) {
-        setTeamMembers(data.members)
+        // Ensure dates are properly converted from JSON strings
+        const processedMembers = data.members.map((member: any) => ({
+          ...member,
+          lastSeen: new Date(member.lastSeen)
+        }))
+        setTeamMembers(processedMembers)
+      } else {
+        console.error('Failed to fetch team members:', data.error || 'Unknown error')
+        toast({
+          title: "Error",
+          description: "Failed to fetch team members",
+          variant: "destructive"
+        })
       }
     } catch (error) {
       console.error('Error fetching team members:', error)
+      toast({
+        title: "Error",
+        description: "Network error while fetching team members",
+        variant: "destructive"
+      })
     }
-  }, [currentWorkspaceId])
+  }, [currentWorkspaceId, toast])
 
   // Fetch conversations based on active folder
   const fetchConversations = useCallback(async () => {
@@ -75,14 +92,23 @@ export function useMessenger() {
       if (state.activeFolder === 'INTERNAL') {
         // Fetch internal conversations
         const response = await fetch('/api/messages/internal')
-        const data = await response.json()
         
         if (response.ok) {
+          const data = await response.json()
           setState(prev => ({ 
             ...prev, 
-            conversations: data.conversations,
+            conversations: data.conversations || [],
             loading: false 
           }))
+        } else {
+          const errorData = await response.json()
+          console.error('Failed to fetch internal conversations:', errorData.error || 'Unknown error')
+          setState(prev => ({ ...prev, loading: false, conversations: [] }))
+          toast({
+            title: "Error",
+            description: "Failed to fetch internal conversations",
+            variant: "destructive"
+          })
         }
       } else if (state.activeFolder === 'TEAMS') {
         // Create conversations from team members
@@ -120,13 +146,13 @@ export function useMessenger() {
       } else if (state.activeFolder === 'INBOX' || state.activeFolder === 'SENT' || 
           state.activeFolder === 'DRAFT' || state.activeFolder === 'SPAM' || 
           state.activeFolder === 'TRASH') {
-        // Fetch Gmail messages (keeping existing mock for now)
+        // Fetch Gmail messages
         const response = await fetch(`/api/messages/gmail?folder=${state.activeFolder}`)
-        const data = await response.json()
         
         if (response.ok) {
+          const data = await response.json()
           const emailConversations = await Promise.all(
-            data.emails.map(async (email: GmailMessage) => {
+            (data.emails || []).map(async (email: GmailMessage) => {
               const classification = await classifyEmail(email.snippet)
               
               const fromHeader = email.payload.headers.find(h => h.name === 'From')
@@ -164,6 +190,15 @@ export function useMessenger() {
             conversations: emailConversations,
             loading: false 
           }))
+        } else {
+          const errorData = await response.json()
+          console.error('Failed to fetch email conversations:', errorData.error || 'Unknown error')
+          setState(prev => ({ ...prev, loading: false, conversations: [] }))
+          toast({
+            title: "Error",
+            description: "Failed to fetch email conversations",
+            variant: "destructive"
+          })
         }
       }
     } catch (error) {
@@ -190,16 +225,28 @@ export function useMessenger() {
       const data = await response.json()
       
       if (response.ok) {
-        setState(prev => ({ ...prev, messages: data.messages }))
+        // Ensure timestamps are properly converted from JSON strings
+        const processedMessages = data.messages.map((message: any) => ({
+          ...message,
+          timestamp: new Date(message.timestamp)
+        }))
+        setState(prev => ({ ...prev, messages: processedMessages }))
       }
     } catch (error) {
       console.error('Error fetching messages:', error)
     }
   }
 
-  const formatTimeAgo = (date: Date) => {
+  const formatTimeAgo = (date: Date | string) => {
     const now = new Date()
-    const diff = now.getTime() - new Date(date).getTime()
+    const dateObj = typeof date === 'string' ? new Date(date) : date
+    
+    // Handle invalid dates
+    if (isNaN(dateObj.getTime())) {
+      return 'unknown'
+    }
+    
+    const diff = now.getTime() - dateObj.getTime()
     const minutes = Math.floor(diff / (1000 * 60))
     const hours = Math.floor(diff / (1000 * 60 * 60))
     const days = Math.floor(diff / (1000 * 60 * 60 * 24))

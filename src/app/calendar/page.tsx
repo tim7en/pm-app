@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
+import { useAuth } from "@/contexts/AuthContext"
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -54,6 +55,7 @@ import {
 } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Switch } from "@/components/ui/switch"
+import { DateTimePicker } from "@/components/ui/date-time-picker"
 import {
   Popover,
   PopoverContent,
@@ -64,6 +66,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
+import { CalendarErrorBoundary } from "@/components/calendar/CalendarErrorBoundary"
 
 interface Task {
   id: string
@@ -137,15 +141,21 @@ const eventSchema = z.object({
   title: z.string().min(1, "Event title is required"),
   description: z.string().optional(),
   startTime: z.date({
-    required_error: "Start time is required",
+    message: "Start time is required",
   }),
   endTime: z.date({
-    required_error: "End time is required",
+    message: "End time is required",
   }),
   type: z.enum(["meeting", "call", "deadline", "reminder"]),
   location: z.string().optional(),
-  notificationEnabled: z.boolean().default(true),
-})
+  notificationEnabled: z.boolean(),
+}).refine(
+  (data) => data.endTime > data.startTime,
+  {
+    message: "End time must be after start time",
+    path: ["endTime"],
+  }
+)
 
 type EventFormData = z.infer<typeof eventSchema>
 
@@ -159,6 +169,8 @@ interface CalendarDay {
 }
 
 export default function CalendarPage() {
+  const { currentWorkspaceId, isAuthenticated } = useAuth()
+  const { toast } = useToast()
   const [tasks, setTasks] = useState<Task[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [events, setEvents] = useState<CalendarEvent[]>([])
@@ -167,20 +179,63 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [view, setView] = useState<'month' | 'week'>('month')
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Early return if not authenticated
+  if (!isAuthenticated || !currentWorkspaceId) {
+    return (
+      <div className="flex h-screen bg-background">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-muted-foreground">Please select a workspace to access the calendar.</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
 
   const form = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
+    mode: "onChange",
     defaultValues: {
       title: "",
       description: "",
       startTime: new Date(),
-      endTime: new Date(new Date().setHours(new Date().getHours() + 1)),
+      endTime: new Date(Date.now() + 60 * 60 * 1000), // +1 hour
       type: "meeting",
       location: "",
       notificationEnabled: true,
     },
   })
+
+  // Reset form when editing event changes
+  useEffect(() => {
+    if (editingEvent) {
+      form.reset({
+        title: editingEvent.title,
+        description: editingEvent.description || "",
+        startTime: new Date(editingEvent.startTime),
+        endTime: new Date(editingEvent.endTime),
+        type: editingEvent.type,
+        location: editingEvent.location || "",
+        notificationEnabled: editingEvent.notificationEnabled,
+      })
+    } else {
+      form.reset({
+        title: "",
+        description: "",
+        startTime: new Date(),
+        endTime: new Date(Date.now() + 60 * 60 * 1000),
+        type: "meeting",
+        location: "",
+        notificationEnabled: true,
+      })
+    }
+  }, [editingEvent, form])
 
   useEffect(() => {
     fetchTasks()
@@ -191,74 +246,137 @@ export default function CalendarPage() {
   const handleCreateEvent = async (data: EventFormData) => {
     setIsSubmitting(true)
     try {
-      const newEvent: CalendarEvent = {
-        id: Date.now().toString(),
-        title: data.title,
-        description: data.description,
-        startTime: data.startTime,
-        endTime: data.endTime,
-        type: data.type,
-        location: data.location,
-        notificationEnabled: data.notificationEnabled,
+      const url = editingEvent 
+        ? `/api/calendar/events/${editingEvent.id}` 
+        : '/api/calendar/events'
+      const method = editingEvent ? 'PUT' : 'POST'
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...data,
+          startTime: data.startTime.toISOString(),
+          endTime: data.endTime.toISOString(),
+          type: data.type.toUpperCase(),
+          workspaceId: currentWorkspaceId, // Use context instead of hardcoded value
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `Failed to ${editingEvent ? 'update' : 'create'} event`)
+      }
+
+      const eventData = await response.json()
+      const processedEvent = {
+        ...eventData,
+        startTime: new Date(eventData.startTime),
+        endTime: new Date(eventData.endTime),
+        type: eventData.type.toLowerCase(),
       }
       
-      setEvents(prev => [...prev, newEvent])
-      
-      // Send notification if enabled
-      if (data.notificationEnabled) {
-        // Here you would integrate with your notification system
-        console.log('Notification sent for event:', data.title)
+      // Update local state
+      if (editingEvent) {
+        setEvents(prev => prev.map(event => 
+          event.id === editingEvent.id ? processedEvent : event
+        ))
+      } else {
+        setEvents(prev => [...prev, processedEvent])
       }
+      
+      // Success notification
+      toast({
+        title: `Event ${editingEvent ? 'updated' : 'created'} successfully`,
+        description: `"${eventData.title}" has been ${editingEvent ? 'updated' : 'added to your calendar'}.`,
+      })
       
       setEventDialogOpen(false)
-      form.reset()
+      setEditingEvent(null)
+      form.reset({
+        title: "",
+        description: "",
+        startTime: new Date(),
+        endTime: new Date(Date.now() + 60 * 60 * 1000),
+        type: "meeting",
+        location: "",
+        notificationEnabled: true,
+      })
     } catch (error) {
-      console.error('Error creating event:', error)
+      console.error(`Error ${editingEvent ? 'updating' : 'creating'} event:`, error)
+      toast({
+        title: `Error ${editingEvent ? 'updating' : 'creating'} event`,
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+        variant: "destructive",
+      })
     } finally {
       setIsSubmitting(false)
     }
   }
 
+  const handleDeleteEvent = async (eventId: string) => {
+    try {
+      const response = await fetch(`/api/calendar/events/${eventId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete event')
+      }
+
+      // Update local state
+      setEvents(prev => prev.filter(event => event.id !== eventId))
+      
+      toast({
+        title: "Event deleted successfully",
+        description: "The event has been removed from your calendar.",
+      })
+    } catch (error) {
+      console.error('Error deleting event:', error)
+      toast({
+        title: "Error deleting event",
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleEditEvent = (event: CalendarEvent) => {
+    setEditingEvent(event)
+    setEventDialogOpen(true)
+  }
+
   const fetchEvents = async () => {
     try {
-      // Mock events for now
-      const mockEvents: CalendarEvent[] = [
-        {
-          id: "1",
-          title: "Team Standup",
-          description: "Daily team standup meeting",
-          startTime: new Date(Date.now() + 1000 * 60 * 60 * 24), // Tomorrow
-          endTime: new Date(Date.now() + 1000 * 60 * 60 * 25), // Tomorrow + 1 hour
-          type: "meeting",
-          attendees: [
-            { id: "1", name: "John Doe" },
-            { id: "2", name: "Jane Smith" },
-          ],
-          location: "Conference Room A",
-          notificationEnabled: true,
-        },
-        {
-          id: "2",
-          title: "Client Call",
-          description: "Quarterly review with client",
-          startTime: new Date(Date.now() + 1000 * 60 * 60 * 48), // Day after tomorrow
-          endTime: new Date(Date.now() + 1000 * 60 * 60 * 50), // Day after tomorrow + 2 hours
-          type: "call",
-          notificationEnabled: true,
-        },
-        {
-          id: "3",
-          title: "Project Deadline",
-          description: "Submit final project deliverables",
-          startTime: new Date(Date.now() + 1000 * 60 * 60 * 72), // In 3 days
-          endTime: new Date(Date.now() + 1000 * 60 * 60 * 72),
-          type: "deadline",
-          notificationEnabled: true,
-        }
-      ]
-      setEvents(mockEvents)
+      const searchParams = new URLSearchParams({
+        workspaceId: currentWorkspaceId, // Use context instead of hardcoded value
+        startDate: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString(),
+        endDate: new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).toISOString(),
+      })
+
+      const response = await fetch(`/api/calendar/events?${searchParams}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        const events = data.map((event: any) => ({
+          ...event,
+          startTime: new Date(event.startTime),
+          endTime: new Date(event.endTime),
+          type: event.type.toLowerCase(), // Convert from API format
+        }))
+        setEvents(events)
+      } else {
+        console.error('Failed to fetch events')
+        // Fall back to empty array on error
+        setEvents([])
+      }
     } catch (error) {
       console.error('Error fetching events:', error)
+      // Fall back to empty array on error
+      setEvents([])
     }
   }
 
@@ -427,7 +545,8 @@ export default function CalendarPage() {
   )
 
   return (
-    <div className="flex h-screen bg-background">
+    <CalendarErrorBoundary>
+      <div className="flex h-screen bg-background">
       <Sidebar />
       
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -635,14 +754,36 @@ export default function CalendarPage() {
                             <div key={event.id} className="p-2 border rounded-lg">
                               <div className="flex items-center justify-between mb-1">
                                 <span className="font-medium text-sm">{event.title}</span>
-                                <div className={`
-                                  text-xs px-2 py-1 rounded-full
-                                  ${event.type === 'meeting' ? 'bg-blue-100 text-blue-800' : ''}
-                                  ${event.type === 'call' ? 'bg-green-100 text-green-800' : ''}
-                                  ${event.type === 'deadline' ? 'bg-red-100 text-red-800' : ''}
-                                  ${event.type === 'reminder' ? 'bg-yellow-100 text-yellow-800' : ''}
-                                `}>
-                                  {event.type}
+                                <div className="flex items-center gap-2">
+                                  <div className={`
+                                    text-xs px-2 py-1 rounded-full
+                                    ${event.type === 'meeting' ? 'bg-blue-100 text-blue-800' : ''}
+                                    ${event.type === 'call' ? 'bg-green-100 text-green-800' : ''}
+                                    ${event.type === 'deadline' ? 'bg-red-100 text-red-800' : ''}
+                                    ${event.type === 'reminder' ? 'bg-yellow-100 text-yellow-800' : ''}
+                                  `}>
+                                    {event.type}
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleEditEvent(event)}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <Settings className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      if (confirm('Are you sure you want to delete this event?')) {
+                                        handleDeleteEvent(event.id)
+                                      }
+                                    }}
+                                    className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                                  >
+                                    ×
+                                  </Button>
                                 </div>
                               </div>
                               {event.location && (
@@ -791,9 +932,14 @@ export default function CalendarPage() {
       <Dialog open={eventDialogOpen} onOpenChange={setEventDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Create New Event</DialogTitle>
+            <DialogTitle>
+              {editingEvent ? 'Edit Event' : 'Create New Event'}
+            </DialogTitle>
             <DialogDescription>
-              Schedule a new event, meeting, or call
+              {editingEvent 
+                ? 'Update the event details below' 
+                : 'Schedule a new event, meeting, or call'
+              }
             </DialogDescription>
           </DialogHeader>
           
@@ -839,34 +985,11 @@ export default function CalendarPage() {
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Start Time</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP p")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <DateTimePicker
+                        date={field.value}
+                        setDate={field.onChange}
+                        placeholder="Pick start date and time"
+                      />
                       <FormMessage />
                     </FormItem>
                   )}
@@ -878,34 +1001,11 @@ export default function CalendarPage() {
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>End Time</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP p")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <DateTimePicker
+                        date={field.value}
+                        setDate={field.onChange}
+                        placeholder="Pick end date and time"
+                      />
                       <FormMessage />
                     </FormItem>
                   )}
@@ -997,12 +1097,18 @@ export default function CalendarPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setEventDialogOpen(false)}
+                  onClick={() => {
+                    setEventDialogOpen(false)
+                    setEditingEvent(null)
+                  }}
                 >
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Creating..." : "Create Event"}
+                  {isSubmitting 
+                    ? (editingEvent ? "Updating..." : "Creating...") 
+                    : (editingEvent ? "Update Event" : "Create Event")
+                  }
                 </Button>
               </DialogFooter>
             </form>
@@ -1010,5 +1116,6 @@ export default function CalendarPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </CalendarErrorBoundary>
   )
 }

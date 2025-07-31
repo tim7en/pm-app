@@ -68,9 +68,16 @@ export function MessengerSidebar({
 }: MessengerSidebarProps) {
   const [sidebarMode, setSidebarMode] = useState<'folders' | 'conversations'>('folders')
 
-  const formatTimeAgo = (date: Date) => {
+  const formatTimeAgo = (date: Date | string) => {
     const now = new Date()
-    const diff = now.getTime() - date.getTime()
+    const dateObj = typeof date === 'string' ? new Date(date) : date
+    
+    // Handle invalid dates
+    if (isNaN(dateObj.getTime())) {
+      return 'unknown'
+    }
+    
+    const diff = now.getTime() - dateObj.getTime()
     const minutes = Math.floor(diff / (1000 * 60))
     const hours = Math.floor(diff / (1000 * 60 * 60))
     const days = Math.floor(diff / (1000 * 60 * 60 * 24))
@@ -217,13 +224,20 @@ export function MessengerSidebar({
               <div className="p-2">
                 <h3 className="text-sm font-medium text-muted-foreground mb-3 px-2">Team Members</h3>
                 {teamMembers.map((member) => (
-                  <div
+                  <button
                     key={member.id}
                     className={cn(
                       "p-3 rounded-lg cursor-pointer hover:bg-accent transition-colors",
-                      "border-b border-border/50 last:border-0"
+                      "border-b border-border/50 last:border-0 w-full text-left"
                     )}
                     onClick={() => onStartChat?.(member.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        onStartChat?.(member.id)
+                      }
+                    }}
+                    aria-label={`Start chat with ${member.name}`}
                   >
                     <div className="flex items-center gap-3">
                       <div className="relative">
@@ -269,7 +283,7 @@ export function MessengerSidebar({
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : conversations.length === 0 ? (
@@ -282,13 +296,20 @@ export function MessengerSidebar({
                 const isOnline = (conversation as any).isOnline
                 
                 return (
-                  <div
+                  <button
                     key={conversation.id}
                     className={cn(
-                      "p-4 border-b cursor-pointer hover:bg-accent transition-colors",
+                      "p-4 border-b cursor-pointer hover:bg-accent transition-colors w-full text-left",
                       activeConversation?.id === conversation.id && "bg-accent"
                     )}
                     onClick={() => onConversationSelect(conversation)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        onConversationSelect(conversation)
+                      }
+                    }}
+                    aria-label={`Select conversation with ${conversation.isGroup ? conversation.groupName : otherParticipant.name}`}
                   >
                     <div className="flex items-start gap-3">
                       <div className="relative">
@@ -347,7 +368,7 @@ export function MessengerSidebar({
                         )}
                       </div>
                     </div>
-                  </div>
+                  </button>
                 )
               })
             )}

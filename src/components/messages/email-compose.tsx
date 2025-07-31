@@ -148,7 +148,7 @@ export function EmailCompose({
               id="to"
               type="email"
               placeholder="recipient@example.com"
-              value={draft.to}
+              value={draft.to || ''}
               onChange={(e) => onDraftChange({ to: e.target.value })}
             />
           </div>
@@ -183,7 +183,7 @@ export function EmailCompose({
             <Input
               id="subject"
               placeholder="Email subject"
-              value={draft.subject}
+              value={draft.subject || ''}
               onChange={(e) => onDraftChange({ subject: e.target.value })}
             />
           </div>
@@ -210,7 +210,7 @@ export function EmailCompose({
               id="body"
               placeholder="Type your message here..."
               className="min-h-[200px] resize-none"
-              value={draft.body}
+              value={draft.body || ''}
               onChange={(e) => onDraftChange({ body: e.target.value })}
             />
           </div>

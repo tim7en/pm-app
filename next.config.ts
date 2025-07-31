@@ -7,6 +7,34 @@ const nextConfig: NextConfig = {
   },
   // 禁用 Next.js 热重载，由 nodemon 处理重编译
   reactStrictMode: false,
+  
+  // Security headers
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+        ],
+      },
+    ];
+  },
+  
   webpack: (config, { dev }) => {
     if (dev) {
       // 禁用 webpack 的热模块替换

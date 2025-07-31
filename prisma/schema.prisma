@@ -37,6 +37,10 @@ model User {
   uploadedFiles         TaskAttachment[]
   conversationParticipant ConversationParticipant[]
   sentMessages          Message[]
+  
+  // Calendar relations
+  calendarEvents        CalendarEvent[]       @relation("CalendarEventCreator")
+  eventAttendances      EventAttendee[]
 
   @@map("users")
 }
@@ -53,6 +57,9 @@ model Workspace {
   projects    Project[]
   members     WorkspaceMember[]
   invitations WorkspaceInvitation[]
+  
+  // Calendar relation
+  calendarEvents CalendarEvent[]
 
   @@map("workspaces")
 }
@@ -92,6 +99,9 @@ model Project {
   tasks     Task[]
   sections  Section[]
   timeline  ProjectTimeline[]
+  
+  // Calendar relation
+  calendarEvents CalendarEvent[]
 
   @@map("projects")
 }
@@ -361,6 +371,49 @@ model Message {
   @@map("messages")
 }
 
+model CalendarEvent {
+  id                  String    @id @default(cuid())
+  title               String
+  description         String?
+  startTime           DateTime
+  endTime             DateTime
+  type                EventType
+  location            String?
+  isRecurring         Boolean   @default(false)
+  notificationEnabled Boolean   @default(true)
+  
+  // Relations
+  creatorId           String
+  creator             User      @relation("CalendarEventCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  
+  projectId           String?
+  project             Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  
+  workspaceId         String
+  workspace           Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  
+  // Attendees (many-to-many)
+  attendees           EventAttendee[]
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@map("calendar_events")
+}
+
+model EventAttendee {
+  id        String         @id @default(cuid())
+  eventId   String
+  userId    String
+  response  EventResponse  @default(PENDING)
+  
+  event     CalendarEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([eventId, userId])
+  @@map("event_attendees")
+}
+
 // Enums
 enum Role {
   OWNER
@@ -441,4 +494,17 @@ enum IntegrationType {
 enum ConversationType {
   INTERNAL
   EXTERNAL
+}
+
+enum EventType {
+  MEETING
+  CALL
+  DEADLINE
+  REMINDER
+}
+
+enum EventResponse {
+  PENDING
+  ACCEPTED
+  DECLINED
 }

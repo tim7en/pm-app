@@ -5,9 +5,29 @@ import { Header } from "@/components/layout/header"
 import { MessengerSidebar } from "@/components/messages/messenger-sidebar"
 import { MessageThread } from "@/components/messages/message-thread"
 import { EmailCompose } from "@/components/messages/email-compose"
+import { MessagesErrorBoundary } from "@/components/messages/MessagesErrorBoundary"
 import { useMessenger } from "@/hooks/use-messenger"
+import { useAuth } from "@/contexts/AuthContext"
+import { Card, CardContent } from "@/components/ui/card"
 
 export default function MessagesPage() {
+  const { isAuthenticated, currentWorkspaceId } = useAuth()
+  
+  // Early return if not authenticated
+  if (!isAuthenticated || !currentWorkspaceId) {
+    return (
+      <div className="flex h-screen bg-background">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-muted-foreground">Please select a workspace to access messages.</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
   const {
     filteredConversations,
     activeConversation,
@@ -84,52 +104,54 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
+    <MessagesErrorBoundary>
+      <div className="flex h-screen bg-background">
+        <Sidebar />
         
-        <main className="flex-1 overflow-hidden">
-          <div className="h-full flex">
-            <MessengerSidebar
-              conversations={filteredConversations}
-              activeConversation={activeConversation}
-              emailFolders={emailFolders}
-              activeFolder={activeFolder}
-              searchQuery={searchQuery}
-              loading={loading}
-              teamMembers={teamMembers}
-              onConversationSelect={setActiveConversation}
-              onFolderSelect={setActiveFolder}
-              onSearchChange={setSearchQuery}
-              onCompose={startComposing}
-              onStartChat={handleStartChat}
-            />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header />
+          
+          <main className="flex-1 overflow-hidden">
+            <div className="h-full flex">
+              <MessengerSidebar
+                conversations={filteredConversations}
+                activeConversation={activeConversation}
+                emailFolders={emailFolders}
+                activeFolder={activeFolder}
+                searchQuery={searchQuery}
+                loading={loading}
+                teamMembers={teamMembers}
+                onConversationSelect={setActiveConversation}
+                onFolderSelect={setActiveFolder}
+                onSearchChange={setSearchQuery}
+                onCompose={startComposing}
+                onStartChat={handleStartChat}
+              />
 
-            <MessageThread
-              conversation={activeConversation}
-              messages={messages}
-              onSendMessage={handleSendMessage}
-              onGenerateReply={generateDraftReply}
-              loading={loading}
-            />
-          </div>
-        </main>
+              <MessageThread
+                conversation={activeConversation}
+                messages={messages}
+                onSendMessage={handleSendMessage}
+                onGenerateReply={generateDraftReply}
+                loading={loading}
+              />
+            </div>
+          </main>
+        </div>
+
+        {composing && draftEmail && (
+          <EmailCompose
+            draft={draftEmail}
+            isOpen={composing}
+            onClose={stopComposing}
+            onSend={handleSendEmail}
+            onSaveDraft={handleSaveDraft}
+            onDraftChange={updateDraftEmail}
+            onGenerateReply={generateDraftReply}
+            onUploadAttachment={uploadAttachment}
+          />
+        )}
       </div>
-
-      {composing && draftEmail && (
-        <EmailCompose
-          draft={draftEmail}
-          isOpen={composing}
-          onClose={stopComposing}
-          onSend={handleSendEmail}
-          onSaveDraft={handleSaveDraft}
-          onDraftChange={updateDraftEmail}
-          onGenerateReply={generateDraftReply}
-          onUploadAttachment={uploadAttachment}
-        />
-      )}
-    </div>
+    </MessagesErrorBoundary>
   )
 }
