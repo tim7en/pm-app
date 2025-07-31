@@ -165,9 +165,10 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
                 <Plus className="mr-2 h-4 w-4" />
                 New Project
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem disabled>
                 <Plus className="mr-2 h-4 w-4" />
                 New Task
+                <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -180,9 +181,11 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
             </Link>
           </Button>
 
-          <Button variant="ghost" size="sm" className="gap-2">
-            <Users className="h-4 w-4" />
-            Team
+          <Button variant="ghost" size="sm" className="gap-2" asChild>
+            <Link href="/team">
+              <Users className="h-4 w-4" />
+              Team
+            </Link>
           </Button>
 
           {/* Import/Export */}
@@ -224,9 +227,10 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem disabled>
                 <MessageSquare className="mr-2 h-4 w-4" />
                 <span>Feedback</span>
+                <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>

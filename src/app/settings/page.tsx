@@ -318,13 +318,15 @@ export default function SettingsPage() {
                             <AvatarFallback>JD</AvatarFallback>
                           </Avatar>
                           <div className="space-y-2">
-                            <Button type="button" variant="outline" size="sm">
+                            <Button type="button" variant="outline" size="sm" disabled>
                               <Upload className="h-4 w-4 mr-2" />
                               Upload Photo
+                              <Badge variant="secondary" className="ml-2 text-xs">Soon</Badge>
                             </Button>
-                            <Button type="button" variant="ghost" size="sm">
+                            <Button type="button" variant="ghost" size="sm" disabled>
                               <Trash2 className="h-4 w-4 mr-2" />
                               Remove
+                              <Badge variant="secondary" className="ml-2 text-xs">Soon</Badge>
                             </Button>
                           </div>
                         </div>
@@ -890,7 +892,10 @@ export default function SettingsPage() {
                             Add an extra layer of security to your account
                           </p>
                         </div>
-                        <Button variant="outline">Enable 2FA</Button>
+                        <Button variant="outline" disabled>
+                          Enable 2FA
+                          <Badge variant="secondary" className="ml-2 text-xs">Soon</Badge>
+                        </Button>
                       </div>
 
                       <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -900,9 +905,10 @@ export default function SettingsPage() {
                             Download all your account data
                           </p>
                         </div>
-                        <Button variant="outline">
+                        <Button variant="outline" disabled>
                           <Download className="h-4 w-4 mr-2" />
                           Export
+                          <Badge variant="secondary" className="ml-2 text-xs">Soon</Badge>
                         </Button>
                       </div>
 
@@ -913,9 +919,10 @@ export default function SettingsPage() {
                             Permanently delete your account and all data
                           </p>
                         </div>
-                        <Button variant="destructive">
+                        <Button variant="destructive" disabled>
                           <Trash2 className="h-4 w-4 mr-2" />
                           Delete Account
+                          <Badge variant="secondary" className="ml-2 text-xs">Soon</Badge>
                         </Button>
                       </div>
                     </div>

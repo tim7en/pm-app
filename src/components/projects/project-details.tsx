@@ -228,9 +228,18 @@ export function ProjectDetails({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem>Duplicate Project</DropdownMenuItem>
-                  <DropdownMenuItem>Archive Project</DropdownMenuItem>
-                  <DropdownMenuItem className="text-red-600">Delete Project</DropdownMenuItem>
+                  <DropdownMenuItem disabled>
+                    Duplicate Project
+                    <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled>
+                    Archive Project
+                    <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled className="text-red-600">
+                    Delete Project
+                    <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
@@ -515,17 +524,20 @@ export function ProjectDetails({
               <CardTitle className="text-lg">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start" disabled>
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Share Project
+                <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
               </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start" disabled>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Task
+                <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
               </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start" disabled>
                 <Users className="w-4 h-4 mr-2" />
                 Invite Members
+                <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
               </Button>
             </CardContent>
           </Card>

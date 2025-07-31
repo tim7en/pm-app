@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { aiAssistant } from '@/lib/ai-assistant'
+// import { aiAssistant } from '@/lib/ai-assistant'
 import { getAuthSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 
@@ -14,53 +14,59 @@ async function handleAssessProject(request: NextRequest) {
       )
     }
 
-    // Get projectId from query params (GET) or body (POST)
-    const { searchParams } = new URL(request.url)
-    let projectId = searchParams.get('projectId')
-    
-    if (!projectId && request.method === 'POST') {
-      const body = await request.json()
-      projectId = body.projectId
-    }
-
-    if (!projectId) {
-      return NextResponse.json(
-        { error: 'Project ID is required' },
-        { status: 400 }
-      )
-    }
-
-    // Get project data
-    const project = await db.project.findUnique({
-      where: { id: projectId },
-      include: {
-        tasks: {
-          where: { status: 'DONE' },
-          include: {
-            assignee: true,
-            creator: true
-          }
-        }
-      }
-    })
-
-    if (!project) {
-      return NextResponse.json(
-        { error: 'Project not found' },
-        { status: 404 }
-      )
-    }
-
-    const assessment = await aiAssistant.assessProjectEfficiency(
-      project,
-      project.tasks,
-      {
-        start: project.createdAt,
-        end: project.status === 'COMPLETED' ? project.updatedAt : undefined
-      }
+    // AI Assessment temporarily disabled due to API key issues
+    return NextResponse.json(
+      { error: 'AI assessment temporarily unavailable' },
+      { status: 503 }
     )
 
-    return NextResponse.json({ assessment })
+    // // Get projectId from query params (GET) or body (POST)
+    // const { searchParams } = new URL(request.url)
+    // let projectId = searchParams.get('projectId')
+    
+    // if (!projectId && request.method === 'POST') {
+    //   const body = await request.json()
+    //   projectId = body.projectId
+    // }
+
+    // if (!projectId) {
+    //   return NextResponse.json(
+    //     { error: 'Project ID is required' },
+    //     { status: 400 }
+    //   )
+    // }
+
+    // // Get project data
+    // const project = await db.project.findUnique({
+    //   where: { id: projectId },
+    //   include: {
+    //     tasks: {
+    //       where: { status: 'DONE' },
+    //       include: {
+    //         assignee: true,
+    //         creator: true
+    //       }
+    //     }
+    //   }
+    // })
+
+    // if (!project) {
+    //   return NextResponse.json(
+    //     { error: 'Project not found' },
+    //     { status: 404 }
+    //   )
+    // }
+
+    // const assessment = await aiAssistant.assessProjectEfficiency(
+    //   project,
+    //   project.tasks,
+    //   {
+    //     start: project.createdAt,
+    //     end: project.status === 'COMPLETED' ? project.updatedAt : undefined
+    //   }
+    // )
+
+    // return NextResponse.json({ assessment })
   } catch (error) {
     console.error('AI project assessment error:', error)
     return NextResponse.json(

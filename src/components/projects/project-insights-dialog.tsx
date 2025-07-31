@@ -45,17 +45,24 @@ export function ProjectInsightsDialog({
   const generateInsights = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/ai/assess-project?projectId=${projectId}`)
-      if (response.ok) {
-        const data = await response.json()
-        setInsights(data.assessment)
-      } else {
-        toast({
-          title: "Error",
-          description: "Unable to generate insights at this time. Please try again later.",
-          variant: "destructive",
-        })
-      }
+      // AI insights temporarily disabled due to API key issues
+      toast({
+        title: "AI Insights Unavailable",
+        description: "AI insights are temporarily disabled due to API key issues. Please try again later.",
+        variant: "destructive",
+      })
+      
+      // const response = await fetch(`/api/ai/assess-project?projectId=${projectId}`)
+      // if (response.ok) {
+      //   const data = await response.json()
+      //   setInsights(data.assessment)
+      // } else {
+      //   toast({
+      //     title: "Error",
+      //     description: "Unable to generate insights at this time. Please try again later.",
+      //     variant: "destructive",
+      //   })
+      // }
     } catch (error) {
       console.error('Error generating insights:', error)
       toast({

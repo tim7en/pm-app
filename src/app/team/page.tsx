@@ -638,17 +638,20 @@ export default function TeamPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
+                              <DropdownMenuItem disabled>
                                 <Mail className="mr-2 h-4 w-4" />
                                 Send Email
+                                <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
+                              <DropdownMenuItem disabled>
                                 <MessageSquare className="mr-2 h-4 w-4" />
                                 Send Message
+                                <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
+                              <DropdownMenuItem disabled>
                                 <Video className="mr-2 h-4 w-4" />
                                 Start Call
+                                <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
                               </DropdownMenuItem>
                               {(currentUserRole === 'OWNER' || currentUserRole === 'ADMIN') && member.role !== 'OWNER' && (
                                 <>

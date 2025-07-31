@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { aiAssistant } from '@/lib/ai-assistant'
+// import { aiAssistant } from '@/lib/ai-assistant'
 import { getAuthSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 
@@ -14,20 +14,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
-    const { taskId, completionTime } = body
+    // AI task feedback temporarily disabled due to API key issues
+    return NextResponse.json(
+      { 
+        feedback: "Great job completing this task! Keep up the excellent work.",
+        error: 'AI task feedback temporarily unavailable' 
+      },
+      { status: 503 }
+    )
 
-    if (!taskId) {
-      return NextResponse.json(
-        { error: 'Task ID is required' },
-        { status: 400 }
-      )
-    }
+    // const body = await request.json()
+    // const { taskId, completionTime } = body
 
-    // Get task data
-    const task = await db.task.findUnique({
-      where: { id: taskId },
-      include: {
+    // if (!taskId) {
+    //   return NextResponse.json(
+    //     { error: 'Task ID is required' },
+    //     { status: 400 }
+    //   )
+    // }
+
+    // // Get task data
+    // const task = await db.task.findUnique({
+    //   where: { id: taskId },
+    //   include: {
         assignee: true,
         creator: true,
         project: true

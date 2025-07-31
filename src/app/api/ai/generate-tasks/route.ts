@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { aiAssistant } from '@/lib/ai-assistant'
+// import { aiAssistant } from '@/lib/ai-assistant'
 import { getAuthSession } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
@@ -13,24 +13,30 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
-    const { description, projectContext, existingTasks } = body
+    // AI task generation temporarily disabled due to API key issues
+    return NextResponse.json(
+      { error: 'AI task generation temporarily unavailable' },
+      { status: 503 }
+    )
 
-    if (!description) {
-      return NextResponse.json(
-        { error: 'Description is required' },
-        { status: 400 }
-      )
-    }
+    // const body = await request.json()
+    // const { description, projectContext, existingTasks } = body
 
-    const suggestions = await aiAssistant.generateTasks({
-      description,
-      projectContext,
-      userRole: 'MEMBER', // Default role for task generation
-      existingTasks
-    })
+    // if (!description) {
+    //   return NextResponse.json(
+    //     { error: 'Description is required' },
+    //     { status: 400 }
+    //   )
+    // }
 
-    return NextResponse.json({ suggestions })
+    // const suggestions = await aiAssistant.generateTasks({
+    //   description,
+    //   projectContext,
+    //   userRole: 'MEMBER', // Default role for task generation
+    //   existingTasks
+    // })
+
+    // return NextResponse.json({ suggestions })
   } catch (error) {
     console.error('AI task generation error:', error)
     return NextResponse.json(

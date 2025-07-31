@@ -355,9 +355,10 @@ export default function AnalyticsPage() {
                     <SelectItem value="quarter">Last 90 days</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" disabled>
                   <BarChart3 className="w-4 h-4 mr-2" />
                   Export Report
+                  <Badge variant="secondary" className="ml-2 text-xs">Soon</Badge>
                 </Button>
               </div>
             </div>

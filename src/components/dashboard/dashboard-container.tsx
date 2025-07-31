@@ -371,8 +371,18 @@ export function DashboardContainer() {
                     setProjectDialogOpen(true)
                   }}
                   onProjectDelete={onDeleteProject}
-                  onProjectToggleStar={(projectId) => {
-                    console.log('Toggle star:', projectId)
+                  onProjectToggleStar={async (projectId) => {
+                    try {
+                      const response = await fetch(`/api/projects/${projectId}/star`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' }
+                      })
+                      if (response.ok) {
+                        await fetchProjects() // Refresh projects to show updated star status
+                      }
+                    } catch (error) {
+                      console.error('Failed to toggle star:', error)
+                    }
                   }}
                   onCreateProject={() => setProjectDialogOpen(true)}
                   onClearActivity={onClearActivity}
@@ -410,8 +420,18 @@ export function DashboardContainer() {
                     setProjectDialogOpen(true)
                   }}
                   onProjectDelete={onDeleteProject}
-                  onProjectToggleStar={(projectId) => {
-                    console.log('Toggle star:', projectId)
+                  onProjectToggleStar={async (projectId) => {
+                    try {
+                      const response = await fetch(`/api/projects/${projectId}/star`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' }
+                      })
+                      if (response.ok) {
+                        await fetchProjects() // Refresh projects to show updated star status
+                      }
+                    } catch (error) {
+                      console.error('Failed to toggle star:', error)
+                    }
                   }}
                 />
               </TabsContent>

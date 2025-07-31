@@ -190,9 +190,18 @@ export function TaskDetails({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem>Duplicate Task</DropdownMenuItem>
-                  <DropdownMenuItem>Move to Project</DropdownMenuItem>
-                  <DropdownMenuItem className="text-red-600">Delete Task</DropdownMenuItem>
+                  <DropdownMenuItem disabled>
+                    Duplicate Task
+                    <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled>
+                    Move to Project
+                    <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled className="text-red-600">
+                    Delete Task
+                    <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
@@ -439,7 +448,10 @@ export function TaskDetails({
                         <p className="text-xs text-muted-foreground">{attachment.size}</p>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm">Download</Button>
+                    <Button variant="ghost" size="sm" disabled>
+                      Download
+                      <Badge variant="secondary" className="ml-2 text-xs">Soon</Badge>
+                    </Button>
                   </div>
                 ))}
               </CardContent>
@@ -468,13 +480,15 @@ export function TaskDetails({
               <CardTitle className="text-lg">Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start" disabled>
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Share Task
+                <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
               </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start" disabled>
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete Task
+                <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
               </Button>
             </CardContent>
           </Card>

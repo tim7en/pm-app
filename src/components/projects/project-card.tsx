@@ -83,36 +83,37 @@ export function ProjectCard({
   onGenerateInsights,
   currentUserId 
 }: ProjectCardProps) {
-  const [aiAssessment, setAiAssessment] = useState<any>(null)
-  const [loadingAssessment, setLoadingAssessment] = useState(false)
+  // const [aiAssessment, setAiAssessment] = useState<any>(null)
+  // const [loadingAssessment, setLoadingAssessment] = useState(false)
 
-  // Generate AI assessment on hover for active projects
-  useEffect(() => {
-    if (project.status === ProjectStatus.ACTIVE && (project.taskCount || 0) > 0) {
-      const timer = setTimeout(() => {
-        generateAssessment()
-      }, 1000) // Delay to avoid excessive API calls
+  // AI assessment disabled due to API key issues
+  // // Generate AI assessment on hover for active projects
+  // useEffect(() => {
+  //   if (project.status === ProjectStatus.ACTIVE && (project.taskCount || 0) > 0) {
+  //     const timer = setTimeout(() => {
+  //       generateAssessment()
+  //     }, 1000) // Delay to avoid excessive API calls
       
-      return () => clearTimeout(timer)
-    }
-  }, [project.id])
+  //     return () => clearTimeout(timer)
+  //   }
+  // }, [project.id])
 
-  const generateAssessment = async () => {
-    if (loadingAssessment || aiAssessment) return
+  // const generateAssessment = async () => {
+  //   if (loadingAssessment || aiAssessment) return
     
-    setLoadingAssessment(true)
-    try {
-      const response = await fetch(`/api/ai/assess-project?projectId=${project.id}`)
-      if (response.ok) {
-        const data = await response.json()
-        setAiAssessment(data.assessment)
-      }
-    } catch (error) {
-      console.error('Error generating project assessment:', error)
-    } finally {
-      setLoadingAssessment(false)
-    }
-  }
+  //   setLoadingAssessment(true)
+  //   try {
+  //     const response = await fetch(`/api/ai/assess-project?projectId=${project.id}`)
+  //     if (response.ok) {
+  //       const data = await response.json()
+  //       setAiAssessment(data.assessment)
+  //     }
+  //   } catch (error) {
+  //     console.error('Error generating project assessment:', error)
+  //   } finally {
+  //     setLoadingAssessment(false)
+  //   }
+  // }
 
   const progressPercentage = (project.taskCount || 0) > 0 
     ? Math.round(((project.completedTaskCount || 0) / (project.taskCount || 1)) * 100)
