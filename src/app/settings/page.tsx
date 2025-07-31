@@ -28,7 +28,9 @@ import {
   Trash2,
   Plus,
   Github,
-  Linkedin
+  Linkedin,
+  Building,
+  Briefcase
 } from "lucide-react"
 import {
   Tabs,
@@ -64,6 +66,8 @@ import * as z from "zod"
 const profileSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Valid email is required"),
+  company: z.string().optional(),
+  position: z.string().optional(),
   phone: z.string().optional(),
   location: z.string().optional(),
   bio: z.string().optional(),
@@ -106,6 +110,8 @@ export default function SettingsPage() {
     defaultValues: {
       name: user?.name || "",
       email: user?.email || "",
+      company: "",
+      position: "",
       phone: "",
       location: "",
       bio: "",
@@ -145,11 +151,13 @@ export default function SettingsPage() {
       profileForm.reset({
         name: user.name || "",
         email: user.email || "",
-        phone: "",
-        location: "",
-        bio: "",
-        timezone: "America/Los_Angeles",
-        language: "en",
+        company: user.company || "",
+        position: user.position || "",
+        phone: user.phone || "",
+        location: user.location || "",
+        bio: user.bio || "",
+        timezone: user.timezone || "America/Los_Angeles",
+        language: user.language || "en",
       })
     }
   }, [user, profileForm])
@@ -183,14 +191,28 @@ export default function SettingsPage() {
   const handleProfileSubmit = async (data: ProfileFormData) => {
     setIsSubmitting(true)
     try {
-      console.log('Profile updated:', data)
-      // Here you would save to your backend
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
       })
+
+      if (response.ok) {
+        const result = await response.json()
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been updated successfully.",
+        })
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.error || "Failed to update profile. Please try again.",
+          variant: "destructive",
+        })
+      }
     } catch (error) {
       console.error('Error updating profile:', error)
       toast({
@@ -364,10 +386,49 @@ export default function SettingsPage() {
                         <div className="grid grid-cols-2 gap-4">
                           <FormField
                             control={profileForm.control}
+                            name="company"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="flex items-center gap-2">
+                                  <Building className="h-4 w-4" />
+                                  Company
+                                </FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Enter your company name" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={profileForm.control}
+                            name="position"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="flex items-center gap-2">
+                                  <Briefcase className="h-4 w-4" />
+                                  Position
+                                </FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Enter your job title" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={profileForm.control}
                             name="phone"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Phone</FormLabel>
+                                <FormLabel className="flex items-center gap-2">
+                                  <Phone className="h-4 w-4" />
+                                  Phone
+                                </FormLabel>
                                 <FormControl>
                                   <Input placeholder="Enter your phone number" {...field} />
                                 </FormControl>
@@ -381,7 +442,10 @@ export default function SettingsPage() {
                             name="location"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Location</FormLabel>
+                                <FormLabel className="flex items-center gap-2">
+                                  <MapPin className="h-4 w-4" />
+                                  Location
+                                </FormLabel>
                                 <FormControl>
                                   <Input placeholder="Enter your location" {...field} />
                                 </FormControl>

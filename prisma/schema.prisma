@@ -21,6 +21,15 @@ model User {
   avatar    String?
   role      Role     @default(MEMBER)
   
+  // Profile fields
+  company   String?
+  position  String?
+  phone     String?
+  location  String?
+  bio       String?
+  timezone  String?
+  language  String?
+  
   // OAuth fields
   googleId          String?
   oauthProvider     String?

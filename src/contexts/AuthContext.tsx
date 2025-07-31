@@ -8,6 +8,13 @@ interface User {
   email: string
   name: string | null
   avatar: string | null
+  company?: string | null
+  position?: string | null
+  phone?: string | null
+  location?: string | null
+  bio?: string | null
+  timezone?: string | null
+  language?: string | null
 }
 
 interface Workspace {
