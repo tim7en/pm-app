@@ -85,6 +85,10 @@ model WorkspaceMember {
   workspaceId String
   role        Role     @default(MEMBER)
   joinedAt    DateTime @default(now())
+  
+  // Position fields
+  title       String?
+  department  String?
 
   // Relations
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)

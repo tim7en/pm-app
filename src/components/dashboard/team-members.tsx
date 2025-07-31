@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { InviteMemberDialog } from "@/components/workspace/invite-member-dialog"
+import { EditPositionDialog } from "@/components/workspace/edit-position-dialog"
 import { 
   Users, 
   Circle, 
@@ -17,7 +18,9 @@ import {
   UserPlus,
   Crown,
   Shield,
-  User
+  User,
+  Edit,
+  Building2
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -50,9 +53,15 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
   const [members, setMembers] = useState<TeamMember[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
+  const [editPositionDialogOpen, setEditPositionDialogOpen] = useState(false)
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
   const { currentWorkspaceId, user } = useAuth()
   
   const targetWorkspaceId = workspaceId || currentWorkspaceId
+
+  // Check if current user can edit positions (is owner or admin)
+  const currentUserMember = members.find(m => m.id === user?.id)
+  const canEditPositions = currentUserMember?.role === 'OWNER' || currentUserMember?.role === 'ADMIN'
 
   useEffect(() => {
     if (targetWorkspaceId) {
@@ -72,7 +81,7 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
       if (response.ok) {
         const data = await response.json()
         
-        // Transform the data and simulate online status
+        // Transform the data to include position fields from the database
         const transformedMembers: TeamMember[] = data.map((member: any) => ({
           id: member.user.id,
           name: member.user.name,
@@ -81,8 +90,8 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
           role: member.role,
           isOnline: Math.random() > 0.3, // Simulate online status - 70% chance online
           lastSeen: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000), // Random last seen within 24h
-          department: ['Engineering', 'Design', 'Product', 'Marketing', 'Sales'][Math.floor(Math.random() * 5)],
-          title: ['Developer', 'Designer', 'Product Manager', 'Marketing Specialist', 'Sales Rep'][Math.floor(Math.random() * 5)]
+          department: member.department, // Use actual database value
+          title: member.title // Use actual database value
         }))
         
         // Sort by online status first, then by role
@@ -144,6 +153,17 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
 
   const handleInviteSuccess = () => {
     fetchTeamMembers()
+  }
+
+  const handleEditPosition = (member: TeamMember) => {
+    setSelectedMember(member)
+    setEditPositionDialogOpen(true)
+  }
+
+  const handlePositionEditSuccess = () => {
+    fetchTeamMembers()
+    setEditPositionDialogOpen(false)
+    setSelectedMember(null)
   }
 
   return (
@@ -235,10 +255,16 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
                         </span>
                       )}
                     </div>
-                    {member.title && (
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
-                        {member.title} • {member.department}
-                      </p>
+                    {(member.title || member.department) && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <Building2 className="h-3 w-3 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground truncate">
+                          {member.title && member.department 
+                            ? `${member.title} • ${member.department}`
+                            : member.title || member.department
+                          }
+                        </p>
+                      </div>
                     )}
                   </div>
 
@@ -276,6 +302,15 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
                           Send Email
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
+                        {canEditPositions && (
+                          <>
+                            <DropdownMenuItem onClick={() => handleEditPosition(member)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Position
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                          </>
+                        )}
                         <DropdownMenuItem>
                           View Profile
                         </DropdownMenuItem>
@@ -296,6 +331,16 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
       onInviteSuccess={handleInviteSuccess}
       workspaceId={workspaceId || currentWorkspaceId || undefined}
     />
+    
+    {selectedMember && (
+      <EditPositionDialog
+        open={editPositionDialogOpen}
+        onOpenChange={setEditPositionDialogOpen}
+        member={selectedMember}
+        workspaceId={targetWorkspaceId || ''}
+        onSuccess={handlePositionEditSuccess}
+      />
+    )}
     </>
   )
 }
