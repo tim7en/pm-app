@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ProjectDialog } from "@/components/projects/project-dialog"
 import { DownloadMenu } from "@/components/layout/download-menu"
 import { NotificationsDropdown } from "@/components/layout/notifications-dropdown"
+import { BugReportDialog } from "@/components/bug-report/bug-report-dialog"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
 import { 
@@ -19,7 +20,8 @@ import {
   Users, 
   MessageSquare,
   Settings,
-  LogOut
+  LogOut,
+  Bug
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -198,6 +200,18 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
 
           {/* Notifications */}
           <NotificationsDropdown />
+
+          {/* Bug Report Button */}
+          <BugReportDialog>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-muted-foreground hover:text-foreground"
+              title="Report a bug"
+            >
+              <Bug className="h-4 w-4" />
+            </Button>
+          </BugReportDialog>
 
           {/* User Menu */}
           <DropdownMenu>
