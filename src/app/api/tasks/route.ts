@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { TaskStatus, Priority } from '@prisma/client'
+import { TaskStatus, Priority, NotificationType } from '@prisma/client'
 import { getAuthSession } from '@/lib/auth'
 import { getAccessibleTasks, canUserPerformAction } from '@/lib/roles'
+import { NotificationService } from '@/lib/notification-service'
 
 export async function GET(request: NextRequest) {
   try {
@@ -211,14 +212,19 @@ export async function POST(request: NextRequest) {
 
     // Create notification for assignee if different from creator
     if (finalAssigneeId && finalAssigneeId !== session.user.id) {
-      await db.notification.create({
-        data: {
-          title: 'New Task Assigned',
-          message: `You have been assigned to task: ${title}`,
-          type: 'TASK_ASSIGNED',
-          userId: finalAssigneeId
-        }
-      })
+      try {
+        await NotificationService.createTaskNotification(
+          NotificationType.TASK_ASSIGNED,
+          finalAssigneeId,
+          title,
+          task.id,
+          session.user.name || 'Someone'
+        )
+        console.log(`Task assignment notification sent to user ${finalAssigneeId}`)
+      } catch (error) {
+        console.error('Failed to create task assignment notification:', error)
+        // Don't fail the task creation if notification fails
+      }
     }
 
     return NextResponse.json(task, { status: 201 })

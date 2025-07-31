@@ -46,11 +46,11 @@ export class NotificationSecurity {
     }
     
     // For titles, we only allow plain text (no HTML)
-    return this.purify.sanitize(title, { 
+    return String(this.purify.sanitize(title, { 
       ALLOWED_TAGS: [],
       ALLOWED_ATTR: [],
       KEEP_CONTENT: true
-    }).trim()
+    })).trim()
   }
 
   /**
@@ -61,11 +61,11 @@ export class NotificationSecurity {
       return ''
     }
     
-    return this.purify.sanitize(message, {
+    return String(this.purify.sanitize(message, {
       ALLOWED_TAGS: ['b', 'i', 'em', 'strong'],
       ALLOWED_ATTR: [],
       KEEP_CONTENT: true
-    }).trim()
+    })).trim()
   }
 
   /**

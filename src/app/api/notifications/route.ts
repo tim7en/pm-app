@@ -1,46 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthSession } from '@/lib/auth'
 import { notificationSecurity, notificationRateLimit } from '@/lib/notification-security'
-
-// Mock notification data for testing (replace with actual database queries)
-const mockNotifications = [
-  {
-    id: '1',
-    type: 'task',
-    title: 'Task completed',
-    message: 'Your task "Design Homepage" has been completed.',
-    isRead: false,
-    createdAt: new Date().toISOString(),
-    relatedId: 'task-123',
-    relatedUrl: '/projects/123/tasks/456',
-    senderName: 'John Doe',
-    senderAvatar: '/avatars/01.png'
-  },
-  {
-    id: '2', 
-    type: 'message',
-    title: 'New message',
-    message: 'You have a new message from Sarah Wilson.',
-    isRead: false,
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-    relatedId: 'msg-456',
-    relatedUrl: '/messages/conversation/789',
-    senderName: 'Sarah Wilson',
-    senderAvatar: '/avatars/02.png'
-  },
-  {
-    id: '3',
-    type: 'team',
-    title: 'Team invitation',
-    message: 'You have been invited to join the Marketing team.',
-    isRead: true,
-    createdAt: new Date(Date.now() - 7200000).toISOString(),
-    relatedId: 'team-789',
-    relatedUrl: '/teams/marketing',
-    senderName: 'Admin',
-    senderAvatar: null
-  }
-]
+import { NotificationService } from '@/lib/notification-service'
 
 export async function GET(request: NextRequest) {
   try {
@@ -88,24 +49,18 @@ export async function GET(request: NextRequest) {
       limit = Math.min(parsedLimit, 100) // cap at 100
     }
 
-    // Get notifications (replace with actual database query)
-    let notifications = [...mockNotifications]
-    
-    // Apply limit
-    notifications = notifications.slice(0, limit)
+    // Get notifications from database
+    const notifications = await NotificationService.getUserNotifications(session.user.id, limit)
     
     // Sanitize all notifications
     const sanitizedNotifications = notifications.map(notification => {
       try {
-        return notificationSecurity.sanitizeNotification({
-          ...notification,
-          createdAt: new Date(notification.createdAt)
-        })
+        return notificationSecurity.sanitizeNotification(notification)
       } catch (error) {
-        console.error('Failed to sanitize notification:', error)
+        console.warn('Failed to sanitize notification:', error)
         return null
       }
-    }).filter(Boolean)
+    }).filter(Boolean) // Remove any null entries from failed sanitization
 
     return NextResponse.json({
       success: true,
@@ -172,38 +127,44 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate required fields
-    if (!body.type || !body.title || !body.message) {
-      return NextResponse.json(
-        { success: false, error: 'Missing required fields: type, title, message' },
-        { status: 400 }
-      )
-    }
+    const { action, notificationId } = body
 
-    // Sanitize and validate the notification
-    let sanitizedNotification
-    try {
-      sanitizedNotification = notificationSecurity.sanitizeNotification({
-        id: Date.now().toString(), // Generate ID
-        ...body,
-        createdAt: new Date(),
-        isRead: false
+    if (action === 'markAsRead') {
+      if (!notificationId) {
+        return NextResponse.json(
+          { success: false, error: 'notificationId is required for markAsRead action' },
+          { status: 400 }
+        )
+      }
+
+      const success = await NotificationService.markAsRead(notificationId, session.user.id)
+      
+      if (!success) {
+        return NextResponse.json(
+          { success: false, error: 'Notification not found or already read' },
+          { status: 404 }
+        )
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Notification marked as read'
       })
-    } catch (error) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid notification data' },
-        { status: 400 }
-      )
     }
 
-    // Here you would save to the database
-    // For now, we'll just return the sanitized notification
-    
-    return NextResponse.json({
-      success: true,
-      notification: sanitizedNotification,
-      message: 'Notification created successfully'
-    })
+    if (action === 'markAllAsRead') {
+      const count = await NotificationService.markAllAsRead(session.user.id)
+      
+      return NextResponse.json({
+        success: true,
+        message: `${count} notifications marked as read`
+      })
+    }
+
+    return NextResponse.json(
+      { success: false, error: 'Invalid action. Supported actions: markAsRead, markAllAsRead' },
+      { status: 400 }
+    )
 
   } catch (error) {
     console.error('Error in POST /api/notifications:', error)

@@ -34,6 +34,7 @@ import {
 } from "lucide-react"
 import { WorkspaceSelector } from "./workspace-selector"
 import { useAuth } from "@/contexts/AuthContext"
+import { projectColorGenerator } from "@/lib/project-color-generator"
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
@@ -69,12 +70,23 @@ export function Sidebar() {
     if (!currentWorkspace || !user) return
     
     try {
-      const response = await fetch(`/api/projects?workspaceId=${currentWorkspace.id}`)
+      const response = await fetch(`/api/projects?workspaceId=${currentWorkspace.id}&includeCounts=true`)
       if (response.ok) {
         const projects = await response.json()
+        
+        // Reset color generator for consistent colors
+        projectColorGenerator.resetUsedColors()
+        
+        // Assign dynamic colors to projects and separate by ownership
+        const projectsWithColors = projects.map((project: any) => ({
+          ...project,
+          dynamicColor: project.color || projectColorGenerator.generateProjectColor(project.name, project.id),
+          taskCount: project._count?.tasks || 0
+        }))
+        
         // Separate owned vs participated projects
-        const ownedProjects = projects.filter((p: any) => p.ownerId === user.id || p.owner?.id === user.id)
-        const participatedProjects = projects.filter((p: any) => 
+        const ownedProjects = projectsWithColors.filter((p: any) => p.ownerId === user.id || p.owner?.id === user.id)
+        const participatedProjects = projectsWithColors.filter((p: any) => 
           (p.ownerId !== user.id && p.owner?.id !== user.id) && 
           (p.members?.some((m: any) => m.userId === user.id) || p.workspaceId === currentWorkspace.id)
         )
@@ -186,6 +198,7 @@ export function Sidebar() {
                 className="h-6 w-6 hover:bg-accent/50 transition-colors"
                 onClick={() => router.push('/projects')}
                 title="View all projects"
+                aria-label="View all projects"
               >
                 <Plus className="h-3 w-3" />
               </Button>
@@ -206,7 +219,12 @@ export function Sidebar() {
                       {ownedProjects.length > 0 && (
                         <>
                           <div className="flex items-center gap-2 px-2 py-1">
-                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                            <div 
+                              className="w-2 h-2 rounded-full"
+                              style={{ 
+                                backgroundColor: '#10b981' // Consistent green for owned projects
+                              }}
+                            ></div>
                             <span className="text-xs font-medium text-muted-foreground">My Projects</span>
                           </div>
                           {ownedProjects.map((project: any) => (
@@ -215,18 +233,19 @@ export function Sidebar() {
                                 href={`/tasks?project=${project.id}`}
                                 className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 hover:bg-accent/50 hover:scale-[1.02] cursor-pointer"
                                 title={`View tasks for ${project.name} (Owner)`}  
+                                aria-label={`View tasks for ${project.name} project`}
                               >
                                 <div 
                                   className="w-3 h-3 rounded-full flex-shrink-0 transition-all duration-200 group-hover:w-4 group-hover:h-4 group-hover:shadow-lg" 
                                   style={{ 
-                                    backgroundColor: project.color || '#10b981',
-                                    boxShadow: `0 0 8px ${project.color || '#10b981'}40`
+                                    backgroundColor: project.dynamicColor,
+                                    boxShadow: `0 0 8px ${project.dynamicColor}40`
                                   }}
                                 />
                                 <span 
                                   className="flex-1 truncate font-medium transition-colors duration-200"
                                   style={{ 
-                                    color: `${project.color || '#10b981'}CC`
+                                    color: `${project.dynamicColor}CC`
                                   }}
                                 >
                                   {project.name}
@@ -235,11 +254,11 @@ export function Sidebar() {
                                   variant="secondary" 
                                   className="text-xs transition-all duration-200 group-hover:scale-110"
                                   style={{
-                                    backgroundColor: `${project.color || '#10b981'}20`,
-                                    color: project.color || '#10b981'
+                                    backgroundColor: `${project.dynamicColor}20`,
+                                    color: project.dynamicColor
                                   }}
                                 >
-                                  {project._count?.tasks || 0}
+                                  {project.taskCount}
                                 </Badge>
                               </Link>
                             </div>
@@ -252,7 +271,12 @@ export function Sidebar() {
                         <>
                           {ownedProjects.length > 0 && <div className="my-2 border-t"></div>}
                           <div className="flex items-center gap-2 px-2 py-1">
-                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                            <div 
+                              className="w-2 h-2 rounded-full"
+                              style={{ 
+                                backgroundColor: '#3b82f6' // Consistent blue for team projects
+                              }}
+                            ></div>
                             <span className="text-xs font-medium text-muted-foreground">Team Projects</span>
                           </div>
                           {participatedProjects.map((project: any) => (
@@ -265,14 +289,14 @@ export function Sidebar() {
                                 <div 
                                   className="w-3 h-3 rounded-full flex-shrink-0 transition-all duration-200 group-hover:w-4 group-hover:h-4 group-hover:shadow-lg border border-white/20" 
                                   style={{ 
-                                    backgroundColor: project.color || '#3b82f6',
-                                    boxShadow: `0 0 6px ${project.color || '#3b82f6'}30`
+                                    backgroundColor: project.dynamicColor,
+                                    boxShadow: `0 0 6px ${project.dynamicColor}30`
                                   }}
                                 />
                                 <span 
                                   className="flex-1 truncate font-normal transition-colors duration-200"
                                   style={{ 
-                                    color: `${project.color || '#3b82f6'}B0`
+                                    color: `${project.dynamicColor}B0`
                                   }}
                                 >
                                   {project.name}
@@ -281,11 +305,11 @@ export function Sidebar() {
                                   variant="outline" 
                                   className="text-xs transition-all duration-200 group-hover:scale-110 border-opacity-50"
                                   style={{
-                                    borderColor: `${project.color || '#3b82f6'}60`,
-                                    color: `${project.color || '#3b82f6'}90`
+                                    borderColor: `${project.dynamicColor}60`,
+                                    color: `${project.dynamicColor}90`
                                   }}
                                 >
-                                  {project._count?.tasks || 0}
+                                  {project.taskCount}
                                 </Badge>
                               </Link>
                             </div>

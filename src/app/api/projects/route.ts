@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')
     const status = searchParams.get('status')
     const workspaceId = searchParams.get('workspaceId')
+    const includeCounts = searchParams.get('includeCounts') === 'true'
 
     // Get all accessible projects for the user
     let projects = await getAccessibleProjects(session.user.id)
@@ -43,12 +44,16 @@ export async function GET(request: NextRequest) {
 
     // Format the response
     const formattedProjects = await Promise.all(projects.map(async project => {
-      const completedTasks = await db.task.count({
-        where: {
-          projectId: project.id,
-          status: 'DONE'
-        }
-      })
+      let completedTasks = 0
+      
+      if (includeCounts) {
+        completedTasks = await db.task.count({
+          where: {
+            projectId: project.id,
+            status: 'DONE'
+          }
+        })
+      }
 
       return {
         id: project.id,
@@ -57,14 +62,19 @@ export async function GET(request: NextRequest) {
         color: project.color,
         status: project.status,
         workspaceId: project.workspaceId,
+        ownerId: project.ownerId,
         owner: {
           id: project.owner.id,
           name: project.owner.name,
           email: project.owner.email,
           avatar: project.owner.avatar
         },
-        taskCount: project._count.tasks,
-        memberCount: project._count.members,
+        _count: {
+          tasks: project._count?.tasks || 0,
+          members: project._count?.members || 0
+        },
+        taskCount: project._count?.tasks || 0,
+        memberCount: project._count?.members || 0,
         completedTaskCount: completedTasks,
         isStarred: false, // TODO: Implement starred projects
         createdAt: project.createdAt,

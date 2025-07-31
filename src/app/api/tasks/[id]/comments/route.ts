@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getAuthSession } from '@/lib/auth'
+import { NotificationService } from '@/lib/notification-service'
+import { NotificationType } from '@prisma/client'
 
 export async function POST(
   request: NextRequest,
@@ -37,6 +39,14 @@ export async function POST(
             { members: { some: { userId: session.user.id } } }
           ]
         }
+      },
+      include: {
+        assignee: {
+          select: { id: true, name: true }
+        },
+        creator: {
+          select: { id: true, name: true }
+        }
       }
     })
 
@@ -64,6 +74,33 @@ export async function POST(
         }
       }
     })
+
+    // Send notifications to relevant users (assignee and creator, but not the commenter)
+    const notificationTargets = new Set<string>()
+    
+    if (task.assigneeId && task.assigneeId !== session.user.id) {
+      notificationTargets.add(task.assigneeId)
+    }
+    
+    if (task.creatorId && task.creatorId !== session.user.id) {
+      notificationTargets.add(task.creatorId)
+    }
+
+    // Send notifications
+    for (const userId of notificationTargets) {
+      try {
+        await NotificationService.createTaskNotification(
+          NotificationType.COMMENT_ADDED,
+          userId,
+          task.title,
+          task.id,
+          session.user.name || 'Someone'
+        )
+      } catch (error) {
+        console.error(`Failed to send comment notification to user ${userId}:`, error)
+        // Don't fail the comment creation if notification fails
+      }
+    }
 
     return NextResponse.json({
       ...comment,

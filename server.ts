@@ -1,5 +1,5 @@
 // server.ts - Next.js Standalone + Socket.IO
-import { setupSocket } from '@/lib/socket';
+import { setupSocket, setSocketInstance } from '@/lib/socket';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import next from 'next';
@@ -40,6 +40,8 @@ async function createCustomServer() {
       }
     });
 
+    // Store socket instance globally and setup handlers
+    setSocketInstance(io);
     setupSocket(io);
 
     // Start the server

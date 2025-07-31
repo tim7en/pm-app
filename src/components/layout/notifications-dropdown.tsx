@@ -26,6 +26,7 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
+import { useSocket } from "@/hooks/use-socket"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -162,25 +163,126 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
+  const [lastLoadTime, setLastLoadTime] = useState<number>(0)
   const { user } = useAuth()
   const { toast } = useToast()
   const { count: invitationCount, refetch: refetchInvitations } = useInvitationCount()
+  const { socket, isConnected, notificationCount, setNotificationCount } = useSocket()
 
-  // Load notifications when dropdown opens
+  // Rate limiting constants
+  const RATE_LIMIT_MS = 2000 // Minimum 2 seconds between requests
+  const MAX_RETRIES = 3
+  const RETRY_DELAY_MS = 1000
+
+  // Listen for real-time notification updates
+  useEffect(() => {
+    const handleNewNotification = (event: CustomEvent) => {
+      const newNotification = event.detail
+      console.log('Adding new real-time notification:', newNotification)
+      
+      // Add new notification to the beginning of the list
+      setNotifications(prev => [newNotification, ...prev])
+    }
+
+    const handleNotificationUpdate = () => {
+      // Refresh notifications when updates occur
+      if (isOpen) {
+        loadNotifications() // Refresh notifications list
+      }
+    }
+
+    window.addEventListener('newNotification', handleNewNotification as EventListener)
+    
+    if (socket) {
+      socket.on('notification-count', ({ count }) => {
+        setNotificationCount(count)
+      })
+      
+      socket.on('notification', handleNotificationUpdate)
+    }
+
+    return () => {
+      window.removeEventListener('newNotification', handleNewNotification as EventListener)
+      if (socket) {
+        socket.off('notification-count')
+        socket.off('notification')
+      }
+    }
+  }, [socket, isOpen, setNotificationCount])
+
+  // Debounced loading function with rate limiting
+  const debouncedLoadNotifications = useCallback(async () => {
+    const now = Date.now()
+    const timeSinceLastLoad = now - lastLoadTime
+    
+    if (timeSinceLastLoad < RATE_LIMIT_MS) {
+      console.log(`Rate limiting: waiting ${RATE_LIMIT_MS - timeSinceLastLoad}ms before next request`)
+      return
+    }
+    
+    setLastLoadTime(now)
+    await loadNotifications()
+  }, [lastLoadTime])
+
+  // Load notifications when dropdown opens with debouncing
   useEffect(() => {
     if (isOpen) {
-      loadNotifications()
-      refetchInvitations()
+      // Debounce the loading to prevent rapid requests
+      const timeoutId = setTimeout(() => {
+        debouncedLoadNotifications()
+        refetchInvitations()
+      }, 300) // 300ms debounce
+      
+      return () => clearTimeout(timeoutId)
     }
-  }, [isOpen, refetchInvitations])
+  }, [isOpen, debouncedLoadNotifications, refetchInvitations])
 
-  const loadNotifications = async () => {
-    if (!user) return
-    
+  const loadNotifications = async (retryCount = 0) => {
+    if (isLoading) {
+      console.log('Already loading notifications, skipping request')
+      return
+    }
+
+    if (!user) {
+      console.log('No user available, skipping notification load')
+      return
+    }
+
     setIsLoading(true)
+    
     try {
-      const response = await fetch('/api/notifications?limit=15')
+      console.log(`Loading notifications (attempt ${retryCount + 1})`)
+      const response = await fetch('/api/notifications?limit=15', {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Add cache control to prevent browser caching issues
+        cache: 'no-cache'
+      })
+      
+      if (response.status === 429) {
+        // Handle rate limiting with exponential backoff
+        const retryAfter = response.headers.get('Retry-After')
+        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : RETRY_DELAY_MS * Math.pow(2, retryCount)
+        
+        console.warn(`Rate limited (429). Retry after ${waitTime}ms`)
+        
+        if (retryCount < MAX_RETRIES) {
+          setTimeout(() => {
+            loadNotifications(retryCount + 1)
+          }, waitTime)
+          return
+        } else {
+          throw new Error(`Rate limit exceeded. Max retries (${MAX_RETRIES}) reached.`)
+        }
+      }
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
       const data = await response.json()
+      console.log('Notification API response:', data) // Debug log
       
       if (data.success && Array.isArray(data.notifications)) {
         // Sanitize notification content for XSS protection
@@ -197,14 +299,38 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
         }).filter(Boolean) // Remove any null entries from failed sanitization
         
         setNotifications(sanitizedNotifications)
+        console.log(`Successfully loaded ${sanitizedNotifications.length} notifications`)
+      } else if (data.success === false) {
+        // Handle API error responses
+        console.error('API returned error:', data.error)
+        setNotifications([])
+        toast({
+          title: "Error",
+          description: data.error || "Failed to load notifications",
+          variant: "destructive"
+        })
       } else {
         throw new Error('Invalid notification data received')
       }
     } catch (error) {
       console.error('Error loading notifications:', error)
+      
+      // Show user-friendly error messages based on error type
+      let errorMessage = "Failed to load notifications. Please try again."
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Rate limit exceeded')) {
+          errorMessage = "Too many requests. Please wait a moment before refreshing."
+        } else if (error.message.includes('429')) {
+          errorMessage = "Server is busy. Please try again in a few seconds."
+        } else if (error.message.includes('Invalid notification data')) {
+          errorMessage = "Invalid notification data received from server."
+        }
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to load notifications. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       })
       setNotifications([]) // Reset to empty array on error
@@ -228,19 +354,27 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
 
     try {
       const response = await fetch('/api/notifications', {
-        method: 'PATCH',
+        method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'X-Requested-With': 'XMLHttpRequest' // CSRF protection
         },
         body: JSON.stringify({ 
-          action: 'mark-read',
+          action: 'markAsRead',
           notificationId: notificationId 
         })
       })
       
       if (!response.ok) {
         throw new Error(`Failed to mark notification as read: ${response.status}`)
+      }
+
+      const result = await response.json()
+      if (result.success) {
+        // Emit socket event to acknowledge notification read
+        if (socket) {
+          socket.emit('notification-read', { notificationId, userId: user?.id })
+        }
       }
     } catch (error) {
       console.error('Error marking notification as read:', error)
@@ -300,10 +434,15 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
     }
   }, [notifications, toast])
 
-  const unreadCount = useMemo(() => 
-    notifications.filter(n => !n.isRead).length, 
-    [notifications]
-  )
+  // Use real-time notification count from socket, fallback to calculated count
+  const unreadCount = useMemo(() => {
+    // If we have a real-time count from socket, use that
+    if (notificationCount >= 0) {
+      return notificationCount
+    }
+    // Otherwise calculate from local notifications
+    return notifications.filter(n => !n.isRead).length
+  }, [notifications, notificationCount])
 
   const totalCount = unreadCount + invitationCount
 
@@ -328,16 +467,50 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-semibold text-sm">Notifications</h3>
-          {unreadCount > 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-xs h-6 px-2"
-              onClick={markAllAsRead}
-            >
-              Mark all read
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Test notification button (dev only) */}
+            {process.env.NODE_ENV === 'development' && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-6 px-2"
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/notifications/test', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        title: 'Test Notification',
+                        message: `Test notification created at ${new Date().toLocaleTimeString()}`
+                      })
+                    })
+                    const result = await response.json()
+                    if (result.success) {
+                      toast({
+                        title: "Success",
+                        description: "Test notification created!",
+                        variant: "default"
+                      })
+                    }
+                  } catch (error) {
+                    console.error('Failed to create test notification:', error)
+                  }
+                }}
+              >
+                Test
+              </Button>
+            )}
+            {unreadCount > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs h-6 px-2"
+                onClick={markAllAsRead}
+              >
+                Mark all read
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Notifications List */}
