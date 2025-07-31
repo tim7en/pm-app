@@ -30,6 +30,7 @@ import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { notificationSecurity } from "@/lib/notification-security"
+import { InvitationNotifications, useInvitationCount } from "@/components/notifications/invitation-notifications"
 
 interface Notification {
   id: string
@@ -163,13 +164,15 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
   const [isOpen, setIsOpen] = useState(false)
   const { user } = useAuth()
   const { toast } = useToast()
+  const { count: invitationCount, refetch: refetchInvitations } = useInvitationCount()
 
   // Load notifications when dropdown opens
   useEffect(() => {
     if (isOpen) {
       loadNotifications()
+      refetchInvitations()
     }
-  }, [isOpen])
+  }, [isOpen, refetchInvitations])
 
   const loadNotifications = async () => {
     if (!user) return
@@ -302,14 +305,20 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
     [notifications]
   )
 
+  const totalCount = unreadCount + invitationCount
+
+  const handleInvitationUpdate = () => {
+    refetchInvitations()
+  }
+
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className={cn("relative", className)}>
           <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
+          {totalCount > 0 && (
             <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs">
-              {unreadCount > 99 ? '99+' : unreadCount}
+              {totalCount > 99 ? '99+' : totalCount}
             </Badge>
           )}
         </Button>
@@ -337,28 +346,45 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Bell className="h-8 w-8 text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">No notifications</p>
-              <p className="text-xs text-muted-foreground mt-1">You're all caught up!</p>
-            </div>
           ) : (
-            <div className="divide-y">
-              {notifications.map((notification) => (
-                <NotificationItem
-                  key={notification.id}
-                  notification={notification}
-                  onMarkAsRead={markAsRead}
-                  isLoading={isLoading}
-                />
-              ))}
+            <div>
+              {/* Invitation Notifications */}
+              <InvitationNotifications 
+                onInvitationUpdate={handleInvitationUpdate}
+                className="p-2"
+              />
+              
+              {/* Regular Notifications */}
+              {invitationCount > 0 && notifications.length > 0 && (
+                <div className="px-4">
+                  <Separator className="my-2" />
+                </div>
+              )}
+              
+              {notifications.length === 0 && invitationCount === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Bell className="h-8 w-8 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">No notifications</p>
+                  <p className="text-xs text-muted-foreground mt-1">You're all caught up!</p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {notifications.map((notification) => (
+                    <NotificationItem
+                      key={notification.id}
+                      notification={notification}
+                      onMarkAsRead={markAsRead}
+                      isLoading={isLoading}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </ScrollArea>
 
         {/* Footer */}
-        {notifications.length > 0 && (
+        {(notifications.length > 0 || invitationCount > 0) && (
           <div className="p-3 border-t">
             <Link href="/notifications" className="block">
               <Button variant="ghost" className="w-full text-xs h-8">

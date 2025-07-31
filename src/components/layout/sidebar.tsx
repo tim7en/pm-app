@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -53,6 +53,7 @@ const workspaceNavigation = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const { user, currentWorkspace, refreshWorkspaces } = useAuth()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [workspaceProjects, setWorkspaceProjects] = useState<any[]>([])
@@ -65,13 +66,26 @@ export function Sidebar() {
   }, [currentWorkspace])
 
   const fetchWorkspaceProjects = async () => {
-    if (!currentWorkspace) return
+    if (!currentWorkspace || !user) return
     
     try {
       const response = await fetch(`/api/projects?workspaceId=${currentWorkspace.id}`)
       if (response.ok) {
         const projects = await response.json()
-        setWorkspaceProjects(projects.slice(0, 5)) // Show first 5 projects
+        // Separate owned vs participated projects
+        const ownedProjects = projects.filter((p: any) => p.ownerId === user.id || p.owner?.id === user.id)
+        const participatedProjects = projects.filter((p: any) => 
+          (p.ownerId !== user.id && p.owner?.id !== user.id) && 
+          (p.members?.some((m: any) => m.userId === user.id) || p.workspaceId === currentWorkspace.id)
+        )
+        
+        // Combine with owned projects first, limit total to 12 for scrolling
+        const combinedProjects = [
+          ...ownedProjects.slice(0, 8),
+          ...participatedProjects.slice(0, 4)
+        ]
+        
+        setWorkspaceProjects(combinedProjects)
       }
     } catch (error) {
       console.error('Failed to fetch workspace projects:', error)
@@ -166,27 +180,121 @@ export function Sidebar() {
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Projects
               </h3>
-              <Button variant="ghost" size="icon" className="h-6 w-6">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-6 w-6 hover:bg-accent/50 transition-colors"
+                onClick={() => router.push('/projects')}
+                title="View all projects"
+              >
                 <Plus className="h-3 w-3" />
               </Button>
             </div>
-            <div className="space-y-1">
+            <div className="max-h-64 overflow-y-auto scrollbar-thin space-y-1 pr-1">
               {workspaceProjects.length > 0 ? (
-                workspaceProjects.map((project) => (
-                  <Link
-                    key={project.id}
-                    href={`/projects/${project.id}`}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-                  >
-                    <div 
-                      className="w-3 h-3 rounded-full flex-shrink-0 bg-blue-500" 
-                    />
-                    <span className="flex-1 truncate">{project.name}</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {project._count?.tasks || 0}
-                    </Badge>
-                  </Link>
-                ))
+                (() => {
+                  const ownedProjects = workspaceProjects.filter((p: any) => 
+                    p.ownerId === user?.id || p.owner?.id === user?.id
+                  )
+                  const participatedProjects = workspaceProjects.filter((p: any) => 
+                    (p.ownerId !== user?.id && p.owner?.id !== user?.id)
+                  )
+                  
+                  return (
+                    <>
+                      {/* Owned Projects */}
+                      {ownedProjects.length > 0 && (
+                        <>
+                          <div className="flex items-center gap-2 px-2 py-1">
+                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                            <span className="text-xs font-medium text-muted-foreground">My Projects</span>
+                          </div>
+                          {ownedProjects.map((project: any) => (
+                            <div key={project.id} className="group relative">
+                              <Link
+                                href={`/tasks?project=${project.id}`}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 hover:bg-accent/50 hover:scale-[1.02] cursor-pointer"
+                                title={`View tasks for ${project.name} (Owner)`}  
+                              >
+                                <div 
+                                  className="w-3 h-3 rounded-full flex-shrink-0 transition-all duration-200 group-hover:w-4 group-hover:h-4 group-hover:shadow-lg" 
+                                  style={{ 
+                                    backgroundColor: project.color || '#10b981',
+                                    boxShadow: `0 0 8px ${project.color || '#10b981'}40`
+                                  }}
+                                />
+                                <span 
+                                  className="flex-1 truncate font-medium transition-colors duration-200"
+                                  style={{ 
+                                    color: `${project.color || '#10b981'}CC`
+                                  }}
+                                >
+                                  {project.name}
+                                </span>
+                                <Badge 
+                                  variant="secondary" 
+                                  className="text-xs transition-all duration-200 group-hover:scale-110"
+                                  style={{
+                                    backgroundColor: `${project.color || '#10b981'}20`,
+                                    color: project.color || '#10b981'
+                                  }}
+                                >
+                                  {project._count?.tasks || 0}
+                                </Badge>
+                              </Link>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                      
+                      {/* Participated Projects */}
+                      {participatedProjects.length > 0 && (
+                        <>
+                          {ownedProjects.length > 0 && <div className="my-2 border-t"></div>}
+                          <div className="flex items-center gap-2 px-2 py-1">
+                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                            <span className="text-xs font-medium text-muted-foreground">Team Projects</span>
+                          </div>
+                          {participatedProjects.map((project: any) => (
+                            <div key={project.id} className="group relative">
+                              <Link
+                                href={`/tasks?project=${project.id}`}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 hover:bg-accent/50 hover:scale-[1.02] cursor-pointer opacity-90 hover:opacity-100"
+                                title={`View tasks for ${project.name} (Member)`}  
+                              >
+                                <div 
+                                  className="w-3 h-3 rounded-full flex-shrink-0 transition-all duration-200 group-hover:w-4 group-hover:h-4 group-hover:shadow-lg border border-white/20" 
+                                  style={{ 
+                                    backgroundColor: project.color || '#3b82f6',
+                                    boxShadow: `0 0 6px ${project.color || '#3b82f6'}30`
+                                  }}
+                                />
+                                <span 
+                                  className="flex-1 truncate font-normal transition-colors duration-200"
+                                  style={{ 
+                                    color: `${project.color || '#3b82f6'}B0`
+                                  }}
+                                >
+                                  {project.name}
+                                </span>
+                                <Badge 
+                                  variant="outline" 
+                                  className="text-xs transition-all duration-200 group-hover:scale-110 border-opacity-50"
+                                  style={{
+                                    borderColor: `${project.color || '#3b82f6'}60`,
+                                    color: `${project.color || '#3b82f6'}90`
+                                  }}
+                                >
+                                  {project._count?.tasks || 0}
+                                </Badge>
+                              </Link>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </>
+                  )
+                })()
               ) : (
                 <div className="px-3 py-2 text-xs text-muted-foreground">
                   No projects yet

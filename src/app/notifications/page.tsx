@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
+import { InvitationNotifications } from "@/components/notifications/invitation-notifications"
 import { 
   Bell, 
   Check, 
@@ -388,6 +389,9 @@ export default function NotificationsPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Invitations Section */}
+            <InvitationNotifications className="mb-6" />
 
             {/* Notifications List */}
             <div className="space-y-4">
