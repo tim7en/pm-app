@@ -36,15 +36,59 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check if account is locked
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      const remainingTime = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 1000 / 60)
+      return NextResponse.json(
+        { error: `Account is locked. Try again in ${remainingTime} minutes.` },
+        { status: 423 }
+      )
+    }
+
     // Compare hashed passwords
     const isValidPassword = await bcrypt.compare(password, user.password)
 
     if (!isValidPassword) {
+      // Increment failed login attempts
+      const failedAttempts = (user.failedLoginAttempts || 0) + 1
+      const maxAttempts = 5
+      
+      let lockUntil: Date | null = null
+      if (failedAttempts >= maxAttempts) {
+        // Lock account for 30 minutes
+        lockUntil = new Date(Date.now() + 30 * 60 * 1000)
+      }
+
+      await db.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: failedAttempts,
+          lockedUntil: lockUntil
+        }
+      })
+
+      if (lockUntil) {
+        return NextResponse.json(
+          { error: 'Too many failed attempts. Account locked for 30 minutes.' },
+          { status: 423 }
+        )
+      }
+
       return NextResponse.json(
-        { error: 'Invalid email or password' },
+        { error: `Invalid email or password. ${maxAttempts - failedAttempts} attempts remaining.` },
         { status: 401 }
       )
     }
+
+    // Reset failed attempts on successful login
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        lastLoginAt: new Date()
+      }
+    })
 
     // Create JWT token
     const token = createToken(user.id)

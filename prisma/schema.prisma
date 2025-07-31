@@ -20,6 +20,21 @@ model User {
   password  String?
   avatar    String?
   role      Role     @default(MEMBER)
+  
+  // OAuth fields
+  googleId          String?
+  oauthProvider     String?
+  emailVerified     Boolean  @default(false)
+  
+  // Password reset fields
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  
+  // Security fields
+  lastLoginAt       DateTime?
+  failedLoginAttempts Int     @default(0)
+  lockedUntil       DateTime?
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

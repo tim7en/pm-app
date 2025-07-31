@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { createToken } from '@/lib/auth'
+import { emailService } from '@/lib/email'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
@@ -55,6 +56,9 @@ export async function POST(request: NextRequest) {
         role: 'OWNER'
       }
     })
+
+    // Send welcome email
+    await emailService.sendWelcomeEmail(user.email, user.name || 'User')
 
     // Create JWT token
     const token = createToken(user.id)
