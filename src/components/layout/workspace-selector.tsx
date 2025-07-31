@@ -137,6 +137,7 @@ export function WorkspaceSelector() {
     )
   }
 
+  // If workspaces exist but no current workspace is set, show loading
   if (!currentWorkspace) {
     return (
       <div className="p-3 border-b">

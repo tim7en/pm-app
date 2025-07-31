@@ -327,6 +327,14 @@ export default function TeamPage() {
           title: "Success",
           description: "You have left the workspace successfully",
         })
+        
+        // Refresh workspaces to remove the left workspace from the list
+        try {
+          await refreshWorkspaces()
+        } catch (error) {
+          console.error('Failed to refresh workspaces after leaving:', error)
+        }
+        
         // Redirect to another workspace or dashboard
         window.location.href = '/'
       } else {

@@ -212,12 +212,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         const data = await response.json()
         console.log('Workspaces refreshed:', data.length, 'workspaces found')
+        
+        // Update workspaces first
         setWorkspaces(data)
         
-        // If current workspace is not in the new list, reset it
-        if (currentWorkspaceId && !data.some((ws: Workspace) => ws.id === currentWorkspaceId)) {
-          console.log('Current workspace no longer available, clearing selection')
+        // Handle current workspace selection
+        if (data.length === 0) {
+          // No workspaces available
+          console.log('No workspaces available, clearing selection')
           setCurrentWorkspaceId(null)
+        } else if (!currentWorkspaceId || !data.some((ws: Workspace) => ws.id === currentWorkspaceId)) {
+          // Current workspace is not available or not set, select the first one
+          console.log('Current workspace no longer available or not set, selecting first workspace:', data[0].name)
+          setCurrentWorkspaceId(data[0].id)
         }
         
         return data

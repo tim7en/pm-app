@@ -49,7 +49,7 @@ export function InvitationNotifications({
   const [invitations, setInvitations] = useState<WorkspaceInvitation[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
-  const { user } = useAuth()
+  const { user, refreshWorkspaces } = useAuth()
   const { toast } = useToast()
 
   const fetchInvitations = async () => {
@@ -91,6 +91,13 @@ export function InvitationNotifications({
         // Remove the accepted invitation from the list
         setInvitations(prev => prev.filter(inv => inv.id !== invitationId))
         onInvitationUpdate?.()
+        
+        // Refresh workspaces to show the new workspace immediately
+        try {
+          await refreshWorkspaces()
+        } catch (error) {
+          console.error('Failed to refresh workspaces after accepting invitation:', error)
+        }
       } else {
         const error = await response.json()
         toast({

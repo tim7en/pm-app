@@ -174,6 +174,14 @@ export default function WorkspaceSettingsPage() {
           title: "Success",
           description: "Workspace deleted successfully",
         })
+        
+        // Refresh workspaces to remove the deleted workspace from the list
+        try {
+          await refreshWorkspaces()
+        } catch (error) {
+          console.error('Failed to refresh workspaces after deletion:', error)
+        }
+        
         router.push("/workspaces")
       } else {
         const error = await response.json()
