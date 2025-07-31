@@ -123,7 +123,11 @@ export function DashboardContainer() {
         },
         timestamp: new Date()
       })
-      await fetchTasks()
+      // Refresh both tasks and projects since project cards show task completion progress
+      await Promise.all([
+        fetchTasks(),
+        fetchProjects() // This will update the task counts on project cards
+      ])
     }
   }
 
@@ -131,7 +135,11 @@ export function DashboardContainer() {
     if (!editingTask) return
     const success = await handleUpdateTask(editingTask.id, taskData)
     if (success) {
-      await fetchTasks()
+      // Refresh both tasks and projects since project cards show task completion progress
+      await Promise.all([
+        fetchTasks(),
+        fetchProjects() // This will update the task completion counts on project cards
+      ])
       setEditingTask(null)
     }
   }
@@ -147,7 +155,11 @@ export function DashboardContainer() {
   const onDeleteTask = async (taskId: string) => {
     const success = await handleDeleteTask(taskId)
     if (success) {
-      await fetchTasks()
+      // Refresh both tasks and projects since project cards show task completion progress
+      await Promise.all([
+        fetchTasks(),
+        fetchProjects() // This will update the task counts on project cards
+      ])
     }
     return success
   }
@@ -177,7 +189,11 @@ export function DashboardContainer() {
           timestamp: new Date()
         })
       }
-      await fetchTasks()
+      // Refresh both tasks and projects since project cards show task completion progress
+      await Promise.all([
+        fetchTasks(),
+        fetchProjects() // This will update the task completion counts on project cards
+      ])
     }
     return success
   }
@@ -185,7 +201,11 @@ export function DashboardContainer() {
   const onTaskUpdate = async (taskId: string, updates: any) => {
     const success = await handleUpdateTask(taskId, updates)
     if (success) {
-      await fetchTasks()
+      // Refresh both tasks and projects since project cards show task completion progress
+      await Promise.all([
+        fetchTasks(),
+        fetchProjects() // This will update the task completion counts on project cards
+      ])
     }
     return success
   }
@@ -337,6 +357,12 @@ export function DashboardContainer() {
           projects={projects}
           users={users}
           onImportData={onImportData}
+          onProjectCreated={async () => {
+            console.log('Header: Project created, refreshing data...')
+            await fetchProjects()
+            await fetchTasks() // Also refresh tasks in case task counts affect progress
+            await refreshData() // Refresh all data to ensure consistency
+          }}
         />
         
         <main id="dashboard-content" className="flex-1 overflow-y-auto p-6">
