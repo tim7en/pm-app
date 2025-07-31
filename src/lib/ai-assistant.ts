@@ -1,11 +1,11 @@
 import OpenAI from 'openai'
 
-if (!process.env.OPENAI_API_KEY_2) {
-  console.warn('OPENAI_API_KEY_2 is not set. AI features will be limited.')
+if (!process.env.OPENAI_API_KEY_2 && !process.env.OPENAI_API_KEY) {
+  console.warn('Neither OPENAI_API_KEY_2 nor OPENAI_API_KEY is set. AI features will be limited.')
 }
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY_2 || 'dummy-key',
+  apiKey: process.env.OPENAI_API_KEY_2 || process.env.OPENAI_API_KEY || 'dummy-key',
 })
 
 export interface TaskGenerationRequest {
@@ -212,7 +212,9 @@ Keep it concise and positive (2-3 sentences).
   ): Promise<WorkspaceHealthReport> {
     try {
       // Check if OpenAI API key is available
-      if (!process.env.OPENAI_API_KEY_2 || process.env.OPENAI_API_KEY_2 === 'dummy-key' || process.env.OPENAI_API_KEY_2 === 'your-openai-api-key-here') {
+      if ((!process.env.OPENAI_API_KEY_2 && !process.env.OPENAI_API_KEY) || 
+          (process.env.OPENAI_API_KEY_2 === 'dummy-key' || process.env.OPENAI_API_KEY_2 === 'your-openai-api-key-here') &&
+          (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'dummy-key' || process.env.OPENAI_API_KEY === 'your-openai-api-key-here')) {
         console.warn('OpenAI API key not configured, using fallback health report')
         return this.getFallbackHealthReport(users)
       }

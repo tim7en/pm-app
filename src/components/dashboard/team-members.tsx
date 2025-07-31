@@ -43,9 +43,10 @@ interface TeamMember {
 interface TeamMembersProps {
   workspaceId?: string
   maxHeight?: string
+  onStartChat?: (memberId: string) => void
 }
 
-export function TeamMembers({ workspaceId, maxHeight = "400px" }: TeamMembersProps) {
+export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: TeamMembersProps) {
   const [members, setMembers] = useState<TeamMember[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
@@ -243,7 +244,13 @@ export function TeamMembers({ workspaceId, maxHeight = "400px" }: TeamMembersPro
 
                   {/* Action buttons - show on hover */}
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => onStartChat?.(member.id)}
+                      title="Start chat"
+                    >
                       <MessageSquare className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -256,6 +263,10 @@ export function TeamMembers({ workspaceId, maxHeight = "400px" }: TeamMembersPro
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => onStartChat?.(member.id)}>
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Start Chat
+                        </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Video className="h-4 w-4 mr-2" />
                           Start Video Call

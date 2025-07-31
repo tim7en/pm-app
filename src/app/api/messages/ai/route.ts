@@ -3,7 +3,7 @@ import { getAuthSession } from '@/lib/auth'
 import OpenAI from 'openai'
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY_2 || process.env.OPENAI_API_KEY || 'dummy-key',
 })
 
 export async function POST(request: NextRequest) {

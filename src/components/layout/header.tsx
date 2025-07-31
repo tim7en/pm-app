@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ProjectDialog } from "@/components/projects/project-dialog"
 import { DownloadMenu } from "@/components/layout/download-menu"
+import { NotificationsDropdown } from "@/components/layout/notifications-dropdown"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
 import { 
@@ -193,12 +194,7 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
           />
 
           {/* Notifications */}
-          <Button variant="ghost" size="sm" className="relative">
-            <Bell className="h-4 w-4" />
-            <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs">
-              3
-            </Badge>
-          </Button>
+          <NotificationsDropdown />
 
           {/* User Menu */}
           <DropdownMenu>

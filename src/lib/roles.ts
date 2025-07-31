@@ -292,14 +292,14 @@ export async function canUserPerformTaskAction(
     return false
   }
 
-  // If user is assigned to the task, they can edit it (but maybe not delete it)
-  if (task.assigneeId === userId) {
-    return action === 'canEditTask'
-  }
-
-  // If user is the creator of the task, they can edit and delete it
+  // If user is the creator of the task, they can edit and delete it (highest priority)
   if (task.creatorId === userId) {
     return true
+  }
+
+  // If user is assigned to the task, they can edit it (but not delete it unless they created it)
+  if (task.assigneeId === userId) {
+    return action === 'canEditTask'
   }
 
   // Otherwise, use project-level permissions

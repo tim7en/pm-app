@@ -4,9 +4,12 @@ import { Button } from "@/components/ui/button"
 import { TaskCard } from "@/components/tasks/task-card"
 import { ProjectCard } from "@/components/projects/project-card"
 import { ActivityFeed } from "./activity-feed"
+import { RecentTasksList } from "@/components/tasks/recent-tasks-list"
+import { ExpandableChatWindow } from "./expandable-chat-window"
+import { TeamChatDialog } from "@/components/messages/team-chat-dialog"
 // import { AIWorkspaceMonitor } from "./ai-workspace-monitor"
 import { TeamMembers } from "./team-members"
-import { Plus, CheckCircle, Clock, AlertTriangle, Users, FolderOpen, Calendar } from "lucide-react"
+import { Plus, CheckCircle, Clock, AlertTriangle, Users, FolderOpen, Calendar, MessageSquare } from "lucide-react"
 import { ActivityItem } from "@/hooks/use-dashboard-data"
 import { useState, useEffect } from "react"
 
@@ -49,6 +52,8 @@ export function DashboardOverview({
   currentUserId,
   workspaceId
 }: DashboardOverviewProps) {
+  const [chatWindowOpen, setChatWindowOpen] = useState(false)
+  const [teamMembers, setTeamMembers] = useState<any[]>([])
   
   // Calculate quick stats
   const completedTasks = tasks.filter(task => task.status === 'DONE').length
@@ -66,12 +71,50 @@ export function DashboardOverview({
     const createdTasks = tasks.filter(task => task.creatorId === currentUserId && task.assigneeId !== currentUserId)
     const otherTasks = tasks.filter(task => task.assigneeId !== currentUserId && task.creatorId !== currentUserId)
     
-    // Combine and limit to 6 for better display
-    const recentTasks = [...assignedTasks, ...createdTasks, ...otherTasks].slice(0, 6)
+    // Combine and limit to 10 for better display in scrollable list
+    const recentTasks = [...assignedTasks, ...createdTasks, ...otherTasks].slice(0, 10)
     return recentTasks
   }
+
+  // Fetch team members for chat functionality
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      if (!workspaceId) return
+      
+      try {
+        const response = await fetch(`/api/workspaces/${workspaceId}/members`)
+        if (response.ok) {
+          const data = await response.json()
+          
+          // Transform the data to match our interface
+          const transformedMembers = data.map((member: any) => ({
+            id: member.user.id,
+            name: member.user.name,
+            email: member.user.email,
+            avatar: member.user.avatar,
+            role: member.role,
+            isOnline: Math.random() > 0.3, // Simulate online status - 70% chance online
+            lastSeen: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000), // Random last seen within 24h
+            department: ['Engineering', 'Design', 'Product', 'Marketing', 'Sales'][Math.floor(Math.random() * 5)],
+            title: ['Developer', 'Designer', 'Product Manager', 'Marketing Specialist', 'Sales Rep'][Math.floor(Math.random() * 5)]
+          }))
+          
+          setTeamMembers(transformedMembers)
+        }
+      } catch (error) {
+        console.error('Error fetching team members:', error)
+      }
+    }
+
+    fetchTeamMembers()
+  }, [workspaceId])
   
   const recentTasks = getUserRecentTasks()
+
+  const handleStartChat = (memberId: string) => {
+    setChatWindowOpen(true)
+    // The chat window will handle member selection
+  }
 
   return (
     <div className="space-y-6">
@@ -138,47 +181,16 @@ export function DashboardOverview({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Tasks and Projects */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Recent Tasks */}
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">My Recent Tasks</CardTitle>
-                  <CardDescription>
-                    Your assigned and created tasks
-                  </CardDescription>
-                </div>
-                <Button variant="outline" size="sm" asChild>
-                  <a href="/tasks" className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    View All
-                  </a>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {recentTasks.length > 0 ? (
-                <div className="space-y-3">
-                  {recentTasks.map((task) => (
-                    <TaskCard 
-                      key={task.id} 
-                      task={task} 
-                      onStatusChange={onTaskStatusChange}
-                      onEdit={onTaskEdit}
-                      onDelete={onTaskDelete}
-                      currentUserId={currentUserId}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No tasks yet</p>
-                  <p className="text-sm text-muted-foreground">Create your first task to get started!</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Recent Tasks with Dynamic Fading */}
+          <RecentTasksList 
+            tasks={recentTasks}
+            onTaskStatusChange={onTaskStatusChange}
+            onTaskEdit={onTaskEdit}
+            onTaskDelete={onTaskDelete}
+            currentUserId={currentUserId}
+            maxHeight="450px"
+            showFilter={true}
+          />
 
           {/* Active Projects */}
           <Card>
@@ -245,7 +257,46 @@ export function DashboardOverview({
           <TeamMembers 
             workspaceId={workspaceId}
             maxHeight="400px"
+            onStartChat={handleStartChat}
           />
+
+          {/* Team Communication */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Team Communication
+              </CardTitle>
+              <CardDescription>
+                Chat with your team members in real-time. Messages are saved and accessible even when team members are offline.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Team members online:</span>
+                  <span className="font-medium">
+                    {teamMembers.filter(m => m.isOnline).length} of {teamMembers.length}
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Button 
+                    onClick={() => setChatWindowOpen(true)}
+                    className="flex-1"
+                    size="lg"
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Open Team Chat
+                  </Button>
+                </div>
+                
+                <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                  💡 Messages persist across sessions - your team can read messages even if they were offline when you sent them.
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           
           {/* Commented out AI Workspace Monitor for now */}
           {/* 
@@ -255,6 +306,14 @@ export function DashboardOverview({
           */}
         </div>
       </div>
+
+      {/* Expandable Chat Window */}
+      {/* Team Chat Dialog */}
+      <TeamChatDialog
+        isOpen={chatWindowOpen}
+        onOpenChange={setChatWindowOpen}
+        workspaceId={workspaceId}
+      />
     </div>
   )
 }

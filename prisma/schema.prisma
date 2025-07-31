@@ -24,17 +24,19 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  ownedProjects    Project[]             @relation("ProjectOwner")
-  projectMembers   ProjectMember[]
-  workspaceMembers WorkspaceMember[]
-  assignedTasks    Task[]                @relation("TaskAssignee")
-  createdTasks     Task[]                @relation("TaskCreator")
-  verifiedTasks    Task[]                @relation("TaskVerifier")
-  comments         Comment[]
-  notifications    Notification[]
-  integrations     Integration[]
-  sentInvitations  WorkspaceInvitation[]
-  uploadedFiles    TaskAttachment[]
+  ownedProjects         Project[]                     @relation("ProjectOwner")
+  projectMembers        ProjectMember[]
+  workspaceMembers      WorkspaceMember[]
+  assignedTasks         Task[]                        @relation("TaskAssignee")
+  createdTasks          Task[]                        @relation("TaskCreator")
+  verifiedTasks         Task[]                        @relation("TaskVerifier")
+  comments              Comment[]
+  notifications         Notification[]
+  integrations          Integration[]
+  sentInvitations       WorkspaceInvitation[]
+  uploadedFiles         TaskAttachment[]
+  conversationParticipant ConversationParticipant[]
+  sentMessages          Message[]
 
   @@map("users")
 }
@@ -313,6 +315,52 @@ model Integration {
   @@map("integrations")
 }
 
+model Conversation {
+  id        String             @id @default(cuid())
+  name      String?            // For group conversations
+  isGroup   Boolean            @default(false)
+  type      ConversationType   @default(INTERNAL)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  // Relations
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String   @id @default(cuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime @default(now())
+  lastReadAt     DateTime @default(now())
+
+  // Relations
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  content        String
+  conversationId String
+  senderId       String
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
 // Enums
 enum Role {
   OWNER
@@ -388,4 +436,9 @@ enum InvitationStatus {
 enum IntegrationType {
   TELEGRAM
   WHATSAPP
+}
+
+enum ConversationType {
+  INTERNAL
+  EXTERNAL
 }

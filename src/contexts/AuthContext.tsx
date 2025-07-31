@@ -70,6 +70,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth()
   }, [])
 
+  // Persist currentWorkspaceId to localStorage
+  useEffect(() => {
+    if (currentWorkspaceId) {
+      localStorage.setItem('currentWorkspaceId', currentWorkspaceId)
+    }
+  }, [currentWorkspaceId])
+
   const checkAuth = async () => {
     try {
       const token = localStorage.getItem('auth-token')
@@ -87,14 +94,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = await response.json()
         setUser(data.user)
         setWorkspaces(data.workspaces)
-        setCurrentWorkspaceId(data.currentWorkspaceId || data.workspaces[0]?.id || null)
+        
+        // Try to restore the previously selected workspace from localStorage
+        const savedWorkspaceId = localStorage.getItem('currentWorkspaceId')
+        if (savedWorkspaceId && data.workspaces.some((ws: any) => ws.id === savedWorkspaceId)) {
+          setCurrentWorkspaceId(savedWorkspaceId)
+        } else {
+          setCurrentWorkspaceId(data.currentWorkspaceId || data.workspaces[0]?.id || null)
+        }
       } else {
         // Token is invalid, remove it
         localStorage.removeItem('auth-token')
+        localStorage.removeItem('currentWorkspaceId')
       }
     } catch (error) {
       console.error('Auth check failed:', error)
       localStorage.removeItem('auth-token')
+      localStorage.removeItem('currentWorkspaceId')
     } finally {
       setIsLoading(false)
     }
@@ -119,7 +135,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('auth-token', data.token)
     setUser(data.user)
     setWorkspaces(data.workspaces)
-    setCurrentWorkspaceId(data.workspaces[0]?.id || null)
+    
+    // Restore saved workspace or use first available
+    const savedWorkspaceId = localStorage.getItem('currentWorkspaceId')
+    if (savedWorkspaceId && data.workspaces.some((ws: any) => ws.id === savedWorkspaceId)) {
+      setCurrentWorkspaceId(savedWorkspaceId)
+    } else {
+      setCurrentWorkspaceId(data.workspaces[0]?.id || null)
+    }
   }
 
   const register = async (name: string, email: string, password: string) => {
@@ -141,6 +164,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('auth-token', data.token)
     setUser(data.user)
     setWorkspaces(data.workspaces)
+    
+    // For new registration, use first workspace
     setCurrentWorkspaceId(data.workspaces[0]?.id || null)
   }
 
@@ -158,6 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Clear localStorage token
     localStorage.removeItem('auth-token')
+    localStorage.removeItem('currentWorkspaceId')
     
     // Clear state
     setUser(null)

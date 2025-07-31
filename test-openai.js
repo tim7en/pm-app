@@ -3,10 +3,12 @@ const OpenAI = require('openai');
 
 async function testOpenAI() {
   try {
-    console.log('API Key length:', process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.length : 'NOT SET');
+    const apiKey = process.env.OPENAI_API_KEY_2 || process.env.OPENAI_API_KEY;
+    console.log('API Key length:', apiKey ? apiKey.length : 'NOT SET');
+    console.log('Using API Key:', process.env.OPENAI_API_KEY_2 ? 'OPENAI_API_KEY_2' : 'OPENAI_API_KEY (fallback)');
     
     const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
+      apiKey: apiKey
     });
     
     const completion = await openai.chat.completions.create({
