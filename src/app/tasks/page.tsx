@@ -491,7 +491,11 @@ export default function TasksPage() {
                 </TabsList>
                 
                 <div className="text-sm text-muted-foreground">
-                  Showing {filteredTasks.length} of {tasks.length} tasks
+                  {t("tasks.showingTasks", { 
+                    start: filteredTasks.length, 
+                    end: filteredTasks.length, 
+                    total: tasks.length 
+                  })}
                 </div>
               </div>
               

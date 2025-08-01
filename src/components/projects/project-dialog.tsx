@@ -138,8 +138,8 @@ export function ProjectDialog({
           </DialogTitle>
           <DialogDescription>
             {project
-              ? "Update the project details below." 
-              : "Fill in the details to create a new project."}
+              ? t("projects.updateProjectDetailsBelow") 
+              : t("projects.fillDetailsToCreateProject")}
           </DialogDescription>
         </DialogHeader>
 

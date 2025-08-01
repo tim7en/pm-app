@@ -182,27 +182,27 @@ export function TaskList({
           
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder={t("filters.status")} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("filters.allStatuses")}</SelectItem>
-              <SelectItem value={TaskStatus.TODO}>To Do</SelectItem>
-              <SelectItem value={TaskStatus.IN_PROGRESS}>In Progress</SelectItem>
-              <SelectItem value={TaskStatus.REVIEW}>Review</SelectItem>
-              <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
+              <SelectItem value={TaskStatus.TODO}>{t("tasks.todo")}</SelectItem>
+              <SelectItem value={TaskStatus.IN_PROGRESS}>{t("tasks.inProgress")}</SelectItem>
+              <SelectItem value={TaskStatus.REVIEW}>{t("tasks.review")}</SelectItem>
+              <SelectItem value={TaskStatus.DONE}>{t("tasks.done")}</SelectItem>
             </SelectContent>
           </Select>
           
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
             <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Priority" />
+              <SelectValue placeholder={t("filters.priority")} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("filters.allPriorities")}</SelectItem>
-              <SelectItem value={Priority.LOW}>Low</SelectItem>
-              <SelectItem value={Priority.MEDIUM}>Medium</SelectItem>
-              <SelectItem value={Priority.HIGH}>High</SelectItem>
-              <SelectItem value={Priority.URGENT}>Urgent</SelectItem>
+              <SelectItem value={Priority.LOW}>{t("tasks.low")}</SelectItem>
+              <SelectItem value={Priority.MEDIUM}>{t("tasks.medium")}</SelectItem>
+              <SelectItem value={Priority.HIGH}>{t("tasks.high")}</SelectItem>
+              <SelectItem value={Priority.URGENT}>{t("tasks.urgent")}</SelectItem>
             </SelectContent>
           </Select>
           
@@ -213,17 +213,17 @@ export function TaskList({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="createdAt">{t("tasks.createdAt")}</SelectItem>
-              <SelectItem value="title">Title</SelectItem>
-              <SelectItem value="dueDate">Due Date</SelectItem>
-              <SelectItem value="priority">Priority</SelectItem>
-              <SelectItem value="status">Status</SelectItem>
+              <SelectItem value="title">{t("tasks.title")}</SelectItem>
+              <SelectItem value="dueDate">{t("tasks.dueDate")}</SelectItem>
+              <SelectItem value="priority">{t("tasks.priority")}</SelectItem>
+              <SelectItem value="status">{t("tasks.status")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         
         <Button onClick={onCreateTask}>
           <Plus className="h-4 w-4 mr-2" />
-          New Task
+          {t("tasks.newTask")}
         </Button>
       </div>
 
@@ -231,10 +231,10 @@ export function TaskList({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Tasks ({sortedTasks.length})</span>
+            <span>{t("tasks.tasks")} ({sortedTasks.length})</span>
             <Button variant="outline" size="sm">
               <Filter className="h-4 w-4 mr-2" />
-              More Filters
+              {t("tasks.moreFilters")}
             </Button>
           </CardTitle>
         </CardHeader>
@@ -288,13 +288,13 @@ export function TaskList({
                       {currentUserId && task.assigneeId === currentUserId && (
                         <Badge variant="outline" className="text-xs text-blue-600 border-blue-200">
                           <UserCheck className="h-3 w-3 mr-1" />
-                          Assigned to you
+                          {t("tasks.assignedToYou")}
                         </Badge>
                       )}
                       {currentUserId && task.creatorId === currentUserId && task.assigneeId !== currentUserId && (
                         <Badge variant="outline" className="text-xs text-purple-600 border-purple-200">
                           <User className="h-3 w-3 mr-1" />
-                          Created by you
+                          {t("tasks.createdByYou")}
                         </Badge>
                       )}
                     </div>
@@ -353,7 +353,7 @@ export function TaskList({
                       {/* Show creator/assignee info */}
                       {taskType === 'created' && task.assignee && (
                         <div className="flex items-center gap-1">
-                          <span className="text-xs">Assigned to:</span>
+                          <span className="text-xs">{t("tasks.assignedTo")}</span>
                           <Avatar className="h-4 w-4">
                             <AvatarImage src={task.assignee.avatar} alt={task.assignee.name} />
                             <AvatarFallback className="text-xs">
@@ -366,7 +366,7 @@ export function TaskList({
                       
                       {taskType === 'assigned' && task.creator && (
                         <div className="flex items-center gap-1">
-                          <span className="text-xs">Created by:</span>
+                          <span className="text-xs">{t("tasks.createdBy")}</span>
                           <Avatar className="h-4 w-4">
                             <AvatarImage src={task.creator.avatar} alt={task.creator.name} />
                             <AvatarFallback className="text-xs">
@@ -415,7 +415,7 @@ export function TaskList({
                       ) : (
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <User className="h-3 w-3" />
-                          <span>Unassigned</span>
+                          <span>{t("tasks.unassigned")}</span>
                         </div>
                       )
                     )}
@@ -428,17 +428,17 @@ export function TaskList({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => onTaskEdit?.(task)}>
-                          Edit Task
+                          {t("tasks.editTask")}
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={() => onTaskUpdate?.(task.id, { 
                             status: task.status === TaskStatus.DONE ? TaskStatus.TODO : TaskStatus.DONE 
                           })}
                         >
-                          {task.status === TaskStatus.DONE ? 'Mark as Incomplete' : 'Mark as Complete'}
+                          {task.status === TaskStatus.DONE ? t("tasks.markAsIncomplete") : t("tasks.markAsComplete")}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onTaskDelete?.(task.id)} className="text-red-600">
-                          Delete Task
+                          {t("tasks.deleteTask")}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -450,11 +450,11 @@ export function TaskList({
             {sortedTasks.length === 0 && (
               <div className="text-center py-8">
                 <p className="text-sm text-muted-foreground mb-3">
-                  No tasks found
+                  {t("tasks.noTasksFound")}
                 </p>
                 <Button variant="outline" size="sm" onClick={onCreateTask}>
                   <Plus className="h-3 w-3 mr-2" />
-                  Create Task
+                  {t("tasks.createTask")}
                 </Button>
               </div>
             )}

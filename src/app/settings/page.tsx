@@ -495,10 +495,8 @@ export default function SettingsPage() {
                                   </FormControl>
                                   <SelectContent>
                                     <SelectItem value="en">English</SelectItem>
-                                    <SelectItem value="es">Spanish</SelectItem>
-                                    <SelectItem value="fr">French</SelectItem>
-                                    <SelectItem value="de">German</SelectItem>
-                                    <SelectItem value="zh">Chinese</SelectItem>
+                                    <SelectItem value="ru">Русский</SelectItem>
+                                    <SelectItem value="uz">Ўзбекча</SelectItem>
                                   </SelectContent>
                                 </Select>
                                 <FormMessage />

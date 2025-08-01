@@ -14,6 +14,7 @@ import { useTranslation } from '@/hooks/use-translation'
 const languages = [
   { code: 'ru', name: 'Русский', flag: '🇷🇺' },
   { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'uz', name: 'Ўзбекча', flag: '🇺🇿' },
 ]
 
 interface LanguageSelectorProps {

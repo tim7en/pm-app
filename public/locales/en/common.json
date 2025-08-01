@@ -206,7 +206,9 @@
     "noProjectsFound": "No projects found. Try adjusting your filters or create a new project.",
     "name": "Name",
     "createdDate": "Created Date",
-    "updatedDate": "Updated Date"
+    "updatedDate": "Updated Date",
+    "fillDetailsToCreateProject": "Fill in the details to create a new project.",
+    "updateProjectDetailsBelow": "Update the project details below."
   },
   "tasks": {
     "searchTasks": "Search tasks...",
@@ -273,7 +275,18 @@
     "sortDescending": "Descending",
     "tasksNeedToComplete": "Tasks you need to complete",
     "tasksCreatedByYou": "Tasks created by you",
-    "tasksCreatedAndAssigned": "Tasks you created and assigned to others"
+    "tasksCreatedAndAssigned": "Tasks you created and assigned to others",
+    "total": "Total",
+    "showingTasks": "Showing {{start}}-{{end}} of {{total}}",
+    "assignedToYou": "Assigned to you",
+    "createdByYou": "Created by you",
+    "moreFilters": "More Filters",
+    "noTasksFound": "No tasks found",
+    "createTask": "Create Task",
+    "markAsComplete": "Mark as Complete",
+    "markAsIncomplete": "Mark as Incomplete",
+    "title": "Title",
+    "tasks": "Tasks"
   },
   "team": {
     "manageTeamMembers": "Manage team members and their roles",
@@ -496,6 +509,8 @@
     "read": "Read"
   },
   "filters": {
+    "status": "Status",
+    "priority": "Priority",
     "allStatuses": "All Statuses",
     "allPriorities": "All Priorities",
     "allAssignees": "All Assignees",
@@ -556,7 +571,6 @@
     "generalSettings": "General Settings",
     "accountSettings": "Account Settings",
     "profileSettings": "Profile Settings",
-    "notificationSettings": "Notification Settings",
     "privacySettings": "Privacy Settings",
     "securitySettings": "Security Settings",
     "appearanceSettings": "Appearance Settings",

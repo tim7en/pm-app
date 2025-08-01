@@ -206,7 +206,9 @@
     "noProjectsFound": "Проекты не найдены. Попробуйте изменить фильтры или создать новый проект.",
     "name": "Название",
     "createdDate": "Дата создания",
-    "updatedDate": "Дата обновления"
+    "updatedDate": "Дата обновления",
+    "fillDetailsToCreateProject": "Заполните данные для создания нового проекта.",
+    "updateProjectDetailsBelow": "Обновите данные проекта ниже."
   },
   "tasks": {
     "searchTasks": "Поиск задач...",
@@ -273,7 +275,18 @@
     "sortDescending": "По убыванию",
     "tasksNeedToComplete": "Задачи, которые вам нужно выполнить",
     "tasksCreatedByYou": "Задачи, созданные вами",
-    "tasksCreatedAndAssigned": "Задачи, которые вы создали и назначили другим"
+    "tasksCreatedAndAssigned": "Задачи, которые вы создали и назначили другим",
+    "total": "Всего",
+    "showingTasks": "Показано {{start}}-{{end}} из {{total}}",
+    "assignedToYou": "Назначенные вам",
+    "createdByYou": "Созданные вами",
+    "moreFilters": "Больше фильтров",
+    "noTasksFound": "Задачи не найдены",
+    "createTask": "Создать задачу",
+    "markAsComplete": "Отметить как выполненную",
+    "markAsIncomplete": "Отметить как невыполненную",
+    "title": "Название",
+    "tasks": "Задачи"
   },
   "team": {
     "manageTeamMembers": "Управление участниками команды и их ролями",
@@ -496,6 +509,8 @@
     "read": "Прочитано"
   },
   "filters": {
+    "status": "Статус",
+    "priority": "Приоритет",
     "allStatuses": "Все статусы",
     "allPriorities": "Все приоритеты",
     "allAssignees": "Все исполнители",

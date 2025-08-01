@@ -26,6 +26,7 @@ import { TaskCard } from "./task-card"
 import { SortableTaskCard } from "./sortable-task-card"
 import { DroppableColumn } from "./droppable-column"
 import { TaskStatus, Priority } from "@prisma/client"
+import { useTranslation } from "@/hooks/use-translation"
 
 interface TaskBoardProps {
   tasks: Array<{
@@ -67,14 +68,15 @@ interface TaskBoardProps {
 }
 
 const statusColumns = [
-  { id: TaskStatus.TODO, title: "To Do", color: "bg-gray-100 text-gray-800" },
-  { id: TaskStatus.IN_PROGRESS, title: "In Progress", color: "bg-blue-100 text-blue-800" },
-  { id: TaskStatus.REVIEW, title: "Review", color: "bg-yellow-100 text-yellow-800" },
-  { id: TaskStatus.DONE, title: "Done", color: "bg-green-100 text-green-800" },
+  { id: TaskStatus.TODO, title: "tasks.todo", color: "bg-gray-100 text-gray-800" },
+  { id: TaskStatus.IN_PROGRESS, title: "tasks.inProgress", color: "bg-blue-100 text-blue-800" },
+  { id: TaskStatus.REVIEW, title: "tasks.review", color: "bg-yellow-100 text-yellow-800" },
+  { id: TaskStatus.DONE, title: "tasks.done", color: "bg-green-100 text-green-800" },
 ]
 
 export function TaskBoard({ tasks, onTaskUpdate, onTaskDelete, onCreateTask, currentUserId }: TaskBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
+  const { t } = useTranslation()
   
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -146,7 +148,7 @@ export function TaskBoard({ tasks, onTaskUpdate, onTaskDelete, onCreateTask, cur
               <DroppableColumn
                 key={column.id}
                 status={column.id}
-                title={column.title}
+                title={t(column.title)}
                 color={column.color}
                 tasks={columnTasks}
                 onTaskUpdate={onTaskUpdate}
