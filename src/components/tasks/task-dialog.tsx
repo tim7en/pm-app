@@ -89,6 +89,7 @@ interface TaskDialogProps {
     tags: Array<{ name: string; color: string }>
     subtasks: Array<{ title: string; isCompleted: boolean }>
   }
+  initialStatus?: TaskStatus
   projects: Array<{ 
     id: string
     name: string
@@ -116,6 +117,7 @@ export function TaskDialog({
   open,
   onOpenChange,
   task,
+  initialStatus,
   projects,
   onSubmit,
   isSubmitting = false,
@@ -166,12 +168,12 @@ export function TaskDialog({
         assigneeId: "unassigned",
         priority: Priority.MEDIUM,
         dueDate: undefined,
-        status: TaskStatus.TODO,
+        status: initialStatus || TaskStatus.TODO,
         tags: [],
         subtasks: [],
       })
     }
-  }, [task, projects, form])
+  }, [task, projects, form, initialStatus])
 
   // Watch project changes to fetch workspace members and check ownership
   const watchedProjectId = form.watch("projectId")

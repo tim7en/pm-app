@@ -353,4 +353,39 @@ export class NotificationService {
       senderName
     })
   }
+
+  /**
+   * Create project-related notifications
+   */
+  static async createProjectNotification(
+    userId: string,
+    projectName: string,
+    projectId: string,
+    action: 'created' | 'updated' | 'deleted' | 'invited',
+    senderName?: string
+  ) {
+    const messages = {
+      created: `New project "${projectName}" has been created`,
+      updated: `Project "${projectName}" has been updated`,
+      deleted: `Project "${projectName}" has been deleted`,
+      invited: `You have been invited to project "${projectName}"`
+    }
+
+    const titles = {
+      created: 'Project Created',
+      updated: 'Project Updated', 
+      deleted: 'Project Deleted',
+      invited: 'Project Invitation'
+    }
+
+    return this.createNotification({
+      title: titles[action],
+      message: messages[action],
+      type: 'PROJECT_INVITE', // We'll map this properly
+      userId,
+      relatedId: projectId,
+      relatedUrl: `/projects?id=${projectId}`,
+      senderName
+    })
+  }
 }

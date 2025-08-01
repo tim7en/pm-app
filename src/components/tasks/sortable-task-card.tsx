@@ -56,8 +56,9 @@ export function SortableTaskCard({ task, onStatusChange, onEdit, onDelete, curre
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
+    transition: isDragging ? 'none' : transition,
+    opacity: isDragging ? 0.6 : 1,
+    zIndex: isDragging ? 1000 : 'auto',
   }
 
   return (
@@ -66,7 +67,9 @@ export function SortableTaskCard({ task, onStatusChange, onEdit, onDelete, curre
       style={style}
       {...attributes}
       {...listeners}
-      className="cursor-move"
+      className={`cursor-move touch-manipulation transition-all duration-200 ${
+        isDragging ? 'scale-105 shadow-premium rotate-2' : 'hover:scale-[1.02] hover:shadow-md'
+      }`}
     >
       <TaskCard
         task={task}

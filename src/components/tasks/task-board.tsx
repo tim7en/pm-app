@@ -79,14 +79,25 @@ export function TaskBoard({ tasks, onTaskUpdate, onTaskDelete, onCreateTask, cur
   const { t } = useTranslation()
   
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px of movement before activating drag
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   )
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string)
+    const activeId = event.active.id as string
+    setActiveId(activeId)
+    
+    // Add visual feedback
+    const activeTask = tasks.find(task => task.id === activeId)
+    if (activeTask) {
+      console.log(`Starting drag for task: ${activeTask.title}`)
+    }
   }
 
   const handleDragOver = (event: DragOverEvent) => {
@@ -106,14 +117,27 @@ export function TaskBoard({ tasks, onTaskUpdate, onTaskDelete, onCreateTask, cur
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     
-    if (over) {
+    if (over && active.id !== over.id) {
       const activeId = active.id as string
       const overId = over.id as string
+      
+      // Find the task being dragged
+      const activeTask = tasks.find(task => task.id === activeId)
+      if (!activeTask) {
+        console.warn('Active task not found:', activeId)
+        setActiveId(null)
+        return
+      }
       
       // Check if the drop target is a status column
       if (Object.values(TaskStatus).includes(overId as TaskStatus)) {
         const newStatus = overId as TaskStatus
-        onTaskUpdate?.(activeId, { status: newStatus })
+        console.log(`Moving task ${activeId} from ${activeTask.status} to ${newStatus}`)
+        
+        // Only update if status actually changed
+        if (activeTask.status !== newStatus) {
+          onTaskUpdate?.(activeId, { status: newStatus })
+        }
       }
     }
     
@@ -139,23 +163,24 @@ export function TaskBoard({ tasks, onTaskUpdate, onTaskDelete, onCreateTask, cur
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex-1 overflow-hidden">
-        <div className="flex h-full gap-4">
+      <div className="w-full h-[600px] overflow-x-auto overflow-y-hidden border rounded-lg bg-gradient-to-br from-slate-50 to-gray-100 task-board-scroll">
+        <div className="flex h-full gap-6 p-4 min-w-max">
           {statusColumns.map((column) => {
             const columnTasks = getTasksByStatus(column.id)
             
             return (
-              <DroppableColumn
-                key={column.id}
-                status={column.id}
-                title={t(column.title)}
-                color={column.color}
-                tasks={columnTasks}
-                onTaskUpdate={onTaskUpdate}
-                onTaskDelete={onTaskDelete}
-                onCreateTask={onCreateTask}
-                currentUserId={currentUserId}
-              />
+              <div key={column.id} className="task-column">
+                <DroppableColumn
+                  status={column.id}
+                  title={t(column.title)}
+                  color={column.color}
+                  tasks={columnTasks}
+                  onTaskUpdate={onTaskUpdate}
+                  onTaskDelete={onTaskDelete}
+                  onCreateTask={() => onCreateTask?.(column.id)}
+                  currentUserId={currentUserId}
+                />
+              </div>
             )
           })}
         </div>

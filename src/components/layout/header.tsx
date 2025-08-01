@@ -301,11 +301,13 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-border/50" />
-              <DropdownMenuItem className="gap-3 p-3 rounded-lg hover:bg-primary/10 transition-colors">
-                <div className="p-1.5 rounded-md bg-gradient-to-br from-primary/20 to-primary/10">
-                  <Settings className="h-4 w-4 text-primary" />
-                </div>
-                <span className="font-medium">{t("ui.settings")}</span>
+              <DropdownMenuItem asChild className="gap-3 p-3 rounded-lg hover:bg-primary/10 transition-colors">
+                <Link href="/settings">
+                  <div className="p-1.5 rounded-md bg-gradient-to-br from-primary/20 to-primary/10">
+                    <Settings className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="font-medium">{t("ui.settings")}</span>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem disabled className="gap-3 p-3 rounded-lg opacity-60">
                 <div className="p-1.5 rounded-md bg-gradient-to-br from-muted/20 to-muted/10">

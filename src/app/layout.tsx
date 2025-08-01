@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { UIScaleProvider } from "@/contexts/UIScaleContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { SocketProvider } from "@/contexts/SocketContext";
 
 const geistSans = Geist({
@@ -75,15 +76,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <AuthProvider>
-          <SocketProvider>
-            <UIScaleProvider>
-              {children}
-              <Toaster />
-              <ServiceWorkerRegistration />
-            </UIScaleProvider>
-          </SocketProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <SocketProvider>
+              <UIScaleProvider>
+                {children}
+                <Toaster />
+                <ServiceWorkerRegistration />
+              </UIScaleProvider>
+            </SocketProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

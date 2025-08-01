@@ -2,11 +2,12 @@
 
 import { createContext, useContext, useEffect, useState } from "react"
 
-type UIScale = "small" | "medium" | "large"
+type UIScale = "xs" | "small" | "medium" | "large" | "xl"
 
 interface UIScaleContextType {
   scale: UIScale
   setScale: (scale: UIScale) => void
+  scalePercentage: number
   scaleClasses: {
     text: {
       xs: string
@@ -31,6 +32,25 @@ interface UIScaleContextType {
 const UIScaleContext = createContext<UIScaleContextType | undefined>(undefined)
 
 const scaleConfigs = {
+  xs: {
+    text: {
+      xs: "text-[9px]",
+      sm: "text-[10px]",
+      base: "text-[11px]",
+      lg: "text-[12px]",
+      xl: "text-[14px]",
+      "2xl": "text-[16px]"
+    },
+    spacing: {
+      card: "p-2",
+      section: "space-y-3",
+      button: "px-1.5 py-0.5"
+    },
+    layout: {
+      sidebar: "w-56",
+      header: "h-10"
+    }
+  },
   small: {
     text: {
       xs: "text-[10px]",
@@ -87,6 +107,25 @@ const scaleConfigs = {
       sidebar: "w-72",
       header: "h-16"
     }
+  },
+  xl: {
+    text: {
+      xs: "text-base",
+      sm: "text-lg",
+      base: "text-xl",
+      lg: "text-2xl",
+      xl: "text-3xl",
+      "2xl": "text-4xl"
+    },
+    spacing: {
+      card: "p-8",
+      section: "space-y-10",
+      button: "px-6 py-4"
+    },
+    layout: {
+      sidebar: "w-80",
+      header: "h-20"
+    }
   }
 }
 
@@ -97,10 +136,24 @@ interface UIScaleProviderProps {
 export function UIScaleProvider({ children }: UIScaleProviderProps) {
   const [scale, setScale] = useState<UIScale>("medium")
 
+  // Get scale percentage
+  const getScalePercentage = (currentScale: UIScale): number => {
+    switch (currentScale) {
+      case "xs": return 75
+      case "small": return 85
+      case "medium": return 100
+      case "large": return 115
+      case "xl": return 130
+      default: return 100
+    }
+  }
+
+  const scalePercentage = getScalePercentage(scale)
+
   // Load scale from localStorage on mount
   useEffect(() => {
     const savedScale = localStorage.getItem("ui-scale") as UIScale
-    if (savedScale && ["small", "medium", "large"].includes(savedScale)) {
+    if (savedScale && ["xs", "small", "medium", "large", "xl"].includes(savedScale)) {
       setScale(savedScale)
     }
   }, [])
@@ -114,29 +167,45 @@ export function UIScaleProvider({ children }: UIScaleProviderProps) {
     
     // Set CSS variables for scaling
     switch (scale) {
+      case "xs":
+        root.style.setProperty("--ui-scale-text", "0.75")
+        root.style.setProperty("--ui-scale-spacing", "0.65")
+        root.style.setProperty("--ui-scale-component", "0.75")
+        root.style.setProperty("--ui-scale-multiplier", "0.75")
+        root.style.fontSize = "12px"
+        document.body.style.zoom = "0.75"
+        break
       case "small":
         root.style.setProperty("--ui-scale-text", "0.875")
         root.style.setProperty("--ui-scale-spacing", "0.75")
-        root.style.setProperty("--ui-scale-component", "0.9")
-        root.style.setProperty("--ui-scale-multiplier", "0.9")
-        // Apply smaller text sizes
+        root.style.setProperty("--ui-scale-component", "0.85")
+        root.style.setProperty("--ui-scale-multiplier", "0.85")
         root.style.fontSize = "14px"
+        document.body.style.zoom = "0.85"
         break
       case "large":
         root.style.setProperty("--ui-scale-text", "1.125")
         root.style.setProperty("--ui-scale-spacing", "1.25")
-        root.style.setProperty("--ui-scale-component", "1.1")
-        root.style.setProperty("--ui-scale-multiplier", "1.1")
-        // Apply larger text sizes
+        root.style.setProperty("--ui-scale-component", "1.15")
+        root.style.setProperty("--ui-scale-multiplier", "1.15")
         root.style.fontSize = "18px"
+        document.body.style.zoom = "1.15"
+        break
+      case "xl":
+        root.style.setProperty("--ui-scale-text", "1.25")
+        root.style.setProperty("--ui-scale-spacing", "1.5")
+        root.style.setProperty("--ui-scale-component", "1.3")
+        root.style.setProperty("--ui-scale-multiplier", "1.3")
+        root.style.fontSize = "20px"
+        document.body.style.zoom = "1.3"
         break
       default: // medium
         root.style.setProperty("--ui-scale-text", "1")
         root.style.setProperty("--ui-scale-spacing", "1")
         root.style.setProperty("--ui-scale-component", "1")
         root.style.setProperty("--ui-scale-multiplier", "1")
-        // Reset to default text size
         root.style.fontSize = "16px"
+        document.body.style.zoom = "1"
         break
     }
     
@@ -148,7 +217,7 @@ export function UIScaleProvider({ children }: UIScaleProviderProps) {
   const scaleClasses = scaleConfigs[scale]
 
   return (
-    <UIScaleContext.Provider value={{ scale, setScale, scaleClasses }}>
+    <UIScaleContext.Provider value={{ scale, setScale, scalePercentage, scaleClasses }}>
       {children}
     </UIScaleContext.Provider>
   )

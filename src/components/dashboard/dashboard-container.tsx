@@ -422,29 +422,29 @@ export function DashboardContainer() {
 
             {/* Main Content Tabs */}
             <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
-              <Tabs defaultValue="overview" className="space-y-8">
-                <TabsList className="grid w-full grid-cols-4 glass-card border-0 shadow-premium p-1">
+              <Tabs defaultValue="overview" className="space-y-8 premium-tabs">
+                <TabsList className="grid w-full grid-cols-4 glass-card border-0 shadow-premium p-1 h-12">
                   <TabsTrigger 
                     value="overview" 
-                    className="data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-300 font-medium rounded-lg"
+                    className="transition-all duration-300 font-medium rounded-lg h-10"
                   >
                     {t("dashboard.overview")}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="tasks"
-                    className="data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-300 font-medium rounded-lg"
+                    className="transition-all duration-300 font-medium rounded-lg h-10"
                   >
                     {t("dashboard.myTasks")}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="projects"
-                    className="data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-300 font-medium rounded-lg"
+                    className="transition-all duration-300 font-medium rounded-lg h-10"
                   >
                     {t("dashboard.projects")}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="activity"
-                    className="data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-300 font-medium rounded-lg"
+                    className="transition-all duration-300 font-medium rounded-lg h-10"
                   >
                     {t("dashboard.activity")}
                   </TabsTrigger>

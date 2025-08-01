@@ -77,16 +77,16 @@ export function DroppableColumn({
   return (
     <div
       ref={setNodeRef}
-      className="flex-1 min-w-[300px] flex flex-col"
+      className="w-full h-full flex flex-col"
     >
-      <Card className={`flex-1 flex flex-col ${isOver ? 'ring-2 ring-blue-500' : ''}`}>
-        <CardHeader className="pb-3">
+      <Card className={`h-full flex flex-col hover-lift transition-all duration-300 ${isOver ? 'ring-2 ring-primary shadow-premium' : 'shadow-md'}`}>
+        <CardHeader className="pb-3 bg-gradient-to-r from-muted/50 to-muted/30">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-sm font-medium">
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-base font-semibold">
                 {title}
               </CardTitle>
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs font-medium px-2 py-1">
                 {tasks.length}
               </Badge>
             </div>
@@ -94,15 +94,15 @@ export function DroppableColumn({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-7 w-7 hover:bg-primary/10"
                 onClick={() => onCreateTask?.(status)}
               >
-                <Plus className="h-3 w-3" />
+                <Plus className="h-3.5 w-3.5" />
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-6 w-6">
-                    <MoreHorizontal className="h-3 w-3" />
+                  <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-primary/10">
+                    <MoreHorizontal className="h-3.5 w-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -114,32 +114,37 @@ export function DroppableColumn({
           </div>
         </CardHeader>
         
-        <CardContent className="flex-1 p-3 pt-0 space-y-3 overflow-y-auto">
+        <CardContent className="flex-1 p-4 space-y-3 overflow-y-auto scrollbar-thin">
           <SortableContext
             items={tasks.map(task => task.id)}
             strategy={verticalListSortingStrategy}
           >
             {tasks.map((task) => (
-                            <SortableTaskCard
-                key={task.id}
-                task={task}
-                onStatusChange={(taskId, status) => onTaskUpdate?.(taskId, { status })}
-                onEdit={(task) => onTaskUpdate?.(task.id, task)}
-                onDelete={onTaskDelete}
-                currentUserId={currentUserId}
-              />
+              <div key={task.id} className="animate-fade-in">
+                <SortableTaskCard
+                  task={task}
+                  onStatusChange={(taskId, status) => onTaskUpdate?.(taskId, { status })}
+                  onEdit={(task) => onTaskUpdate?.(task.id, task)}
+                  onDelete={onTaskDelete}
+                  currentUserId={currentUserId}
+                />
+              </div>
             ))}
           </SortableContext>
           
           {tasks.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground mb-3">
-                No tasks in this column
+            <div className="text-center py-12">
+              <div className="p-3 rounded-full bg-muted/30 w-12 h-12 mx-auto mb-4 flex items-center justify-center">
+                <Plus className="h-6 w-6 text-muted-foreground/60" />
+              </div>
+              <p className="text-sm text-muted-foreground mb-4 font-medium">
+                No tasks yet
               </p>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onCreateTask?.(status)}
+                className="hover-lift"
               >
                 <Plus className="h-3 w-3 mr-2" />
                 Add Task

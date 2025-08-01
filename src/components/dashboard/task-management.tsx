@@ -145,78 +145,92 @@ export function TaskManagement({
       </div>
 
       {/* Task Categories */}
-      <Tabs defaultValue="assigned" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="assigned" className="flex items-center gap-2">
+      <Tabs defaultValue="assigned" className="space-y-6 premium-tabs">
+        <TabsList className="grid w-full grid-cols-2 glass-card border-0 shadow-md p-1">
+          <TabsTrigger 
+            value="assigned" 
+            className="flex items-center gap-2 transition-all duration-300 font-medium rounded-lg"
+          >
             <UserCheck className="h-4 w-4" />
             {t("tasks.assignedTo")} {t("dashboard.me")} ({assignedStats.total})
           </TabsTrigger>
-          <TabsTrigger value="created" className="flex items-center gap-2">
+          <TabsTrigger 
+            value="created" 
+            className="flex items-center gap-2 transition-all duration-300 font-medium rounded-lg"
+          >
             <User className="h-4 w-4" />
             {t("tasks.createdBy")} {t("dashboard.me")} ({createdStats.total})
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="assigned" className="space-y-4">
+        <TabsContent value="assigned" className="space-y-4 mt-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold">{t("tasks.tasksAssignedToYou")}</h3>
+              <h3 className="text-xl font-bold">{t("tasks.tasksAssignedToYou")}</h3>
               <p className="text-sm text-muted-foreground">
                 {t("tasks.tasksNeedToComplete")}
               </p>
             </div>
           </div>
           
-          {taskView === "list" ? (
-            <TaskList
-              tasks={assignedTasks}
-              onTaskUpdate={onTaskUpdate}
-              onTaskDelete={onTaskDelete}
-              onCreateTask={() => onCreateTask()}
-              onTaskReassign={onTaskReassign}
-              currentUserId={user.id}
-              taskType="assigned"
-            />
-          ) : (
-            <TaskBoard
-              tasks={assignedTasks}
-              onTaskUpdate={onTaskUpdate}
-              onTaskDelete={onTaskDelete}
-              onCreateTask={(status) => onCreateTask(status)}
-              currentUserId={user.id}
-            />
-          )}
+          <div className="w-full">
+            {taskView === "list" ? (
+              <TaskList
+                tasks={assignedTasks}
+                onTaskUpdate={onTaskUpdate}
+                onTaskDelete={onTaskDelete}
+                onCreateTask={() => onCreateTask()}
+                onTaskReassign={onTaskReassign}
+                currentUserId={user.id}
+                taskType="assigned"
+              />
+            ) : (
+              <div className="w-full overflow-hidden">
+                <TaskBoard
+                  tasks={assignedTasks}
+                  onTaskUpdate={onTaskUpdate}
+                  onTaskDelete={onTaskDelete}
+                  onCreateTask={(status) => onCreateTask(status)}
+                  currentUserId={user.id}
+                />
+              </div>
+            )}
+          </div>
         </TabsContent>
 
-        <TabsContent value="created" className="space-y-4">
+        <TabsContent value="created" className="space-y-4 mt-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold">{t("tasks.tasksCreatedByYou")}</h3>
+              <h3 className="text-xl font-bold">{t("tasks.tasksCreatedByYou")}</h3>
               <p className="text-sm text-muted-foreground">
                 {t("tasks.tasksCreatedAndAssigned")}
               </p>
             </div>
           </div>
           
-          {taskView === "list" ? (
-            <TaskList
-              tasks={createdTasks}
-              onTaskUpdate={onTaskUpdate}
-              onTaskDelete={onTaskDelete}
-              onCreateTask={() => onCreateTask()}
-              onTaskReassign={onTaskReassign}
-              currentUserId={user.id}
-              taskType="created"
-            />
-          ) : (
-            <TaskBoard
-              tasks={createdTasks}
-              onTaskUpdate={onTaskUpdate}
-              onTaskDelete={onTaskDelete}
-              onCreateTask={(status) => onCreateTask(status)}
-              currentUserId={user.id}
-            />
-          )}
+          <div className="w-full">
+            {taskView === "list" ? (
+              <TaskList
+                tasks={createdTasks}
+                onTaskUpdate={onTaskUpdate}
+                onTaskDelete={onTaskDelete}
+                onCreateTask={() => onCreateTask()}
+                onTaskReassign={onTaskReassign}
+                currentUserId={user.id}
+                taskType="created"
+              />
+            ) : (
+              <div className="w-full overflow-hidden">
+                <TaskBoard
+                  tasks={createdTasks}
+                  onTaskUpdate={onTaskUpdate}
+                  onTaskDelete={onTaskDelete}
+                  onCreateTask={(status) => onCreateTask(status)}
+                  currentUserId={user.id}
+                />
+              </div>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>

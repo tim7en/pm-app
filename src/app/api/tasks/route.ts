@@ -227,6 +227,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Create notification for task creator (self-notification for task creation confirmation)
+    try {
+      const createTaskNotification = {
+        title: 'Task Created',
+        message: `You created task "${title}"`,
+        type: NotificationType.TASK_ASSIGNED, // Reuse existing type for now
+        userId: session.user.id,
+        relatedId: task.id,
+        relatedUrl: `/tasks?id=${task.id}`,
+        senderName: session.user.name || 'You'
+      }
+      
+      await NotificationService.createNotification(createTaskNotification)
+      console.log(`Task creation notification sent to creator ${session.user.id}`)
+    } catch (error) {
+      console.error('Failed to create task creation notification:', error)
+      // Don't fail the task creation if notification fails
+    }
+
     return NextResponse.json(task, { status: 201 })
   } catch (error) {
     console.error('Error creating task:', error)

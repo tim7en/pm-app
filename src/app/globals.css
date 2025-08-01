@@ -351,4 +351,73 @@
     -webkit-line-clamp: 3;
     line-clamp: 3;
   }
+
+  /* Touch and Drag optimization for mobile */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+  
+  .cursor-move {
+    cursor: move;
+    cursor: grab;
+  }
+  
+  .cursor-move:active {
+    cursor: grabbing;
+  }
+
+  /* Scrollbar styling for task board */
+  .task-board-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+  }
+
+  .task-board-scroll::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .task-board-scroll::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+  }
+
+  .task-board-scroll::-webkit-scrollbar-thumb {
+    background: rgba(155, 155, 155, 0.5);
+    border-radius: 4px;
+  }
+
+  .task-board-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(155, 155, 155, 0.7);
+  }
+
+  /* Ensure minimum width for task board columns */
+  .task-column {
+    min-width: 320px;
+    width: 320px;
+    flex-shrink: 0;
+  }
+
+  /* Premium tabs styling - override default tab styles */
+  .premium-tabs [data-slot="tabs-trigger"] {
+    background: transparent !important;
+    color: hsl(var(--foreground)) !important;
+    border: none !important;
+  }
+  
+  .premium-tabs [data-slot="tabs-trigger"][data-state="active"] {
+    background: var(--gradient-primary) !important;
+    color: white !important;
+    border: none !important;
+    box-shadow: var(--shadow-md) !important;
+  }
+  
+  .premium-tabs [data-slot="tabs-trigger"]:not([data-state="active"]) {
+    color: hsl(var(--foreground)) !important;
+    background: transparent !important;
+  }
+  
+  .premium-tabs [data-slot="tabs-trigger"]:hover:not([data-state="active"]) {
+    background: hsl(var(--muted)) !important;
+    color: hsl(var(--foreground)) !important;
+  }
 }

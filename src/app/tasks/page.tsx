@@ -78,6 +78,7 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true)
   const [taskDialogOpen, setTaskDialogOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [initialTaskStatus, setInitialTaskStatus] = useState<TaskStatus | undefined>(undefined)
   const [reassignDialogOpen, setReassignDialogOpen] = useState(false)
   const [reassignTaskData, setReassignTaskData] = useState<{
     taskId: string
@@ -532,7 +533,10 @@ export default function TasksPage() {
                     setEditingTask(task)
                     setTaskDialogOpen(true)
                   }}
-                  onCreateTask={() => setTaskDialogOpen(true)}
+                  onCreateTask={() => {
+                    setInitialTaskStatus(undefined)
+                    setTaskDialogOpen(true)
+                  }}
                   onTaskReassign={handleTaskReassign}
                   currentUserId={user?.id}
                 />
@@ -543,7 +547,10 @@ export default function TasksPage() {
                   tasks={filteredTasks}
                   onTaskUpdate={handleTaskUpdate}
                   onTaskDelete={handleDeleteTask}
-                  onCreateTask={() => setTaskDialogOpen(true)}
+                  onCreateTask={(status) => {
+                    setInitialTaskStatus(status)
+                    setTaskDialogOpen(true)
+                  }}
                   currentUserId={user?.id}
                 />
               </TabsContent>
@@ -557,9 +564,13 @@ export default function TasksPage() {
         open={taskDialogOpen}
         onOpenChange={(open) => {
           setTaskDialogOpen(open)
-          if (!open) setEditingTask(null)
+          if (!open) {
+            setEditingTask(null)
+            setInitialTaskStatus(undefined)
+          }
         }}
         task={editingTask ? convertTaskForDialog(editingTask) : undefined}
+        initialStatus={initialTaskStatus}
         projects={projects}
         onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
       />

@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { ProjectStatus } from '@prisma/client'
 import { getAuthSession } from '@/lib/auth'
 import { getAccessibleProjects, getUserSystemRole } from '@/lib/roles'
+import { NotificationService } from '@/lib/notification-service'
 
 export async function GET(request: NextRequest) {
   try {
@@ -192,6 +193,21 @@ export async function POST(request: NextRequest) {
         role: 'ADMIN'
       }
     })
+
+    // Create notification for project creation
+    try {
+      await NotificationService.createProjectNotification(
+        session.user.id,
+        project.name,
+        project.id,
+        'created',
+        session.user.name || 'You'
+      )
+      console.log(`Project creation notification sent to user ${session.user.id}`)
+    } catch (error) {
+      console.error('Failed to create project notification:', error)
+      // Don't fail the project creation if notification fails
+    }
 
     // Format the response
     const formattedProject = {
