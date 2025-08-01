@@ -90,12 +90,12 @@ export function ProjectList({ projects, onProjectCreate, onProjectUpdate, curren
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Projects</h2>
-          <p className="text-muted-foreground">Manage and organize your projects</p>
+          <h2 className="text-2xl font-bold">{t("projects.projects")}</h2>
+          <p className="text-muted-foreground">{t("projects.manageAndOrganize")}</p>
         </div>
         <Button onClick={onProjectCreate} className="gap-2">
           <Plus className="w-4 h-4" />
-          New Project
+          {t("projects.createNewProject")}
         </Button>
       </div>
 
@@ -103,19 +103,19 @@ export function ProjectList({ projects, onProjectCreate, onProjectUpdate, curren
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-card border rounded-lg p-4">
           <div className="text-2xl font-bold">{projectCounts.all}</div>
-          <div className="text-sm text-muted-foreground">Total Projects</div>
+          <div className="text-sm text-muted-foreground">{t("projects.totalProjects")}</div>
         </div>
         <div className="bg-card border rounded-lg p-4">
           <div className="text-2xl font-bold text-green-600">{projectCounts.active}</div>
-          <div className="text-sm text-muted-foreground">Active</div>
+          <div className="text-sm text-muted-foreground">{t("projects.active")}</div>
         </div>
         <div className="bg-card border rounded-lg p-4">
           <div className="text-2xl font-bold text-blue-600">{projectCounts.completed}</div>
-          <div className="text-sm text-muted-foreground">Completed</div>
+          <div className="text-sm text-muted-foreground">{t("projects.completed")}</div>
         </div>
         <div className="bg-card border rounded-lg p-4">
           <div className="text-2xl font-bold text-gray-600">{projectCounts.archived}</div>
-          <div className="text-sm text-muted-foreground">Archived</div>
+          <div className="text-sm text-muted-foreground">{t("projects.archived")}</div>
         </div>
       </div>
 
@@ -135,13 +135,13 @@ export function ProjectList({ projects, onProjectCreate, onProjectUpdate, curren
         {/* Status Filter */}
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by status" />
+            <SelectValue placeholder={t("filters.filterBy") + " " + t("common.status")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value={ProjectStatus.ACTIVE}>Active</SelectItem>
-            <SelectItem value={ProjectStatus.ARCHIVED}>Archived</SelectItem>
-            <SelectItem value={ProjectStatus.COMPLETED}>Completed</SelectItem>
+            <SelectItem value="all">{t("filters.allStatuses")}</SelectItem>
+            <SelectItem value={ProjectStatus.ACTIVE}>{t("projects.active")}</SelectItem>
+            <SelectItem value={ProjectStatus.ARCHIVED}>{t("projects.archived")}</SelectItem>
+            <SelectItem value={ProjectStatus.COMPLETED}>{t("projects.completed")}</SelectItem>
           </SelectContent>
         </Select>
 
@@ -152,10 +152,10 @@ export function ProjectList({ projects, onProjectCreate, onProjectUpdate, curren
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="name">Name</SelectItem>
-            <SelectItem value="createdAt">Created Date</SelectItem>
-            <SelectItem value="updatedAt">Updated Date</SelectItem>
-            <SelectItem value="progress">Progress</SelectItem>
+            <SelectItem value="name">{t("projects.name")}</SelectItem>
+            <SelectItem value="createdAt">{t("projects.createdDate")}</SelectItem>
+            <SelectItem value="updatedAt">{t("projects.updatedDate")}</SelectItem>
+            <SelectItem value="progress">{t("projects.progress")}</SelectItem>
           </SelectContent>
         </Select>
 
@@ -206,7 +206,7 @@ export function ProjectList({ projects, onProjectCreate, onProjectUpdate, curren
       {filteredProjects.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-muted-foreground">
-            No projects found. Try adjusting your filters or create a new project.
+            {t("projects.noProjectsFound")}
           </div>
         </div>
       ) : viewMode === "grid" ? (

@@ -14,6 +14,7 @@ import { ProjectDialog } from "@/components/projects/project-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { useAPI } from "@/hooks/use-api"
 import { useAuth } from "@/contexts/AuthContext"
+import { useTranslation } from "@/hooks/use-translation"
 import { 
   Plus, 
   Search, 
@@ -56,6 +57,7 @@ export default function ProjectsPage() {
   const { toast } = useToast()
   const { apiCall } = useAPI()
   const { isAuthenticated, isLoading, currentWorkspace, user } = useAuth()
+  const { t } = useTranslation()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [projectDialogOpen, setProjectDialogOpen] = useState(false)
@@ -81,7 +83,7 @@ export default function ProjectsPage() {
     if (!currentWorkspace) return
     
     try {
-      const response = await apiCall(`/api/projects?workspaceId=${currentWorkspace.id}`)
+      const response = await apiCall(`/api/projects?workspaceId=${currentWorkspace.id}&includeCounts=true`)
       if (response.ok) {
         const data = await response.json()
         setProjects(data)
@@ -105,14 +107,14 @@ export default function ProjectsPage() {
         setProjectDialogOpen(false)
         setEditingProject(null)
         toast({
-          title: "Project created",
-          description: "Project has been created successfully.",
+          title: t("common.success"),
+          description: t("projects.projectCreated"),
         })
       } else {
         const errorData = await response.json()
         toast({
-          title: "Error",
-          description: errorData.error || "Failed to create project",
+          title: t("common.error"),
+          description: errorData.error || t("projects.createError"),
           variant: "destructive",
         })
       }
@@ -138,22 +140,22 @@ export default function ProjectsPage() {
         setEditingProject(null)
         setProjectDialogOpen(false)
         toast({
-          title: "Project updated",
-          description: "Project has been updated successfully.",
+          title: t("common.success"),
+          description: t("projects.projectUpdated"),
         })
       }
     } catch (error) {
       console.error('Error updating project:', error)
       toast({
-        title: "Error",
-        description: "Failed to update project",
+        title: t("common.error"),
+        description: t("projects.updateError"),
         variant: "destructive",
       })
     }
   }
 
   const handleDeleteProject = async (projectId: string) => {
-    if (!confirm('Are you sure you want to delete this project? This will also delete all tasks within this project.')) return
+    if (!confirm(t("projects.confirmDelete"))) return
     
     try {
       const response = await apiCall(`/api/projects/${projectId}`, {
@@ -162,23 +164,23 @@ export default function ProjectsPage() {
       
       if (response.ok) {
         toast({
-          title: "Project deleted",
-          description: "The project and all its tasks have been deleted successfully.",
+          title: t("common.success"),
+          description: t("projects.projectDeleted"),
         })
         await fetchProjects()
       } else {
         const errorData = await response.json()
         toast({
-          title: "Error",
-          description: errorData.error || "Failed to delete project",
+          title: t("common.error"),
+          description: errorData.error || t("projects.deleteError"),
           variant: "destructive",
         })
       }
     } catch (error) {
       console.error('Error deleting project:', error)
       toast({
-        title: "Error",
-        description: "An unexpected error occurred while deleting the project",
+        title: t("common.error"),
+        description: t("projects.deleteUnexpectedError"),
         variant: "destructive",
       })
     }
@@ -253,17 +255,17 @@ export default function ProjectsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold">Projects</h1>
-                <p className="text-muted-foreground mt-1">Manage and track all your projects</p>
+                <h1 className="text-3xl font-bold">{t("projects.myProjects")}</h1>
+                <p className="text-muted-foreground mt-1">{t("projects.projectManagement")}</p>
               </div>
               <div className="flex items-center gap-4">
                 <Button variant="outline" size="sm">
                   <Filter className="w-4 h-4 mr-2" />
-                  Filter
+                  {t("common.filter")}
                 </Button>
                 <Button size="sm" onClick={() => setProjectDialogOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" />
-                  New Project
+                  {t("projects.createNewProject")}
                 </Button>
               </div>
             </div>
@@ -276,7 +278,7 @@ export default function ProjectsPage() {
                     <FolderOpen className="h-4 w-4 text-blue-500" />
                     <div>
                       <p className="text-2xl font-bold">{projectStats.total}</p>
-                      <p className="text-xs text-muted-foreground">Total</p>
+                      <p className="text-xs text-muted-foreground">{t("common.total")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -288,7 +290,7 @@ export default function ProjectsPage() {
                     <TrendingUp className="h-4 w-4 text-green-500" />
                     <div>
                       <p className="text-2xl font-bold">{projectStats.active}</p>
-                      <p className="text-xs text-muted-foreground">Active</p>
+                      <p className="text-xs text-muted-foreground">{t("projects.active")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -300,7 +302,7 @@ export default function ProjectsPage() {
                     <Target className="h-4 w-4 text-purple-500" />
                     <div>
                       <p className="text-2xl font-bold">{projectStats.completed}</p>
-                      <p className="text-xs text-muted-foreground">Completed</p>
+                      <p className="text-xs text-muted-foreground">{t("projects.completed")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -312,7 +314,7 @@ export default function ProjectsPage() {
                     <Calendar className="h-4 w-4 text-gray-500" />
                     <div>
                       <p className="text-2xl font-bold">{projectStats.archived}</p>
-                      <p className="text-xs text-muted-foreground">Archived</p>
+                      <p className="text-xs text-muted-foreground">{t("projects.archived")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -334,14 +336,14 @@ export default function ProjectsPage() {
             {/* Filters */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Filters</CardTitle>
+                <CardTitle className="text-sm">{t("common.filter")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input
-                      placeholder="Search projects..."
+                      placeholder={t("projects.searchProjects")}
                       value={filters.search}
                       onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                       className="pl-10"
@@ -350,22 +352,22 @@ export default function ProjectsPage() {
                   
                   <Select value={filters.status} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Status" />
+                      <SelectValue placeholder={t("projects.projectStatus")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value={ProjectStatus.ACTIVE}>Active</SelectItem>
-                      <SelectItem value={ProjectStatus.COMPLETED}>Completed</SelectItem>
-                      <SelectItem value={ProjectStatus.ARCHIVED}>Archived</SelectItem>
+                      <SelectItem value="all">{t("projects.allStatuses")}</SelectItem>
+                      <SelectItem value={ProjectStatus.ACTIVE}>{t("projects.active")}</SelectItem>
+                      <SelectItem value={ProjectStatus.COMPLETED}>{t("projects.completed")}</SelectItem>
+                      <SelectItem value={ProjectStatus.ARCHIVED}>{t("projects.archived")}</SelectItem>
                     </SelectContent>
                   </Select>
                   
                   <Select value={filters.owner} onValueChange={(value) => setFilters(prev => ({ ...prev, owner: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Owner" />
+                      <SelectValue placeholder={t("projects.owner")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Owners</SelectItem>
+                      <SelectItem value="all">{t("projects.allOwners")}</SelectItem>
                       {Array.from(
                         new Map(projects.map(p => [p.owner.id, p.owner])).values()
                       ).map(owner => (

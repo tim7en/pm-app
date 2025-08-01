@@ -34,6 +34,7 @@ import { CalendarIcon, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ProjectStatus } from "@prisma/client"
 import { useAuth } from "@/contexts/AuthContext"
+import { useTranslation } from "@/hooks/use-translation"
 
 const projectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
@@ -86,6 +87,7 @@ export function ProjectDialog({
 }: ProjectDialogProps) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const { currentWorkspaceId } = useAuth()
+  const { t } = useTranslation()
   
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -132,11 +134,11 @@ export function ProjectDialog({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {project ? "Edit Project" : "Create New Project"}
+            {project ? t("projects.editProject") : t("projects.createNewProject")}
           </DialogTitle>
           <DialogDescription>
             {project
-              ? "Update the project details below."
+              ? "Update the project details below." 
               : "Fill in the details to create a new project."}
           </DialogDescription>
         </DialogHeader>
@@ -148,9 +150,9 @@ export function ProjectDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Project Name</FormLabel>
+                  <FormLabel>{t("projects.projectName")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter project name" {...field} />
+                    <Input placeholder={t("projects.enterProjectName")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -162,10 +164,10 @@ export function ProjectDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>{t("projects.projectDescription")}</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Enter project description"
+                      placeholder={t("projects.enterProjectDescription")}
                       className="resize-none"
                       {...field}
                     />
@@ -184,8 +186,8 @@ export function ProjectDialog({
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a team">
-                          {workspaces.find(w => w.id === field.value)?.name || "Select a team"}
+                        <SelectValue placeholder={t("projects.selectWorkspace")}>
+                          {workspaces.find(w => w.id === field.value)?.name || t("projects.selectWorkspace")}
                         </SelectValue>
                       </SelectTrigger>
                     </FormControl>
@@ -215,7 +217,7 @@ export function ProjectDialog({
               name="color"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Color</FormLabel>
+                  <FormLabel>{t("projects.projectColor")}</FormLabel>
                   <div className="grid grid-cols-4 gap-2">
                     {colorOptions.map((color) => (
                       <button
@@ -244,10 +246,10 @@ export function ProjectDialog({
                 onClick={() => onOpenChange(false)}
                 disabled={isSubmitting}
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : project ? "Update" : "Create"}
+                {isSubmitting ? t("common.loading") : project ? t("common.update") : t("common.create")}
               </Button>
             </DialogFooter>
           </form>

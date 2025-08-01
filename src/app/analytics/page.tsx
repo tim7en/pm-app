@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { ProductivityDashboard } from "@/components/dashboard/productivity-dashboard"
+import { useTranslation } from "@/hooks/use-translation"
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -115,6 +116,7 @@ interface AnalyticsData {
 }
 
 export default function AnalyticsPage() {
+  const { t } = useTranslation()
   const { apiCall } = useAPI()
   const { isAuthenticated, isLoading: authLoading, user } = useAuth()
   const [tasks, setTasks] = useState<Task[]>([])
@@ -341,8 +343,8 @@ export default function AnalyticsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold">Analytics & Insights</h1>
-                <p className="text-muted-foreground mt-1">Track productivity, project metrics, and AI-powered insights</p>
+                <h1 className="text-3xl font-bold">{t("analytics.analyticsInsights")}</h1>
+                <p className="text-muted-foreground mt-1">{t("analytics.trackProductivity")}</p>
               </div>
               <div className="flex items-center gap-4">
                 <Select value={timeRange} onValueChange={(value) => setTimeRange(value as any)}>

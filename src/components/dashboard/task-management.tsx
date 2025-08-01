@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Plus, User, UserCheck, Clock, CheckCircle2 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
+import { useTranslation } from "@/hooks/use-translation"
 
 interface TaskManagementProps {
   tasks: any[]
@@ -29,6 +30,7 @@ export function TaskManagement({
   onCreateTask
 }: TaskManagementProps) {
   const { user } = useAuth()
+  const { t } = useTranslation()
   
   if (!user) return null
 
@@ -64,8 +66,8 @@ export function TaskManagement({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">My Tasks</h2>
-          <p className="text-muted-foreground">Manage and track your tasks</p>
+          <h2 className="text-2xl font-bold">{t("dashboard.myTasks")}</h2>
+          <p className="text-muted-foreground">{t("tasks.taskManagement")}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -73,18 +75,18 @@ export function TaskManagement({
             size="sm"
             onClick={() => onTaskViewChange("list")}
           >
-            List
+            {t("tasks.listView")}
           </Button>
           <Button
             variant={taskView === "board" ? "default" : "outline"}
             size="sm"
             onClick={() => onTaskViewChange("board")}
           >
-            Board
+            {t("tasks.boardView")}
           </Button>
           <Button size="sm" onClick={() => onCreateTask()}>
             <Plus className="h-4 w-4 mr-2" />
-            New Task
+            {t("tasks.newTask")}
           </Button>
         </div>
       </div>
@@ -93,7 +95,7 @@ export function TaskManagement({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Assigned to Me</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("tasks.assignedTo")} {t("dashboard.me")}</CardTitle>
             <UserCheck className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
@@ -101,15 +103,15 @@ export function TaskManagement({
             <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
               <div className="flex items-center gap-1">
                 <CheckCircle2 className="h-3 w-3 text-green-500" />
-                <span>{assignedStats.completed} completed</span>
+                <span>{assignedStats.completed} {t("dashboard.completed")}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Clock className="h-3 w-3 text-blue-500" />
-                <span>{assignedStats.inProgress} in progress</span>
+                <span>{assignedStats.inProgress} {t("dashboard.inProgress")}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Clock className="h-3 w-3 text-gray-500" />
-                <span>{assignedStats.pending} pending</span>
+                <span>{assignedStats.pending} {t("tasks.todo")}</span>
               </div>
             </div>
           </CardContent>
@@ -117,7 +119,7 @@ export function TaskManagement({
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Created by Me</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("tasks.createdBy")} {t("dashboard.me")}</CardTitle>
             <User className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
@@ -125,15 +127,15 @@ export function TaskManagement({
             <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
               <div className="flex items-center gap-1">
                 <CheckCircle2 className="h-3 w-3 text-green-500" />
-                <span>{createdStats.completed} completed</span>
+                <span>{createdStats.completed} {t("dashboard.completed")}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Clock className="h-3 w-3 text-blue-500" />
-                <span>{createdStats.inProgress} in progress</span>
+                <span>{createdStats.inProgress} {t("dashboard.inProgress")}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Clock className="h-3 w-3 text-gray-500" />
-                <span>{createdStats.pending} pending</span>
+                <span>{createdStats.pending} {t("tasks.todo")}</span>
               </div>
             </div>
           </CardContent>
@@ -145,20 +147,20 @@ export function TaskManagement({
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="assigned" className="flex items-center gap-2">
             <UserCheck className="h-4 w-4" />
-            Assigned to Me ({assignedStats.total})
+            {t("tasks.assignedTo")} {t("dashboard.me")} ({assignedStats.total})
           </TabsTrigger>
           <TabsTrigger value="created" className="flex items-center gap-2">
             <User className="h-4 w-4" />
-            Created by Me ({createdStats.total})
+            {t("tasks.createdBy")} {t("dashboard.me")} ({createdStats.total})
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="assigned" className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold">Tasks Assigned to You</h3>
+              <h3 className="text-lg font-semibold">{t("tasks.tasksAssignedToYou")}</h3>
               <p className="text-sm text-muted-foreground">
-                Tasks that you need to complete
+                {t("tasks.tasksNeedToComplete")}
               </p>
             </div>
           </div>
@@ -186,9 +188,9 @@ export function TaskManagement({
         <TabsContent value="created" className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold">Tasks Created by You</h3>
+              <h3 className="text-lg font-semibold">{t("tasks.tasksCreatedByYou")}</h3>
               <p className="text-sm text-muted-foreground">
-                Tasks you've created and assigned to others
+                {t("tasks.tasksCreatedAndAssigned")}
               </p>
             </div>
           </div>

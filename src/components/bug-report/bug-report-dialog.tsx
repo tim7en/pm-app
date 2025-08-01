@@ -33,6 +33,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
+import { useTranslation } from '@/hooks/use-translation'
 
 interface BugReportDialogProps {
   children?: React.ReactNode
@@ -58,6 +59,7 @@ export function BugReportDialog({ children, className }: BugReportDialogProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
   const { toast } = useToast()
+  const { t } = useTranslation()
 
   const [bugReport, setBugReport] = useState<BugReport>({
     title: '',
@@ -338,10 +340,10 @@ export function BugReportDialog({ children, className }: BugReportDialogProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bug className="h-5 w-5 text-red-500" />
-            Report a Bug
+            {t("bugReport.reportBug")}
           </DialogTitle>
           <DialogDescription>
-            Help us improve by reporting bugs you encounter. Include as much detail as possible.
+            {t("bugReport.helpImprove")}
           </DialogDescription>
         </DialogHeader>
 
@@ -349,11 +351,11 @@ export function BugReportDialog({ children, className }: BugReportDialogProps) {
           {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title" className="text-sm font-medium">
-              Bug Title *
+              {t("bugReport.bugTitleRequired")}
             </Label>
             <Input
               id="title"
-              placeholder="Brief description of the bug"
+              placeholder={t("bugReport.briefDescription")}
               value={bugReport.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
               className="w-full"
@@ -369,35 +371,35 @@ export function BugReportDialog({ children, className }: BugReportDialogProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="priority" className="text-sm font-medium">
-                Priority
+                {t("bugReport.priority")}
               </Label>
               <Select value={bugReport.priority} onValueChange={(value: any) => handleInputChange('priority', value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
+                  <SelectItem value="low">{t("bugReport.low")}</SelectItem>
+                  <SelectItem value="medium">{t("bugReport.medium")}</SelectItem>
+                  <SelectItem value="high">{t("bugReport.high")}</SelectItem>
+                  <SelectItem value="critical">{t("bugReport.critical")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="category" className="text-sm font-medium">
-                Category
+                {t("bugReport.category")}
               </Label>
               <Select value={bugReport.category} onValueChange={(value: any) => handleInputChange('category', value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ui">UI/Design</SelectItem>
-                  <SelectItem value="functionality">Functionality</SelectItem>
-                  <SelectItem value="performance">Performance</SelectItem>
-                  <SelectItem value="security">Security</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="ui">{t("bugReport.ui")}</SelectItem>
+                  <SelectItem value="functionality">{t("bugReport.functionality")}</SelectItem>
+                  <SelectItem value="performance">{t("bugReport.performance")}</SelectItem>
+                  <SelectItem value="security">{t("bugReport.security")}</SelectItem>
+                  <SelectItem value="other">{t("bugReport.other")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -406,11 +408,11 @@ export function BugReportDialog({ children, className }: BugReportDialogProps) {
           {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description" className="text-sm font-medium">
-              Bug Description *
+              {t("bugReport.bugDescriptionRequired")}
             </Label>
             <Textarea
               id="description"
-              placeholder="Describe the bug in detail..."
+              placeholder={t("bugReport.describeBugDetail")}
               value={bugReport.description}
               onChange={(e) => handleInputChange('description', e.target.value)}
               className="min-h-[100px] resize-none"
@@ -425,11 +427,11 @@ export function BugReportDialog({ children, className }: BugReportDialogProps) {
           {/* Steps to Reproduce */}
           <div className="space-y-2">
             <Label htmlFor="steps" className="text-sm font-medium">
-              Steps to Reproduce
+              {t("bugReport.stepsToReproduce")}
             </Label>
             <Textarea
               id="steps"
-              placeholder="1. Go to...&#10;2. Click on...&#10;3. See error..."
+              placeholder={t("bugReport.stepsPlaceholder")}
               value={bugReport.stepsToReproduce}
               onChange={(e) => handleInputChange('stepsToReproduce', e.target.value)}
               className="min-h-[80px] resize-none"
@@ -444,11 +446,11 @@ export function BugReportDialog({ children, className }: BugReportDialogProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="expected" className="text-sm font-medium">
-                Expected Behavior
+                {t("bugReport.expectedBehavior")}
               </Label>
               <Textarea
                 id="expected"
-                placeholder="What should happen?"
+                placeholder={t("bugReport.expectedPlaceholder")}
                 value={bugReport.expectedBehavior}
                 onChange={(e) => handleInputChange('expectedBehavior', e.target.value)}
                 className="min-h-[60px] resize-none"
@@ -458,11 +460,11 @@ export function BugReportDialog({ children, className }: BugReportDialogProps) {
             
             <div className="space-y-2">
               <Label htmlFor="actual" className="text-sm font-medium">
-                Actual Behavior
+                {t("bugReport.actualBehavior")}
               </Label>
               <Textarea
                 id="actual"
-                placeholder="What actually happens?"
+                placeholder={t("bugReport.actualPlaceholder")}
                 value={bugReport.actualBehavior}
                 onChange={(e) => handleInputChange('actualBehavior', e.target.value)}
                 className="min-h-[60px] resize-none"
@@ -474,7 +476,7 @@ export function BugReportDialog({ children, className }: BugReportDialogProps) {
           {/* File Upload */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">
-              Screenshots & Attachments
+              {t("bugReport.screenshotsAttachments")}
             </Label>
             
             <div
@@ -490,10 +492,10 @@ export function BugReportDialog({ children, className }: BugReportDialogProps) {
                 <Upload className="h-8 w-8 text-muted-foreground" />
                 <div className="space-y-1">
                   <p className="text-sm font-medium">
-                    Drop files here or click to upload
+                    {t("bugReport.dropFilesOrClick")}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Images and PDF files up to 10MB each (max 5 files)
+                    {t("bugReport.imagesAndPDF")}
                   </p>
                 </div>
                 
@@ -505,7 +507,7 @@ export function BugReportDialog({ children, className }: BugReportDialogProps) {
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <FileText className="h-4 w-4 mr-1" />
-                    Browse Files
+                    {t("bugReport.selectFiles")}
                   </Button>
                   
                   <Button
@@ -515,7 +517,7 @@ export function BugReportDialog({ children, className }: BugReportDialogProps) {
                     onClick={captureScreenshot}
                   >
                     <Camera className="h-4 w-4 mr-1" />
-                    Screenshot
+                    {t("bugReport.takeScreenshot")}
                   </Button>
                 </div>
               </div>
@@ -601,7 +603,7 @@ export function BugReportDialog({ children, className }: BugReportDialogProps) {
               disabled={isSubmitting}
               className="flex-1"
             >
-              Cancel
+              {t("bugReport.cancel")}
             </Button>
             <Button
               type="submit"
@@ -611,12 +613,12 @@ export function BugReportDialog({ children, className }: BugReportDialogProps) {
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Submitting...
+                  {t("bugReport.submitting")}
                 </>
               ) : (
                 <>
                   <Check className="h-4 w-4 mr-2" />
-                  Submit Bug Report
+                  {t("bugReport.submitBugReport")}
                 </>
               )}
             </Button>

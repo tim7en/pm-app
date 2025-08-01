@@ -62,6 +62,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/AuthContext"
+import { useTranslation } from "@/hooks/use-translation"
 
 const inviteSchema = z.object({
   email: z.string().email("Valid email is required"),
@@ -95,6 +96,7 @@ export default function TeamPage() {
   
   const { toast } = useToast()
   const { user, currentWorkspace, refreshWorkspaces } = useAuth()
+  const { t } = useTranslation()
   
   const form = useForm<InviteFormData>({
     resolver: zodResolver(inviteSchema),
@@ -501,8 +503,8 @@ export default function TeamPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold">Team</h1>
-                <p className="text-muted-foreground mt-1">Manage team members and their roles</p>
+                <h1 className="text-3xl font-bold">{t("navigation.team")}</h1>
+                <p className="text-muted-foreground mt-1">{t("team.manageTeamMembers")}</p>
               </div>
               <div className="flex gap-2">
                 {invitations.length > 0 && (
@@ -519,11 +521,11 @@ export default function TeamPage() {
                   onClick={handleLeaveWorkspace}
                   className="text-red-600 hover:bg-red-50"
                 >
-                  Leave Workspace
+                  {t("team.leaveWorkspace")}
                 </Button>
                 <Button onClick={() => setInviteDialogOpen(true)}>
                   <UserPlus className="w-4 h-4 mr-2" />
-                  Invite Member
+                  {t("team.inviteMember")}
                 </Button>
               </div>
             </div>
@@ -536,7 +538,7 @@ export default function TeamPage() {
                     <Users className="h-4 w-4 text-blue-500" />
                     <div>
                       <p className="text-2xl font-bold">{members.length}</p>
-                      <p className="text-xs text-muted-foreground">Total Members</p>
+                      <p className="text-xs text-muted-foreground">{t("team.totalMembers")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -550,7 +552,7 @@ export default function TeamPage() {
                       <p className="text-2xl font-bold">
                         {members.filter(m => m.role === 'ADMIN' || m.role === 'OWNER').length}
                       </p>
-                      <p className="text-xs text-muted-foreground">Admins</p>
+                      <p className="text-xs text-muted-foreground">{t("team.admins")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -564,7 +566,7 @@ export default function TeamPage() {
                       <p className="text-2xl font-bold">
                         {members.filter(m => m.role === 'MEMBER').length}
                       </p>
-                      <p className="text-xs text-muted-foreground">Members</p>
+                      <p className="text-xs text-muted-foreground">{t("team.members")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -576,7 +578,7 @@ export default function TeamPage() {
                     <Plus className="h-4 w-4 text-orange-500" />
                     <div>
                       <p className="text-2xl font-bold">∞</p>
-                      <p className="text-xs text-muted-foreground">Invite Capacity</p>
+                      <p className="text-xs text-muted-foreground">{t("team.inviteCapacity")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -589,7 +591,7 @@ export default function TeamPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
-                    placeholder="Search members..."
+                    placeholder={t("team.searchMembers")}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10 pr-4 w-full"

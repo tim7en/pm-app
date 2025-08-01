@@ -94,13 +94,6 @@ const priorityColors = {
   [Priority.URGENT]: "text-red-500",
 }
 
-const priorityLabels = {
-  [Priority.LOW]: "Low",
-  [Priority.MEDIUM]: "Medium",
-  [Priority.HIGH]: "High",
-  [Priority.URGENT]: "Urgent",
-}
-
 export function TaskList({ 
   tasks, 
   onTaskUpdate, 
@@ -115,6 +108,13 @@ export function TaskList({
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
   const [sortBy, setSortBy] = useState<string>("createdAt")
+
+  const priorityLabels = {
+    [Priority.LOW]: t("tasks.low"),
+    [Priority.MEDIUM]: t("tasks.medium"),
+    [Priority.HIGH]: t("tasks.high"),
+    [Priority.URGENT]: t("tasks.urgent"),
+  }
 
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -185,7 +185,7 @@ export function TaskList({
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="all">{t("filters.allStatuses")}</SelectItem>
               <SelectItem value={TaskStatus.TODO}>To Do</SelectItem>
               <SelectItem value={TaskStatus.IN_PROGRESS}>In Progress</SelectItem>
               <SelectItem value={TaskStatus.REVIEW}>Review</SelectItem>
@@ -198,7 +198,7 @@ export function TaskList({
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Priority</SelectItem>
+              <SelectItem value="all">{t("filters.allPriorities")}</SelectItem>
               <SelectItem value={Priority.LOW}>Low</SelectItem>
               <SelectItem value={Priority.MEDIUM}>Medium</SelectItem>
               <SelectItem value={Priority.HIGH}>High</SelectItem>
@@ -209,10 +209,10 @@ export function TaskList({
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-[140px]">
               <ArrowUpDown className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Sort by" />
+              <SelectValue placeholder={t("filters.sortBy")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="createdAt">Created Date</SelectItem>
+              <SelectItem value="createdAt">{t("tasks.createdAt")}</SelectItem>
               <SelectItem value="title">Title</SelectItem>
               <SelectItem value="dueDate">Due Date</SelectItem>
               <SelectItem value="priority">Priority</SelectItem>

@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { InvitationNotifications } from "@/components/notifications/invitation-notifications"
+import { useTranslation } from "@/hooks/use-translation"
 import { 
   Bell, 
   Check, 
@@ -57,6 +58,7 @@ interface Notification {
 }
 
 export default function NotificationsPage() {
+  const { t } = useTranslation()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -265,19 +267,19 @@ export default function NotificationsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold">Notifications</h1>
-                <p className="text-muted-foreground mt-1">Stay updated with your team and projects</p>
+                <h1 className="text-3xl font-bold">{t("notifications.notifications")}</h1>
+                <p className="text-muted-foreground mt-1">{t("notifications.stayUpdatedWithTeam")}</p>
               </div>
               <div className="flex items-center gap-2">
                 {unreadCount > 0 && (
                   <Button variant="outline" onClick={markAllAsRead}>
                     <CheckCheck className="h-4 w-4 mr-2" />
-                    Mark all as read
+                    {t("notifications.markAllAsRead")}
                   </Button>
                 )}
                 <Button variant="outline" onClick={clearAllNotifications}>
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Clear all
+                  {t("notifications.clearAll")}
                 </Button>
               </div>
             </div>
@@ -290,7 +292,7 @@ export default function NotificationsPage() {
                     <Bell className="h-4 w-4 text-blue-500" />
                     <div>
                       <p className="text-2xl font-bold">{notifications.length}</p>
-                      <p className="text-xs text-muted-foreground">Total</p>
+                      <p className="text-xs text-muted-foreground">{t("notifications.total")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -302,7 +304,7 @@ export default function NotificationsPage() {
                     <div className="h-4 w-4 rounded-full bg-red-500"></div>
                     <div>
                       <p className="text-2xl font-bold">{unreadCount}</p>
-                      <p className="text-xs text-muted-foreground">Unread</p>
+                      <p className="text-xs text-muted-foreground">{t("notifications.unread")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -316,7 +318,7 @@ export default function NotificationsPage() {
                       <p className="text-2xl font-bold">
                         {notifications.filter(n => n.priority === 'urgent' || n.priority === 'high').length}
                       </p>
-                      <p className="text-xs text-muted-foreground">High Priority</p>
+                      <p className="text-xs text-muted-foreground">{t("notifications.highPriority")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -333,7 +335,7 @@ export default function NotificationsPage() {
                           return diff < 1000 * 60 * 60 * 24 // Last 24 hours
                         }).length}
                       </p>
-                      <p className="text-xs text-muted-foreground">Last 24h</p>
+                      <p className="text-xs text-muted-foreground">{t("notifications.last24h")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -346,7 +348,7 @@ export default function NotificationsPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
-                    placeholder="Search notifications..."
+                    placeholder={t("notifications.searchNotifications")}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10 pr-4 w-full"
@@ -358,12 +360,12 @@ export default function NotificationsPage() {
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="task">Tasks</SelectItem>
-                  <SelectItem value="project">Projects</SelectItem>
-                  <SelectItem value="team">Team</SelectItem>
-                  <SelectItem value="reminder">Reminders</SelectItem>
-                  <SelectItem value="system">System</SelectItem>
+                  <SelectItem value="all">{t("filters.allTypes")}</SelectItem>
+                  <SelectItem value="task">{t("notifications.tasks")}</SelectItem>
+                  <SelectItem value="project">{t("notifications.projects")}</SelectItem>
+                  <SelectItem value="team">{t("notifications.team")}</SelectItem>
+                  <SelectItem value="reminder">{t("notifications.reminders")}</SelectItem>
+                  <SelectItem value="system">{t("notifications.system")}</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={filterPriority} onValueChange={setFilterPriority}>
@@ -371,11 +373,11 @@ export default function NotificationsPage() {
                   <SelectValue placeholder="Priority" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Priority</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="all">{t("filters.allPriorities")}</SelectItem>
+                  <SelectItem value="urgent">{t("notifications.urgent")}</SelectItem>
+                  <SelectItem value="high">{t("notifications.high")}</SelectItem>
+                  <SelectItem value="medium">{t("notifications.medium")}</SelectItem>
+                  <SelectItem value="low">{t("notifications.low")}</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={filterRead} onValueChange={setFilterRead}>
@@ -383,9 +385,9 @@ export default function NotificationsPage() {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="unread">Unread</SelectItem>
-                  <SelectItem value="read">Read</SelectItem>
+                  <SelectItem value="all">{t("filters.allStatuses")}</SelectItem>
+                  <SelectItem value="unread">{t("notifications.unread")}</SelectItem>
+                  <SelectItem value="read">{t("notifications.read")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

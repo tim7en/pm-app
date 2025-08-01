@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useTranslation } from '@/hooks/use-translation'
 import { 
   MessageCircle, 
   Send, 
@@ -33,6 +34,7 @@ interface IntegrationConfig {
 }
 
 export function IntegrationSettings({ userId }: IntegrationSettingsProps) {
+  const { t } = useTranslation()
   const [integrations, setIntegrations] = useState<IntegrationConfig[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [telegramChatId, setTelegramChatId] = useState("")
@@ -152,18 +154,18 @@ export function IntegrationSettings({ userId }: IntegrationSettingsProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Integrations</h2>
+          <h2 className="text-2xl font-bold">{t("connections.integrations")}</h2>
           <p className="text-muted-foreground">
-            Connect your favorite messaging apps for real-time updates
+            {t("connections.connectMessagingApps")}
           </p>
         </div>
       </div>
 
       <Tabs defaultValue="telegram" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="telegram">Telegram</TabsTrigger>
-          <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
-          <TabsTrigger value="settings">Notification Settings</TabsTrigger>
+          <TabsTrigger value="telegram">{t("connections.telegram")}</TabsTrigger>
+          <TabsTrigger value="whatsapp">{t("connections.whatsapp")}</TabsTrigger>
+          <TabsTrigger value="settings">{t("connections.notificationSettings")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="telegram" className="space-y-6">
@@ -171,19 +173,19 @@ export function IntegrationSettings({ userId }: IntegrationSettingsProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageCircle className="h-5 w-5" />
-                Telegram Integration
+                {t("connections.telegramIntegration")}
               </CardTitle>
               <CardDescription>
-                Connect Telegram to receive task notifications and manage tasks via bot
+                {t("connections.telegramDescription")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="telegram-chat">Telegram Chat ID</Label>
+                <Label htmlFor="telegram-chat">{t("connections.telegramChatId")}</Label>
                 <div className="flex gap-2">
                   <Input
                     id="telegram-chat"
-                    placeholder="Enter your Telegram chat ID"
+                    placeholder={t("connections.enterTelegramChatId")}
                     value={telegramChatId}
                     onChange={(e) => setTelegramChatId(e.target.value)}
                   />
@@ -192,16 +194,16 @@ export function IntegrationSettings({ userId }: IntegrationSettingsProps) {
                     disabled={isLoading || !telegramChatId.trim()}
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Add
+                    {t("connections.add")}
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Get your chat ID by messaging @userinfobot on Telegram
+                  {t("connections.telegramChatIdHelp")}
                 </p>
               </div>
 
               <div className="space-y-3">
-                <h4 className="font-medium">Active Integrations</h4>
+                <h4 className="font-medium">{t("connections.activeIntegrations")}</h4>
                 {mockIntegrations
                   .filter(integration => integration.type === 'TELEGRAM')
                   .map((integration) => {
@@ -211,9 +213,9 @@ export function IntegrationSettings({ userId }: IntegrationSettingsProps) {
                         <div className="flex items-center gap-3">
                           <MessageCircle className="h-5 w-5 text-blue-500" />
                           <div>
-                            <p className="font-medium">Telegram Bot</p>
+                            <p className="font-medium">{t("connections.telegramBot")}</p>
                             <p className="text-sm text-muted-foreground">
-                              Chat ID: {config.chatId}
+                              {t("connections.chatId")}: {config.chatId}
                             </p>
                           </div>
                         </div>
@@ -228,7 +230,7 @@ export function IntegrationSettings({ userId }: IntegrationSettingsProps) {
                             onClick={() => handleTestNotification('TELEGRAM')}
                           >
                             <Send className="h-3 w-3 mr-1" />
-                            Test
+                            {t("connections.test")}
                           </Button>
                           <Button
                             variant="ghost"
@@ -247,32 +249,32 @@ export function IntegrationSettings({ userId }: IntegrationSettingsProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Available Commands</CardTitle>
+              <CardTitle>{t("connections.availableCommands")}</CardTitle>
               <CardDescription>
-                Use these commands in your Telegram chat to interact with tasks
+                {t("connections.telegramCommandsDescription")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">/tasks</Badge>
-                  <span>List your assigned tasks</span>
+                  <span>{t("connections.listAssignedTasks")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">/tasks todo</Badge>
-                  <span>List tasks with To Do status</span>
+                  <span>{t("connections.listTodoTasks")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">/tasks in_progress</Badge>
-                  <span>List tasks in progress</span>
+                  <span>{t("connections.listInProgressTasks")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">/complete &lt;task_id&gt;</Badge>
-                  <span>Mark a task as completed</span>
+                  <span>{t("connections.markTaskCompleted")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">/status</Badge>
-                  <span>Get your task summary</span>
+                  <span>{t("connections.getTaskSummary")}</span>
                 </div>
               </div>
             </CardContent>
@@ -284,15 +286,15 @@ export function IntegrationSettings({ userId }: IntegrationSettingsProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Smartphone className="h-5 w-5" />
-                WhatsApp Integration
+                {t("connections.whatsappIntegration")}
               </CardTitle>
               <CardDescription>
-                Connect WhatsApp to receive task notifications and create tasks via messages
+                {t("connections.whatsappDescription")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="whatsapp-number">WhatsApp Number</Label>
+                <Label htmlFor="whatsapp-number">{t("connections.whatsappNumber")}</Label>
                 <div className="flex gap-2">
                   <Input
                     id="whatsapp-number"
@@ -305,16 +307,16 @@ export function IntegrationSettings({ userId }: IntegrationSettingsProps) {
                     disabled={isLoading || !whatsappNumber.trim()}
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Add
+                    {t("connections.add")}
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Include country code (e.g., +1 for US)
+                  {t("connections.includeCountryCode")}
                 </p>
               </div>
 
               <div className="space-y-3">
-                <h4 className="font-medium">Active Integrations</h4>
+                <h4 className="font-medium">{t("connections.activeIntegrations")}</h4>
                 {mockIntegrations
                   .filter(integration => integration.type === 'WHATSAPP')
                   .map((integration) => {
@@ -324,9 +326,9 @@ export function IntegrationSettings({ userId }: IntegrationSettingsProps) {
                         <div className="flex items-center gap-3">
                           <Smartphone className="h-5 w-5 text-green-500" />
                           <div>
-                            <p className="font-medium">WhatsApp Business</p>
+                            <p className="font-medium">{t("connections.whatsappBusiness")}</p>
                             <p className="text-sm text-muted-foreground">
-                              Number: {config.phoneNumber}
+                              {t("connections.number")}: {config.phoneNumber}
                             </p>
                           </div>
                         </div>
@@ -341,7 +343,7 @@ export function IntegrationSettings({ userId }: IntegrationSettingsProps) {
                             onClick={() => handleTestNotification('WHATSAPP')}
                           >
                             <Send className="h-3 w-3 mr-1" />
-                            Test
+                            {t("connections.test")}
                           </Button>
                           <Button
                             variant="ghost"
@@ -360,29 +362,29 @@ export function IntegrationSettings({ userId }: IntegrationSettingsProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>WhatsApp Features</CardTitle>
+              <CardTitle>{t("connections.whatsappFeatures")}</CardTitle>
               <CardDescription>
-                Available features when using WhatsApp integration
+                {t("connections.whatsappFeaturesDescription")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium">Notifications</h4>
+                  <h4 className="font-medium">{t("connections.notifications")}</h4>
                   <ul className="text-sm space-y-1 text-muted-foreground">
-                    <li>• Task assignments</li>
-                    <li>• Due date reminders</li>
-                    <li>• Status updates</li>
-                    <li>• Project invitations</li>
+                    <li>• {t("connections.taskAssignments")}</li>
+                    <li>• {t("connections.dueDateReminders")}</li>
+                    <li>• {t("connections.statusUpdates")}</li>
+                    <li>• {t("connections.projectInvitations")}</li>
                   </ul>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Quick Actions</h4>
+                  <h4 className="font-medium">{t("connections.quickActions")}</h4>
                   <ul className="text-sm space-y-1 text-muted-foreground">
-                    <li>• Create tasks via message</li>
-                    <li>• Get status updates</li>
-                    <li>• Project summaries</li>
-                    <li>• Team notifications</li>
+                    <li>• {t("connections.createTasksViaMessage")}</li>
+                    <li>• {t("connections.getStatusUpdates")}</li>
+                    <li>• {t("connections.projectSummaries")}</li>
+                    <li>• {t("connections.teamNotifications")}</li>
                   </ul>
                 </div>
               </div>
@@ -395,10 +397,10 @@ export function IntegrationSettings({ userId }: IntegrationSettingsProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
-                Notification Settings
+                {t("connections.notificationSettings")}
               </CardTitle>
               <CardDescription>
-                Configure which notifications you want to receive
+                {t("connections.configureNotifications")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -427,7 +429,7 @@ export function IntegrationSettings({ userId }: IntegrationSettingsProps) {
 
               <div className="pt-4 border-t">
                 <Button className="w-full">
-                  Save Settings
+                  {t("settings.saveSettings")}
                 </Button>
               </div>
             </CardContent>
@@ -435,9 +437,9 @@ export function IntegrationSettings({ userId }: IntegrationSettingsProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Integration Status</CardTitle>
+              <CardTitle>{t("connections.integrationStatus")}</CardTitle>
               <CardDescription>
-                Overview of your connected integrations
+                {t("connections.integrationStatusDescription")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -445,9 +447,9 @@ export function IntegrationSettings({ userId }: IntegrationSettingsProps) {
                 <div className="flex items-center gap-3 p-3 border rounded-lg">
                   <MessageCircle className="h-8 w-8 text-blue-500" />
                   <div className="flex-1">
-                    <p className="font-medium">Telegram</p>
+                    <p className="font-medium">{t("connections.telegram")}</p>
                     <p className="text-sm text-muted-foreground">
-                      {mockIntegrations.filter(i => i.type === 'TELEGRAM' && i.isActive).length} active
+                      {mockIntegrations.filter(i => i.type === 'TELEGRAM' && i.isActive).length} {t("connections.active")}
                     </p>
                   </div>
                   <CheckCircle2 className="h-5 w-5 text-green-500" />
@@ -456,9 +458,9 @@ export function IntegrationSettings({ userId }: IntegrationSettingsProps) {
                 <div className="flex items-center gap-3 p-3 border rounded-lg">
                   <Smartphone className="h-8 w-8 text-green-500" />
                   <div className="flex-1">
-                    <p className="font-medium">WhatsApp</p>
+                    <p className="font-medium">{t("connections.whatsapp")}</p>
                     <p className="text-sm text-muted-foreground">
-                      {mockIntegrations.filter(i => i.type === 'WHATSAPP' && i.isActive).length} active
+                      {mockIntegrations.filter(i => i.type === 'WHATSAPP' && i.isActive).length} {t("connections.active")}
                     </p>
                   </div>
                   <CheckCircle2 className="h-5 w-5 text-green-500" />

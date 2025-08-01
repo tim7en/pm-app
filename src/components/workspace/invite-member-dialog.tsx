@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/form"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/AuthContext"
+import { useTranslation } from "@/hooks/use-translation"
 import { Mail, UserPlus } from "lucide-react"
 
 const inviteSchema = z.object({
@@ -56,6 +57,7 @@ export function InviteMemberDialog({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
   const { currentWorkspace, getAuthHeaders } = useAuth()
+  const { t } = useTranslation()
   
   const form = useForm<InviteFormData>({
     resolver: zodResolver(inviteSchema),
@@ -68,8 +70,8 @@ export function InviteMemberDialog({
   const handleInviteMember = async (data: InviteFormData) => {
     if (!currentWorkspace) {
       toast({
-        title: "Error",
-        description: "No workspace selected",
+        title: t("common.error"),
+        description: t("workspace.noWorkspaceSelected"),
         variant: "destructive",
       })
       return
@@ -88,8 +90,8 @@ export function InviteMemberDialog({
       if (response.ok) {
         const result = await response.json()
         toast({
-          title: "Invitation sent",
-          description: result.message || `Successfully invited ${data.email} to the workspace`,
+          title: t("team.invitationSent"),
+          description: result.message || t("team.invitationSentSuccess", { email: data.email }),
         })
         form.reset()
         onOpenChange(false)
@@ -97,8 +99,8 @@ export function InviteMemberDialog({
       } else {
         const error = await response.json()
         toast({
-          title: "Failed to send invitation",
-          description: error.error || "Failed to invite user",
+          title: t("team.invitationFailed"),
+          description: error.error || t("team.invitationFailed"),
           variant: "destructive",
         })
       }
@@ -120,10 +122,10 @@ export function InviteMemberDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
-            Invite Team Member
+            {t("team.inviteTeamMember")}
           </DialogTitle>
           <DialogDescription>
-            Send an invitation to join {currentWorkspace?.name || 'the workspace'}
+            {t("team.sendInvitationToJoin", { workspaceName: currentWorkspace?.name || 'workspace' })}
           </DialogDescription>
         </DialogHeader>
 
@@ -134,12 +136,12 @@ export function InviteMemberDialog({
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email Address</FormLabel>
+                  <FormLabel>{t("team.emailAddress")}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
-                        placeholder="Enter email address"
+                        placeholder={t("team.enterEmailAddress")}
                         className="pl-10"
                         {...field}
                       />
@@ -155,7 +157,7 @@ export function InviteMemberDialog({
               name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Role</FormLabel>
+                  <FormLabel>{t("team.role")}</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -163,8 +165,8 @@ export function InviteMemberDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="MEMBER">Member</SelectItem>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
+                      <SelectItem value="MEMBER">{t("team.member")}</SelectItem>
+                      <SelectItem value="ADMIN">{t("team.admin")}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -179,14 +181,14 @@ export function InviteMemberDialog({
                 onClick={() => onOpenChange(false)}
                 className="flex-1"
               >
-                Cancel
+                {t("team.cancel")}
               </Button>
               <Button 
                 type="submit" 
                 disabled={isSubmitting}
                 className="flex-1"
               >
-                {isSubmitting ? "Sending..." : "Send Invitation"}
+                {isSubmitting ? t("common.loading") : t("team.sendInvitation")}
               </Button>
             </div>
           </form>

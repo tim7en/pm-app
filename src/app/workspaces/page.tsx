@@ -111,7 +111,7 @@ export default function WorkspacesPage() {
             try {
               const [membersRes, projectsRes, tasksRes] = await Promise.all([
                 fetch(`/api/workspaces/${workspace.id}/members`),
-                fetch(`/api/projects?workspaceId=${workspace.id}`),
+                fetch(`/api/projects?workspaceId=${workspace.id}&includeCounts=true`),
                 fetch(`/api/tasks?workspaceId=${workspace.id}`)
               ])
 

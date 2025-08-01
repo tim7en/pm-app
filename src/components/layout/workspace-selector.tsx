@@ -27,10 +27,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Check, ChevronDown, Plus, Users, FolderOpen, Building2 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
+import { useTranslation } from "@/hooks/use-translation"
 
 export function WorkspaceSelector() {
   const { workspaces, currentWorkspace, setCurrentWorkspace, createWorkspace } = useAuth()
   const { toast } = useToast()
+  const { t } = useTranslation()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [formData, setFormData] = useState({
@@ -48,13 +50,13 @@ export function WorkspaceSelector() {
       setIsDialogOpen(false)
       setFormData({ name: "", description: "" })
       toast({
-        title: "Success",
-        description: "Workspace created successfully",
+        title: t("workspace.success"),
+        description: t("workspace.workspaceCreatedSuccessfully"),
       })
     } catch (error) {
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create workspace",
+        title: t("workspace.error"),
+        description: error instanceof Error ? error.message : t("workspace.failedToCreateWorkspace"),
         variant: "destructive",
       })
     } finally {
@@ -81,37 +83,37 @@ export function WorkspaceSelector() {
       <div className="p-3 border-b">
         <div className="text-center py-4">
           <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground mb-3">No workspaces found</p>
+          <p className="text-sm text-muted-foreground mb-3">{t("workspace.noWorkspacesFound")}</p>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" className="w-full">
                 <Plus className="w-4 h-4 mr-2" />
-                Create First Workspace
+                {t("workspace.createFirstWorkspace")}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Create Your First Workspace</DialogTitle>
+                <DialogTitle>{t("workspace.createYourFirstWorkspace")}</DialogTitle>
                 <DialogDescription>
-                  Create a workspace to organize your projects and collaborate with your team.
+                  {t("workspace.createWorkspaceToOrganize")}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleCreateWorkspace} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Workspace Name *</Label>
+                  <Label htmlFor="name">{t("workspace.workspaceNameRequired")}</Label>
                   <Input
                     id="name"
-                    placeholder="e.g. My Company, Personal Projects"
+                    placeholder={t("workspace.workspaceNamePlaceholder")}
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description (Optional)</Label>
+                  <Label htmlFor="description">{t("workspace.descriptionOptional")}</Label>
                   <Textarea
                     id="description"
-                    placeholder="What's this workspace for?"
+                    placeholder={t("workspace.workspaceDescriptionPlaceholder")}
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     rows={2}
@@ -123,10 +125,10 @@ export function WorkspaceSelector() {
                     variant="outline"
                     onClick={() => setIsDialogOpen(false)}
                   >
-                    Cancel
+                    {t("workspace.cancel")}
                   </Button>
                   <Button type="submit" disabled={isCreating || !formData.name.trim()}>
-                    {isCreating ? "Creating..." : "Create Workspace"}
+                    {isCreating ? t("workspace.creating") : t("workspace.createWorkspace")}
                   </Button>
                 </DialogFooter>
               </form>
@@ -142,7 +144,7 @@ export function WorkspaceSelector() {
     return (
       <div className="p-3 border-b">
         <div className="text-center py-2">
-          <p className="text-sm text-muted-foreground">Loading workspace...</p>
+          <p className="text-sm text-muted-foreground">{t("workspace.loadingWorkspace")}</p>
         </div>
       </div>
     )
@@ -166,7 +168,7 @@ export function WorkspaceSelector() {
                     {currentWorkspace.role}
                   </Badge>
                   <span>•</span>
-                  <span>{currentWorkspace.memberCount} members</span>
+                  <span>{currentWorkspace.memberCount} {t("workspace.members")}</span>
                 </div>
               </div>
             </div>
@@ -177,7 +179,7 @@ export function WorkspaceSelector() {
           <DropdownMenuLabel className="px-2 py-1.5">
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
-              Switch Workspace
+              {t("workspace.switchWorkspace")}
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -224,32 +226,32 @@ export function WorkspaceSelector() {
             <DialogTrigger asChild>
               <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
                 <Plus className="w-4 h-4 mr-2" />
-                Create New Workspace
+                {t("workspace.createNewWorkspace")}
               </DropdownMenuItem>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Create New Workspace</DialogTitle>
+                <DialogTitle>{t("workspace.createNewWorkspace")}</DialogTitle>
                 <DialogDescription>
-                  Create a new workspace to organize your projects and collaborate with your team.
+                  {t("workspace.createNewWorkspaceToOrganize")}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleCreateWorkspace} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Workspace Name *</Label>
+                  <Label htmlFor="name">{t("workspace.workspaceNameRequired")}</Label>
                   <Input
                     id="name"
-                    placeholder="e.g. My Company, Personal Projects"
+                    placeholder={t("workspace.workspaceNamePlaceholder")}
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description (Optional)</Label>
+                  <Label htmlFor="description">{t("workspace.descriptionOptional")}</Label>
                   <Textarea
                     id="description"
-                    placeholder="What's this workspace for?"
+                    placeholder={t("workspace.workspaceDescriptionPlaceholder")}
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     rows={2}
@@ -261,10 +263,10 @@ export function WorkspaceSelector() {
                     variant="outline"
                     onClick={() => setIsDialogOpen(false)}
                   >
-                    Cancel
+                    {t("workspace.cancel")}
                   </Button>
                   <Button type="submit" disabled={isCreating || !formData.name.trim()}>
-                    {isCreating ? "Creating..." : "Create Workspace"}
+                    {isCreating ? t("workspace.creating") : t("workspace.createWorkspace")}
                   </Button>
                 </DialogFooter>
               </form>

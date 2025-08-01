@@ -110,7 +110,7 @@ export const useDashboardData = () => {
     if (!currentWorkspaceId) return []
     
     try {
-      const response = await fetch(`/api/projects?workspaceId=${currentWorkspaceId}`)
+      const response = await fetch(`/api/projects?workspaceId=${currentWorkspaceId}&includeCounts=true`)
       if (response.ok) {
         const data = await response.json()
         setProjects(data)

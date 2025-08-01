@@ -50,22 +50,26 @@ const interpolate = (template: string, values: { [key: string]: string | number 
 }
 
 export const useTranslation = (namespace = 'common'): UseTranslationReturn => {
-  const [currentLanguage, setCurrentLanguage] = useState(() => {
-    // Get language from localStorage or default to Russian
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('language') || 'ru'
-    }
-    return 'ru'
-  })
+  const [currentLanguage, setCurrentLanguage] = useState('ru') // Always start with default
   const [translationData, setTranslationData] = useState<any>({})
+  const [isHydrated, setIsHydrated] = useState(false)
 
   useEffect(() => {
-    console.log('Loading translations for language:', currentLanguage)
-    loadTranslations(currentLanguage).then(data => {
-      console.log('Translations loaded:', data)
-      setTranslationData(data)
-    })
-  }, [currentLanguage])
+    // Handle hydration and get language from localStorage
+    const storedLanguage = localStorage.getItem('language') || 'ru'
+    setCurrentLanguage(storedLanguage)
+    setIsHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (isHydrated) {
+      console.log('Loading translations for language:', currentLanguage)
+      loadTranslations(currentLanguage).then(data => {
+        console.log('Translations loaded:', data)
+        setTranslationData(data)
+      })
+    }
+  }, [currentLanguage, isHydrated])
 
   const t: TranslationFunction = (key: string, options = {}) => {
     const translation = getNestedValue(translationData, key)

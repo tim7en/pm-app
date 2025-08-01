@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { useAuth } from "@/contexts/AuthContext"
+import { useTranslation } from "@/hooks/use-translation"
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -169,6 +170,7 @@ interface CalendarDay {
 }
 
 export default function CalendarPage() {
+  const { t } = useTranslation()
   const { currentWorkspaceId, isAuthenticated } = useAuth()
   const { toast } = useToast()
   const [tasks, setTasks] = useState<Task[]>([])
@@ -181,22 +183,6 @@ export default function CalendarPage() {
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  // Early return if not authenticated
-  if (!isAuthenticated || !currentWorkspaceId) {
-    return (
-      <div className="flex h-screen bg-background">
-        <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
-          <Card>
-            <CardContent className="p-6">
-              <p className="text-muted-foreground">Please select a workspace to access the calendar.</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )
-  }
 
   const form = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
@@ -238,10 +224,28 @@ export default function CalendarPage() {
   }, [editingEvent, form])
 
   useEffect(() => {
-    fetchTasks()
-    fetchProjects()
-    fetchEvents()
-  }, [])
+    if (isAuthenticated && currentWorkspaceId) {
+      fetchTasks()
+      fetchProjects()
+      fetchEvents()
+    }
+  }, [isAuthenticated, currentWorkspaceId])
+
+  // Early return if not authenticated
+  if (!isAuthenticated || !currentWorkspaceId) {
+    return (
+      <div className="flex h-screen bg-background">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-muted-foreground">Please select a workspace to access the calendar.</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
 
   const handleCreateEvent = async (data: EventFormData) => {
     setIsSubmitting(true)
@@ -561,8 +565,8 @@ export default function CalendarPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold">Calendar</h1>
-                <p className="text-muted-foreground mt-1">View deadlines and schedule</p>
+                <h1 className="text-3xl font-bold">{t("calendar.calendar")}</h1>
+                <p className="text-muted-foreground mt-1">{t("calendar.viewDeadlines")}</p>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
@@ -578,7 +582,7 @@ export default function CalendarPage() {
                 </div>
                 <Button size="sm" onClick={() => setEventDialogOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" />
-                  New Event
+                  {t("calendar.newEvent")}
                 </Button>
               </div>
             </div>
@@ -591,7 +595,7 @@ export default function CalendarPage() {
                     <CalendarIcon className="h-4 w-4 text-blue-500" />
                     <div>
                       <p className="text-2xl font-bold">{tasks.filter(t => t.dueDate).length}</p>
-                      <p className="text-xs text-muted-foreground">Tasks with Deadlines</p>
+                      <p className="text-xs text-muted-foreground">{t("calendar.tasksWithDeadlines")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -603,7 +607,7 @@ export default function CalendarPage() {
                     <Clock className="h-4 w-4 text-orange-500" />
                     <div>
                       <p className="text-2xl font-bold">{upcomingDeadlines.length}</p>
-                      <p className="text-xs text-muted-foreground">Upcoming Deadlines</p>
+                      <p className="text-xs text-muted-foreground">{t("calendar.upcomingDeadlines")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -615,7 +619,7 @@ export default function CalendarPage() {
                     <Circle className="h-4 w-4 text-red-500" />
                     <div>
                       <p className="text-2xl font-bold">{overdueTasks.length}</p>
-                      <p className="text-xs text-muted-foreground">Overdue Tasks</p>
+                      <p className="text-xs text-muted-foreground">{t("calendar.overdueTasks")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -629,7 +633,7 @@ export default function CalendarPage() {
                       <p className="text-2xl font-bold">
                         {tasks.filter(t => t.dueDate && t.status === TaskStatus.DONE).length}
                       </p>
-                      <p className="text-xs text-muted-foreground">Completed on Time</p>
+                      <p className="text-xs text-muted-foreground">{t("calendar.completedOnTime")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -898,7 +902,7 @@ export default function CalendarPage() {
                 {overdueTasks.length > 0 && (
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg text-red-600">Overdue Tasks</CardTitle>
+                      <CardTitle className="text-lg text-red-600">{t("calendar.overdueTasks")}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
@@ -933,12 +937,12 @@ export default function CalendarPage() {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>
-              {editingEvent ? 'Edit Event' : 'Create New Event'}
+              {editingEvent ? t("calendar.editEvent") : t("calendar.createNewEvent")}
             </DialogTitle>
             <DialogDescription>
               {editingEvent 
-                ? 'Update the event details below' 
-                : 'Schedule a new event, meeting, or call'
+                ? t("calendar.updateEventDetails") 
+                : t("calendar.scheduleNewEvent")
               }
             </DialogDescription>
           </DialogHeader>
@@ -950,9 +954,9 @@ export default function CalendarPage() {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Event Title</FormLabel>
+                    <FormLabel>{t("calendar.eventTitle")}</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter event title" {...field} />
+                      <Input placeholder={t("calendar.enterEventTitle")} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -964,10 +968,10 @@ export default function CalendarPage() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>{t("calendar.description")}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Enter event description"
+                        placeholder={t("calendar.enterEventDescription")}
                         className="resize-none"
                         rows={3}
                         {...field}
@@ -984,7 +988,7 @@ export default function CalendarPage() {
                   name="startTime"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Start Time</FormLabel>
+                      <FormLabel>{t("calendar.startTime")}</FormLabel>
                       <DateTimePicker
                         date={field.value}
                         setDate={field.onChange}
@@ -1000,7 +1004,7 @@ export default function CalendarPage() {
                   name="endTime"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>End Time</FormLabel>
+                      <FormLabel>{t("calendar.endTime")}</FormLabel>
                       <DateTimePicker
                         date={field.value}
                         setDate={field.onChange}
@@ -1018,7 +1022,7 @@ export default function CalendarPage() {
                   name="type"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Event Type</FormLabel>
+                      <FormLabel>{t("calendar.eventType")}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -1029,25 +1033,25 @@ export default function CalendarPage() {
                           <SelectItem value="meeting">
                             <div className="flex items-center gap-2">
                               <Users className="h-4 w-4" />
-                              Meeting
+                              {t("calendar.meeting")}
                             </div>
                           </SelectItem>
                           <SelectItem value="call">
                             <div className="flex items-center gap-2">
                               <Phone className="h-4 w-4" />
-                              Call
+                              {t("calendar.call")}
                             </div>
                           </SelectItem>
                           <SelectItem value="deadline">
                             <div className="flex items-center gap-2">
                               <Target className="h-4 w-4" />
-                              Deadline
+                              {t("calendar.deadline")}
                             </div>
                           </SelectItem>
                           <SelectItem value="reminder">
                             <div className="flex items-center gap-2">
                               <Bell className="h-4 w-4" />
-                              Reminder
+                              {t("calendar.reminder")}
                             </div>
                           </SelectItem>
                         </SelectContent>
@@ -1062,9 +1066,9 @@ export default function CalendarPage() {
                   name="location"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Location</FormLabel>
+                      <FormLabel>{t("calendar.location")}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter location" {...field} />
+                        <Input placeholder={t("calendar.enterLocation")} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1078,9 +1082,9 @@ export default function CalendarPage() {
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
                     <div className="space-y-0.5">
-                      <FormLabel>Send Notifications</FormLabel>
+                      <FormLabel>{t("calendar.sendNotifications")}</FormLabel>
                       <FormDescription className="text-sm">
-                        Send email notifications for this event
+                        {t("calendar.sendEmailNotifications")}
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -1102,12 +1106,12 @@ export default function CalendarPage() {
                     setEditingEvent(null)
                   }}
                 >
-                  Cancel
+                  {t("calendar.cancel")}
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting 
-                    ? (editingEvent ? "Updating..." : "Creating...") 
-                    : (editingEvent ? "Update Event" : "Create Event")
+                    ? (editingEvent ? t("calendar.updating") : t("calendar.creating")) 
+                    : (editingEvent ? t("calendar.updateEvent") : t("calendar.createEvent"))
                   }
                 </Button>
               </DialogFooter>

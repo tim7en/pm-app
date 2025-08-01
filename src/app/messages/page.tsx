@@ -9,9 +9,11 @@ import { MessagesErrorBoundary } from "@/components/messages/MessagesErrorBounda
 import { useMessenger } from "@/hooks/use-messenger"
 import { useAuth } from "@/contexts/AuthContext"
 import { Card, CardContent } from "@/components/ui/card"
+import { useTranslation } from "@/hooks/use-translation"
 
 export default function MessagesPage() {
   const { isAuthenticated, currentWorkspaceId } = useAuth()
+  const { t } = useTranslation()
   
   // Early return if not authenticated
   if (!isAuthenticated || !currentWorkspaceId) {
@@ -21,7 +23,7 @@ export default function MessagesPage() {
         <div className="flex-1 flex items-center justify-center">
           <Card>
             <CardContent className="p-6">
-              <p className="text-muted-foreground">Please select a workspace to access messages.</p>
+              <p className="text-muted-foreground">{t("messages.pleaseSelectWorkspace")}</p>
             </CardContent>
           </Card>
         </div>
@@ -81,7 +83,7 @@ export default function MessagesPage() {
           }
         ],
         lastMessage: {
-          content: 'Start a new conversation',
+          content: t("messages.startNewConversation"),
           timestamp: new Date(),
           senderId: 'current-user'
         },

@@ -29,6 +29,7 @@ import {
   Zap
 } from "lucide-react"
 import { ProjectStatus } from "@prisma/client"
+import { useTranslation } from "@/hooks/use-translation"
 
 interface ProjectCardProps {
   project: {
@@ -68,12 +69,6 @@ const statusColors = {
   [ProjectStatus.COMPLETED]: "bg-blue-100 text-blue-800",
 }
 
-const statusLabels = {
-  [ProjectStatus.ACTIVE]: "Active",
-  [ProjectStatus.ARCHIVED]: "Archived",
-  [ProjectStatus.COMPLETED]: "Completed",
-}
-
 export function ProjectCard({ 
   project, 
   onEdit, 
@@ -83,10 +78,24 @@ export function ProjectCard({
   onGenerateInsights,
   currentUserId 
 }: ProjectCardProps) {
+  const { t } = useTranslation()
+  
+  // Debug logging to check project data
+  console.log('ProjectCard project data:', {
+    id: project.id,
+    name: project.name,
+    taskCount: project.taskCount,
+    completedTaskCount: project.completedTaskCount
+  })
+  
+  const statusLabels = {
+    [ProjectStatus.ACTIVE]: t("projects.active"),
+    [ProjectStatus.ARCHIVED]: t("projects.archived"), 
+    [ProjectStatus.COMPLETED]: t("projects.completed"),
+  }
+  
   // const [aiAssessment, setAiAssessment] = useState<any>(null)
-  // const [loadingAssessment, setLoadingAssessment] = useState(false)
-
-  // AI assessment disabled due to API key issues
+  // const [loadingAssessment, setLoadingAssessment] = useState(false)  // AI assessment disabled due to API key issues
   // // Generate AI assessment on hover for active projects
   // useEffect(() => {
   //   if (project.status === ProjectStatus.ACTIVE && (project.taskCount || 0) > 0) {
@@ -149,13 +158,13 @@ export function ProjectCard({
                     {currentUserId && project.owner?.id === currentUserId && (
                       <Badge variant="outline" className="text-xs text-amber-600 border-amber-200 flex-shrink-0">
                         <Crown className="h-3 w-3 mr-1" />
-                        Creator
+                        {t("projects.creator")}
                       </Badge>
                     )}
                     {currentUserId && project.owner?.id !== currentUserId && (
                       <Badge variant="outline" className="text-xs text-blue-600 border-blue-200 flex-shrink-0">
                         <UserCheck className="h-3 w-3 mr-1" />
-                        Member
+                        {t("projects.member")}
                       </Badge>
                     )}
                   </div>
@@ -196,15 +205,15 @@ export function ProjectCard({
         {/* Progress */}
         <div className="mb-4">
           <div className="flex items-center justify-between text-sm mb-2">
-            <span className="text-muted-foreground">Progress</span>
+            <span className="text-muted-foreground">{t("projects.progress")}</span>
             <span className="font-medium">{progressPercentage}%</span>
           </div>
           <Progress value={progressPercentage} className="h-2" />
           <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
-            <span>{project.completedTaskCount || 0} of {project.taskCount || 0} tasks</span>
+            <span>{project.completedTaskCount || 0} {t("projects.of")} {project.taskCount || 0} {t("projects.tasks")}</span>
             <div className="flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3" />
-              <span>{Math.round(((project.completedTaskCount || 0) / (project.taskCount || 1)) * 100)}% complete</span>
+              <span>{progressPercentage}% {t("projects.complete")}</span>
             </div>
           </div>
         </div>
@@ -258,8 +267,8 @@ export function ProjectCard({
           {project.dueDate && (
             <div className={`flex items-center gap-2 text-sm ${isOverdue ? 'text-red-500' : 'text-muted-foreground'}`}>
               <Calendar className="h-4 w-4" />
-              <span>Due {formatDate(project.dueDate)}</span>
-              {isOverdue && <Badge variant="destructive" className="text-xs">Overdue</Badge>}
+              <span>{t("projects.due")} {formatDate(project.dueDate)}</span>
+              {isOverdue && <Badge variant="destructive" className="text-xs">{t("projects.overdue")}</Badge>}
             </div>
           )}
 
@@ -268,7 +277,7 @@ export function ProjectCard({
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">
-                {project.memberCount || 0} member{(project.memberCount || 0) !== 1 ? 's' : ''}
+                {project.memberCount || 0} {t("projects.members", { count: project.memberCount || 0 })}
               </span>
             </div>
             <div className="flex -space-x-2">
@@ -293,7 +302,7 @@ export function ProjectCard({
             <div className="pt-2 border-t">
               <div className="flex items-center gap-2 mb-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Recent activity</span>
+                <span className="text-sm text-muted-foreground">{t("projects.recentActivity")}</span>
               </div>
               <div className="space-y-1">
                 {project.recentActivity.slice(0, 2).map((activity) => (
@@ -317,7 +326,7 @@ export function ProjectCard({
               onViewTasks?.(project.id)
             }}
           >
-            View Tasks
+            {t("projects.viewTasks")}
           </Button>
           <Button 
             variant="outline" 
@@ -344,17 +353,17 @@ export function ProjectCard({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onEdit?.(project)}>
-                Edit Project
+                {t("projects.editProject")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onToggleStar?.(project.id)}>
-                {project.isStarred ? 'Remove from Favorites' : 'Add to Favorites'}
+                {project.isStarred ? t("projects.removeFromFavorites") : t("projects.addToFavorites")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 onClick={() => onDelete?.(project.id)}
                 className="text-red-600"
               >
-                Delete Project
+                {t("projects.deleteProject")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

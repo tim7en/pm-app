@@ -42,6 +42,7 @@ import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { TaskStatus, Priority } from "@prisma/client"
 import { useAuth } from "@/contexts/AuthContext"
+import { useTranslation } from "@/hooks/use-translation"
 import { TaskAttachments } from "./task-attachments"
 
 const taskSchema = z.object({
@@ -122,6 +123,7 @@ export function TaskDialog({
   isSubmitting = false,
 }: TaskDialogProps) {
   const { user, currentWorkspace } = useAuth()
+  const { t } = useTranslation()
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMember[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
@@ -255,12 +257,12 @@ export function TaskDialog({
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {task ? "Edit Task" : "Create New Task"}
+            {task ? t("tasks.editTask") : t("tasks.createNewTask")}
           </DialogTitle>
           <DialogDescription>
             {task
-              ? "Update the task details below."
-              : "Fill in the details to create a new task."}
+              ? t("tasks.updateTaskDetailsBelow")
+              : t("tasks.fillDetailsToCreateTask")}
           </DialogDescription>
         </DialogHeader>
 
@@ -271,9 +273,9 @@ export function TaskDialog({
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Task Title</FormLabel>
+                  <FormLabel>{t("tasks.taskTitle")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter task title" {...field} />
+                    <Input placeholder={t("tasks.enterTaskTitle")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -285,10 +287,10 @@ export function TaskDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>{t("tasks.taskDescription")}</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Enter task description"
+                      placeholder={t("tasks.enterTaskDescription")}
                       className="resize-none"
                       rows={3}
                       {...field}
@@ -305,11 +307,11 @@ export function TaskDialog({
                 name="projectId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Project</FormLabel>
+                    <FormLabel>{t("tasks.project")}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a project" />
+                          <SelectValue placeholder={t("tasks.selectProject")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -342,15 +344,15 @@ export function TaskDialog({
                 name="assigneeId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Assignee</FormLabel>
+                    <FormLabel>{t("tasks.assignee")}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={loadingMembers ? "Loading..." : "Select assignee"} />
+                          <SelectValue placeholder={loadingMembers ? t("common.loading") : t("tasks.selectAssignee")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        <SelectItem value="unassigned">{t("tasks.unassigned")}</SelectItem>
                         {form.watch("projectId") ? (
                           availableAssignees.length > 0 ? (
                             availableAssignees.map((member) => (
@@ -389,18 +391,18 @@ export function TaskDialog({
                 name="priority"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Priority</FormLabel>
+                    <FormLabel>{t("tasks.priority")}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select priority" />
+                          <SelectValue placeholder={t("tasks.selectPriority")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value={Priority.LOW}>Low</SelectItem>
-                        <SelectItem value={Priority.MEDIUM}>Medium</SelectItem>
-                        <SelectItem value={Priority.HIGH}>High</SelectItem>
-                        <SelectItem value={Priority.URGENT}>Urgent</SelectItem>
+                        <SelectItem value={Priority.LOW}>{t("tasks.low")}</SelectItem>
+                        <SelectItem value={Priority.MEDIUM}>{t("tasks.medium")}</SelectItem>
+                        <SelectItem value={Priority.HIGH}>{t("tasks.high")}</SelectItem>
+                        <SelectItem value={Priority.URGENT}>{t("tasks.urgent")}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -413,18 +415,18 @@ export function TaskDialog({
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Status</FormLabel>
+                    <FormLabel>{t("tasks.status")}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
+                          <SelectValue placeholder={t("tasks.selectStatus")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value={TaskStatus.TODO}>To Do</SelectItem>
-                        <SelectItem value={TaskStatus.IN_PROGRESS}>In Progress</SelectItem>
-                        <SelectItem value={TaskStatus.REVIEW}>Review</SelectItem>
-                        <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
+                        <SelectItem value={TaskStatus.TODO}>{t("tasks.todo")}</SelectItem>
+                        <SelectItem value={TaskStatus.IN_PROGRESS}>{t("tasks.inProgress")}</SelectItem>
+                        <SelectItem value={TaskStatus.REVIEW}>{t("tasks.review")}</SelectItem>
+                        <SelectItem value={TaskStatus.DONE}>{t("tasks.done")}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -438,7 +440,7 @@ export function TaskDialog({
               name="dueDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Due Date</FormLabel>
+                  <FormLabel>{t("tasks.dueDate")}</FormLabel>
                   <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -452,7 +454,7 @@ export function TaskDialog({
                           {field.value ? (
                             format(field.value, "PPP")
                           ) : (
-                            <span>Pick a date</span>
+                            <span>{t("tasks.pickDate")}</span>
                           )}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
@@ -477,7 +479,7 @@ export function TaskDialog({
 
             {/* Tags */}
             <div>
-              <FormLabel>Tags</FormLabel>
+              <FormLabel>{t("tasks.tags")}</FormLabel>
               <div className="space-y-2">
                 {tagFields.map((field, index) => (
                   <div key={field.id} className="flex items-center gap-2">
@@ -487,7 +489,7 @@ export function TaskDialog({
                       render={({ field }) => (
                         <FormItem className="flex-1">
                           <FormControl>
-                            <Input placeholder="Tag name" {...field} />
+                            <Input placeholder={t("tasks.tagName")} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -538,14 +540,14 @@ export function TaskDialog({
                   onClick={() => appendTag({ name: "", color: "#3b82f6" })}
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Tag
+                  {t("tasks.addTag")}
                 </Button>
               </div>
             </div>
 
             {/* Subtasks */}
             <div>
-              <FormLabel>Subtasks</FormLabel>
+              <FormLabel>{t("tasks.subtasks")}</FormLabel>
               <div className="space-y-2">
                 {subtaskFields.map((field, index) => (
                   <div key={field.id} className="flex items-center gap-2">
@@ -555,7 +557,7 @@ export function TaskDialog({
                       render={({ field }) => (
                         <FormItem className="flex-1">
                           <FormControl>
-                            <Input placeholder="Subtask title" {...field} />
+                            <Input placeholder={t("tasks.subtaskTitle")} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -578,7 +580,7 @@ export function TaskDialog({
                   onClick={() => appendSubtask({ title: "", isCompleted: false })}
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Subtask
+                  {t("tasks.addSubtask")}
                 </Button>
               </div>
             </div>
@@ -586,7 +588,7 @@ export function TaskDialog({
             {/* Attachments - only show for existing tasks */}
             {task && (
               <div>
-                <FormLabel>Attachments</FormLabel>
+                <FormLabel>{t("tasks.attachments")}</FormLabel>
                 <TaskAttachments taskId={task.id} />
               </div>
             )}
@@ -598,10 +600,10 @@ export function TaskDialog({
                 onClick={() => onOpenChange(false)}
                 disabled={isSubmitting}
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : task ? "Update" : "Create"}
+                {isSubmitting ? t("common.loading") : task ? t("common.update") : t("common.create")}
               </Button>
             </DialogFooter>
           </form>

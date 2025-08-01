@@ -97,7 +97,7 @@ export default function WorkspaceSettingsPage() {
       // Fetch members, projects, and tasks counts
       const [membersResponse, projectsResponse, tasksResponse] = await Promise.all([
         fetch(`/api/workspaces/${currentWorkspace.id}/members`),
-        fetch(`/api/projects?workspaceId=${currentWorkspace.id}`),
+        fetch(`/api/projects?workspaceId=${currentWorkspace.id}&includeCounts=true`),
         fetch(`/api/tasks?workspaceId=${currentWorkspace.id}`)
       ])
 

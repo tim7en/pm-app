@@ -16,6 +16,7 @@ import { TaskDialog } from "@/components/tasks/task-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { useAPI } from "@/hooks/use-api"
 import { useAuth } from "@/contexts/AuthContext"
+import { useTranslation } from "@/hooks/use-translation"
 import { 
   Plus, 
   Search, 
@@ -69,6 +70,7 @@ export default function TasksPage() {
   const { toast } = useToast()
   const { apiCall } = useAPI()
   const { isAuthenticated, isLoading, currentWorkspace, user } = useAuth()
+  const { t } = useTranslation()
   const [tasks, setTasks] = useState<Task[]>([])
   const [projects, setProjects] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
@@ -136,7 +138,7 @@ export default function TasksPage() {
     if (!currentWorkspace) return
     
     try {
-      const response = await apiCall(`/api/projects?workspaceId=${currentWorkspace.id}`)
+      const response = await apiCall(`/api/projects?workspaceId=${currentWorkspace.id}&includeCounts=true`)
       if (response.ok) {
         const data = await response.json()
         setProjects(data)
@@ -335,13 +337,13 @@ export default function TasksPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold">My Tasks</h1>
-                <p className="text-muted-foreground mt-1">Manage and track all your tasks</p>
+                <h1 className="text-3xl font-bold">{t("tasks.myTasks")}</h1>
+                <p className="text-muted-foreground mt-1">{t("tasks.taskManagement")}</p>
               </div>
               <div className="flex items-center gap-4">
                 <Button variant="outline" size="sm">
                   <Filter className="w-4 h-4 mr-2" />
-                  Filter
+                  {t("common.filter")}
                 </Button>
               </div>
             </div>
@@ -354,7 +356,7 @@ export default function TasksPage() {
                     <Circle className="h-4 w-4 text-gray-500" />
                     <div>
                       <p className="text-2xl font-bold">{taskStats.todo}</p>
-                      <p className="text-xs text-muted-foreground">To Do</p>
+                      <p className="text-xs text-muted-foreground">{t("tasks.todo")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -366,7 +368,7 @@ export default function TasksPage() {
                     <Circle className="h-4 w-4 text-blue-500" />
                     <div>
                       <p className="text-2xl font-bold">{taskStats.inProgress}</p>
-                      <p className="text-xs text-muted-foreground">In Progress</p>
+                      <p className="text-xs text-muted-foreground">{t("tasks.inProgress")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -378,7 +380,7 @@ export default function TasksPage() {
                     <Circle className="h-4 w-4 text-yellow-500" />
                     <div>
                       <p className="text-2xl font-bold">{taskStats.review}</p>
-                      <p className="text-xs text-muted-foreground">Review</p>
+                      <p className="text-xs text-muted-foreground">{t("tasks.review")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -390,7 +392,7 @@ export default function TasksPage() {
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
                     <div>
                       <p className="text-2xl font-bold">{taskStats.done}</p>
-                      <p className="text-xs text-muted-foreground">Done</p>
+                      <p className="text-xs text-muted-foreground">{t("tasks.done")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -412,14 +414,14 @@ export default function TasksPage() {
             {/* Filters */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Filters</CardTitle>
+                <CardTitle className="text-sm">{t("common.filter")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input
-                      placeholder="Search tasks..."
+                      placeholder={t("tasks.searchTasks")}
                       value={filters.search}
                       onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                       className="pl-10"
@@ -428,37 +430,37 @@ export default function TasksPage() {
                   
                   <Select value={filters.status} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Status" />
+                      <SelectValue placeholder={t("tasks.status")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value={TaskStatus.TODO}>To Do</SelectItem>
-                      <SelectItem value={TaskStatus.IN_PROGRESS}>In Progress</SelectItem>
-                      <SelectItem value={TaskStatus.REVIEW}>Review</SelectItem>
-                      <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
+                      <SelectItem value="all">{t("tasks.allStatuses")}</SelectItem>
+                      <SelectItem value={TaskStatus.TODO}>{t("tasks.todo")}</SelectItem>
+                      <SelectItem value={TaskStatus.IN_PROGRESS}>{t("tasks.inProgress")}</SelectItem>
+                      <SelectItem value={TaskStatus.REVIEW}>{t("tasks.review")}</SelectItem>
+                      <SelectItem value={TaskStatus.DONE}>{t("tasks.done")}</SelectItem>
                     </SelectContent>
                   </Select>
                   
                   <Select value={filters.priority} onValueChange={(value) => setFilters(prev => ({ ...prev, priority: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Priority" />
+                      <SelectValue placeholder={t("tasks.priority")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Priority</SelectItem>
-                      <SelectItem value={Priority.LOW}>Low</SelectItem>
-                      <SelectItem value={Priority.MEDIUM}>Medium</SelectItem>
-                      <SelectItem value={Priority.HIGH}>High</SelectItem>
-                      <SelectItem value={Priority.URGENT}>Urgent</SelectItem>
+                      <SelectItem value="all">{t("tasks.allPriorities")}</SelectItem>
+                      <SelectItem value={Priority.LOW}>{t("tasks.low")}</SelectItem>
+                      <SelectItem value={Priority.MEDIUM}>{t("tasks.medium")}</SelectItem>
+                      <SelectItem value={Priority.HIGH}>{t("tasks.high")}</SelectItem>
+                      <SelectItem value={Priority.URGENT}>{t("tasks.urgent")}</SelectItem>
                     </SelectContent>
                   </Select>
                   
                   <Select value={filters.assignee} onValueChange={(value) => setFilters(prev => ({ ...prev, assignee: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Assignee" />
+                      <SelectValue placeholder={t("tasks.assignee")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Assignees</SelectItem>
-                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      <SelectItem value="all">{t("tasks.allAssignees")}</SelectItem>
+                      <SelectItem value="unassigned">{t("tasks.unassigned")}</SelectItem>
                       {users.map(user => (
                         <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                       ))}
@@ -467,10 +469,10 @@ export default function TasksPage() {
                   
                   <Select value={filters.project} onValueChange={(value) => setFilters(prev => ({ ...prev, project: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Project" />
+                      <SelectValue placeholder={t("tasks.project")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Projects</SelectItem>
+                      <SelectItem value="all">{t("tasks.allProjects")}</SelectItem>
                       {projects.map(project => (
                         <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
                       ))}
@@ -484,8 +486,8 @@ export default function TasksPage() {
             <Tabs value={taskView} onValueChange={(value) => setTaskView(value as "list" | "board")}>
               <div className="flex items-center justify-between">
                 <TabsList>
-                  <TabsTrigger value="list">List View</TabsTrigger>
-                  <TabsTrigger value="board">Board View</TabsTrigger>
+                  <TabsTrigger value="list">{t("tasks.listView")}</TabsTrigger>
+                  <TabsTrigger value="board">{t("tasks.boardView")}</TabsTrigger>
                 </TabsList>
                 
                 <div className="text-sm text-muted-foreground">
