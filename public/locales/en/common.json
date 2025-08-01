@@ -272,6 +272,8 @@
     "allProjects": "All Projects",
     "listView": "List",
     "boardView": "Board",
+    "ganttView": "Gantt",
+    "ganttChart": "Gantt Chart",
     "todo": "To Do",
     "inProgress": "In Progress",
     "review": "Review",

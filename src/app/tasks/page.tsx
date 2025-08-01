@@ -12,6 +12,7 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { TaskList } from "@/components/tasks/task-list"
 import { TaskBoard } from "@/components/tasks/task-board"
+import { TaskGantt } from "@/components/tasks/task-gantt"
 import { TaskDialog } from "@/components/tasks/task-dialog"
 import { TaskReassignDialog } from "@/components/tasks/task-reassign-dialog"
 import { useToast } from "@/hooks/use-toast"
@@ -85,7 +86,7 @@ export default function TasksPage() {
     taskTitle: string
     currentAssigneeId?: string
   } | null>(null)
-  const [taskView, setTaskView] = useState<"list" | "board">("list")
+  const [taskView, setTaskView] = useState<"list" | "board" | "gantt">("list")
   const [filters, setFilters] = useState({
     search: "",
     status: "all",
@@ -157,15 +158,31 @@ export default function TasksPage() {
   }
 
   const fetchUsers = async () => {
+    if (!currentWorkspace) return
+    
     try {
-      const mockUsers = [
-        { id: "1", name: "John Doe", avatar: "" },
-        { id: "2", name: "Jane Smith", avatar: "" },
-        { id: "3", name: "Mike Johnson", avatar: "" }
-      ]
-      setUsers(mockUsers)
+      const response = await apiCall(`/api/workspaces/${currentWorkspace.id}/members`)
+      if (response.ok) {
+        const data = await response.json()
+        // Transform the workspace members data to match the expected format
+        const users = data.map((member: any) => ({
+          id: member.user.id,
+          name: member.user.name || member.user.email,
+          email: member.user.email,
+          avatar: member.user.avatar || "",
+          role: member.role,
+          joinedAt: member.joinedAt
+        }))
+        setUsers(users)
+      } else {
+        console.error('Failed to fetch workspace members:', response.status, response.statusText)
+        // Fallback to empty array if API fails
+        setUsers([])
+      }
     } catch (error) {
-      console.error('Error fetching users:', error)
+      console.error('Error fetching workspace members:', error)
+      // Fallback to empty array if API fails
+      setUsers([])
     }
   }
 
@@ -508,11 +525,12 @@ export default function TasksPage() {
             </Card>
 
             {/* Task View */}
-            <Tabs value={taskView} onValueChange={(value) => setTaskView(value as "list" | "board")}>
+            <Tabs value={taskView} onValueChange={(value) => setTaskView(value as "list" | "board" | "gantt")}>
               <div className="flex items-center justify-between">
                 <TabsList>
                   <TabsTrigger value="list">{t("tasks.listView")}</TabsTrigger>
                   <TabsTrigger value="board">{t("tasks.boardView")}</TabsTrigger>
+                  <TabsTrigger value="gantt">{t("tasks.ganttView")}</TabsTrigger>
                 </TabsList>
                 
                 <div className="text-sm text-muted-foreground">
@@ -549,6 +567,19 @@ export default function TasksPage() {
                   onTaskDelete={handleDeleteTask}
                   onCreateTask={(status) => {
                     setInitialTaskStatus(status)
+                    setTaskDialogOpen(true)
+                  }}
+                  currentUserId={user?.id}
+                />
+              </TabsContent>
+
+              <TabsContent value="gantt" className="mt-6">
+                <TaskGantt 
+                  tasks={filteredTasks}
+                  onTaskUpdate={handleTaskUpdate}
+                  onTaskDelete={handleDeleteTask}
+                  onTaskEdit={(task) => {
+                    setEditingTask(task)
                     setTaskDialogOpen(true)
                   }}
                   currentUserId={user?.id}

@@ -1,8 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState } from "react"
-
-type UIScale = "xs" | "small" | "medium" | "large" | "xl"
+import { getSetting, type UIScale } from "@/lib/settings-storage"
 
 interface UIScaleContextType {
   scale: UIScale
@@ -134,7 +133,13 @@ interface UIScaleProviderProps {
 }
 
 export function UIScaleProvider({ children }: UIScaleProviderProps) {
-  const [scale, setScale] = useState<UIScale>("medium")
+  const [scale, setScale] = useState<UIScale>(() => {
+    // Initialize with saved scale or default
+    if (typeof window !== "undefined") {
+      return getSetting('uiScale')
+    }
+    return "medium"
+  })
 
   // Get scale percentage
   const getScalePercentage = (currentScale: UIScale): number => {
@@ -152,9 +157,11 @@ export function UIScaleProvider({ children }: UIScaleProviderProps) {
 
   // Load scale from localStorage on mount
   useEffect(() => {
-    const savedScale = localStorage.getItem("ui-scale") as UIScale
-    if (savedScale && ["xs", "small", "medium", "large", "xl"].includes(savedScale)) {
-      setScale(savedScale)
+    if (typeof window !== "undefined") {
+      const savedScale = getSetting('uiScale')
+      if (savedScale !== scale) {
+        setScale(savedScale)
+      }
     }
   }, [])
 

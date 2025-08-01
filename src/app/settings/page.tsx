@@ -30,7 +30,8 @@ import {
   Github,
   Linkedin,
   Building,
-  Briefcase
+  Briefcase,
+  Clock
 } from "lucide-react"
 import {
   Tabs,
@@ -50,7 +51,15 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useUIScale } from "@/contexts/UIScaleContext"
+import { useTheme } from "@/contexts/ThemeContext"
 import { useToast } from "@/hooks/use-toast"
+import { 
+  getAppearanceSettings, 
+  saveAppearanceSettings, 
+  applyAllSettings,
+  DEFAULT_SETTINGS,
+  type AppearanceSettings 
+} from "@/lib/settings-storage"
 import {
   Select,
   SelectContent,
@@ -87,11 +96,11 @@ const notificationSchema = z.object({
 })
 
 const appearanceSchema = z.object({
-  theme: z.enum(["light", "dark", "system"]),
+  theme: z.enum(["light", "dark", "system", "auto"]),
   fontSize: z.enum(["small", "medium", "large"]),
   density: z.enum(["compact", "comfortable", "spacious"]),
   colorScheme: z.string(),
-  uiScale: z.enum(["small", "medium", "large"]),
+  uiScale: z.enum(["xs", "small", "medium", "large", "xl"]),
 })
 
 type ProfileFormData = z.infer<typeof profileSchema>
@@ -102,6 +111,7 @@ export default function SettingsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState("profile")
   const { scale, setScale } = useUIScale()
+  const { theme, setTheme } = useTheme()
   const { toast } = useToast()
   const { user } = useAuth()
 
@@ -137,7 +147,7 @@ export default function SettingsPage() {
   const appearanceForm = useForm<AppearanceFormData>({
     resolver: zodResolver(appearanceSchema),
     defaultValues: {
-      theme: "system",
+      theme: theme,
       fontSize: "medium",
       density: "comfortable",
       colorScheme: "blue",
@@ -162,31 +172,33 @@ export default function SettingsPage() {
     }
   }, [user, profileForm])
 
-  // Load saved preferences on mount and when scale changes
+  // Load saved preferences on mount and when scale/theme changes
   useEffect(() => {
     const loadSavedPreferences = () => {
-      // Load theme preference
-      const savedTheme = localStorage.getItem('theme-preference') as "light" | "dark" | "system" || "system"
-      const savedFontSize = localStorage.getItem('font-size-preference') as "small" | "medium" | "large" || "medium"
-      const savedDensity = localStorage.getItem('density-preference') as "compact" | "comfortable" | "spacious" || "comfortable"
-      const savedColorScheme = localStorage.getItem('color-scheme-preference') || "blue"
+      const savedSettings = getAppearanceSettings()
       
       appearanceForm.reset({
-        theme: savedTheme,
-        fontSize: savedFontSize,
-        density: savedDensity,
-        colorScheme: savedColorScheme,
-        uiScale: scale,
+        theme: theme, // Use theme from context
+        fontSize: savedSettings.fontSize,
+        density: savedSettings.density,
+        colorScheme: savedSettings.colorScheme,
+        uiScale: scale, // Use scale from context
       })
     }
     
     loadSavedPreferences()
-  }, [scale, appearanceForm])
+  }, [scale, theme, appearanceForm])
 
-  // Update the uiScale field when scale changes
+  // Update the form fields when context values change
   useEffect(() => {
     appearanceForm.setValue('uiScale', scale)
-  }, [scale, appearanceForm])
+    appearanceForm.setValue('theme', theme)
+  }, [scale, theme, appearanceForm])
+
+  // Apply appearance settings on mount
+  useEffect(() => {
+    applyAllSettings()
+  }, [])
 
   const handleProfileSubmit = async (data: ProfileFormData) => {
     setIsSubmitting(true)
@@ -253,30 +265,25 @@ export default function SettingsPage() {
     try {
       console.log('Appearance updated:', data)
       
-      // Update UI scale immediately
+      // Update contexts immediately
       setScale(data.uiScale)
+      setTheme(data.theme)
       
-      // Apply theme changes if needed
-      if (data.theme === 'dark') {
-        document.documentElement.classList.add('dark')
-        document.documentElement.classList.remove('light')
-      } else if (data.theme === 'light') {
-        document.documentElement.classList.add('light')
-        document.documentElement.classList.remove('dark')
-      } else {
-        // System theme
-        document.documentElement.classList.remove('dark', 'light')
-        const systemIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-        if (systemIsDark) {
-          document.documentElement.classList.add('dark')
-        }
-      }
+      // Save all settings using centralized storage
+      saveAppearanceSettings({
+        theme: data.theme,
+        uiScale: data.uiScale,
+        fontSize: data.fontSize,
+        density: data.density,
+        colorScheme: data.colorScheme,
+      })
       
-      // Save to localStorage for persistence
-      localStorage.setItem('theme-preference', data.theme)
-      localStorage.setItem('font-size-preference', data.fontSize)
-      localStorage.setItem('density-preference', data.density)
-      localStorage.setItem('color-scheme-preference', data.colorScheme)
+      // Apply settings to DOM
+      applyAllSettings({
+        fontSize: data.fontSize,
+        density: data.density,
+        colorScheme: data.colorScheme,
+      })
       
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -752,7 +759,7 @@ export default function SettingsPage() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Theme</FormLabel>
-                              <div className="grid grid-cols-3 gap-2">
+                              <div className="grid grid-cols-2 gap-2">
                                 <Button
                                   type="button"
                                   variant={field.value === "light" ? "default" : "outline"}
@@ -780,7 +787,19 @@ export default function SettingsPage() {
                                   <Monitor className="h-6 w-6" />
                                   <span className="text-sm">System</span>
                                 </Button>
+                                <Button
+                                  type="button"
+                                  variant={field.value === "auto" ? "default" : "outline"}
+                                  className="flex flex-col gap-2 h-auto p-4"
+                                  onClick={() => field.onChange("auto")}
+                                >
+                                  <Clock className="h-6 w-6" />
+                                  <span className="text-sm">Auto</span>
+                                </Button>
                               </div>
+                              <FormDescription className="text-sm text-muted-foreground">
+                                Auto mode switches between light (6AM-6PM) and dark (6PM-6AM) based on time
+                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -841,11 +860,13 @@ export default function SettingsPage() {
                               <FormDescription>
                                 Scale the entire interface up or down for better visibility
                               </FormDescription>
-                              <div className="grid grid-cols-3 gap-2">
+                              <div className="grid grid-cols-5 gap-2">
                                 {[
-                                  { value: "small", label: "Small", description: "90% scale - Compact interface", icon: "📱" },
-                                  { value: "medium", label: "Medium", description: "100% scale - Default size", icon: "💻" },
-                                  { value: "large", label: "Large", description: "110% scale - Larger interface", icon: "🖥️" }
+                                  { value: "xs", label: "Extra Small", description: "75% scale - Very compact", icon: "📱" },
+                                  { value: "small", label: "Small", description: "85% scale - Compact", icon: "📱" },
+                                  { value: "medium", label: "Medium", description: "100% scale - Default", icon: "💻" },
+                                  { value: "large", label: "Large", description: "115% scale - Larger", icon: "🖥️" },
+                                  { value: "xl", label: "Extra Large", description: "130% scale - Very large", icon: "🖥️" }
                                 ].map((option) => (
                                   <Button
                                     key={option.value}
@@ -856,7 +877,7 @@ export default function SettingsPage() {
                                     }`}
                                     onClick={() => {
                                       field.onChange(option.value)
-                                      setScale(option.value as "small" | "medium" | "large")
+                                      setScale(option.value as "xs" | "small" | "medium" | "large" | "xl")
                                       
                                       // Show immediate feedback
                                       toast({
@@ -866,10 +887,15 @@ export default function SettingsPage() {
                                       })
                                     }}
                                   >
-                                    <span className={`text-lg ${option.value === 'small' ? 'text-sm' : option.value === 'large' ? 'text-xl' : ''}`}>
+                                    <span className={`text-lg ${
+                                      option.value === 'xs' ? 'text-xs' : 
+                                      option.value === 'small' ? 'text-sm' : 
+                                      option.value === 'large' ? 'text-xl' : 
+                                      option.value === 'xl' ? 'text-2xl' : ''
+                                    }`}>
                                       {option.icon}
                                     </span>
-                                    <span className="font-medium">{option.label}</span>
+                                    <span className="font-medium text-xs">{option.label}</span>
                                     <span className="text-xs text-muted-foreground text-center leading-tight">
                                       {option.description}
                                     </span>
@@ -911,6 +937,102 @@ export default function SettingsPage() {
                             </FormItem>
                           )}
                         />
+
+                        <div className="border-t pt-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <h4 className="font-medium">Settings Management</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Reset, export, or import your appearance preferences
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const settings = getAppearanceSettings()
+                                  const dataStr = JSON.stringify(settings, null, 2)
+                                  const dataBlob = new Blob([dataStr], { type: 'application/json' })
+                                  const url = URL.createObjectURL(dataBlob)
+                                  const link = document.createElement('a')
+                                  link.href = url
+                                  link.download = 'appearance-settings.json'
+                                  link.click()
+                                  URL.revokeObjectURL(url)
+                                  toast({
+                                    title: "Settings exported",
+                                    description: "Your appearance settings have been exported successfully.",
+                                  })
+                                }}
+                              >
+                                <Download className="h-4 w-4 mr-2" />
+                                Export
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const input = document.createElement('input')
+                                  input.type = 'file'
+                                  input.accept = '.json'
+                                  input.onchange = (e) => {
+                                    const file = (e.target as HTMLInputElement).files?.[0]
+                                    if (file) {
+                                      const reader = new FileReader()
+                                      reader.onload = (e) => {
+                                        try {
+                                          const settings = JSON.parse(e.target?.result as string)
+                                          saveAppearanceSettings(settings)
+                                          applyAllSettings(settings)
+                                          setScale(settings.uiScale || DEFAULT_SETTINGS.uiScale)
+                                          setTheme(settings.theme || DEFAULT_SETTINGS.theme)
+                                          appearanceForm.reset(settings)
+                                          toast({
+                                            title: "Settings imported",
+                                            description: "Your appearance settings have been imported successfully.",
+                                          })
+                                        } catch (error) {
+                                          toast({
+                                            title: "Import failed",
+                                            description: "Failed to import settings. Please check the file format.",
+                                            variant: "destructive",
+                                          })
+                                        }
+                                      }
+                                      reader.readAsText(file)
+                                    }
+                                  }
+                                  input.click()
+                                }}
+                              >
+                                <Upload className="h-4 w-4 mr-2" />
+                                Import
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  saveAppearanceSettings(DEFAULT_SETTINGS)
+                                  applyAllSettings(DEFAULT_SETTINGS)
+                                  setScale(DEFAULT_SETTINGS.uiScale)
+                                  setTheme(DEFAULT_SETTINGS.theme)
+                                  appearanceForm.reset(DEFAULT_SETTINGS)
+                                  toast({
+                                    title: "Settings reset",
+                                    description: "Your appearance settings have been reset to defaults.",
+                                  })
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Reset
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
 
                         <div className="flex justify-end">
                           <Button type="submit" disabled={isSubmitting}>

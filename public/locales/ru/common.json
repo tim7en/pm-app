@@ -270,6 +270,8 @@
     "allProjects": "Все проекты",
     "listView": "Список",
     "boardView": "Доска",
+    "ganttView": "Гантт",
+    "ganttChart": "Диаграмма Гантта",
     "todo": "К выполнению",
     "inProgress": "В работе",
     "review": "На проверке",

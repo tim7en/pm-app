@@ -1,8 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState } from "react"
-
-type Theme = "light" | "dark" | "system" | "auto"
+import { getSetting, type Theme } from "@/lib/settings-storage"
 
 interface ThemeContextType {
   theme: Theme
@@ -17,7 +16,13 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>("auto")
+  const [theme, setTheme] = useState<Theme>(() => {
+    // Initialize with saved theme or default
+    if (typeof window !== "undefined") {
+      return getSetting('theme')
+    }
+    return "auto"
+  })
   const [actualTheme, setActualTheme] = useState<"light" | "dark">("light")
 
   // Function to get system preference
@@ -61,9 +66,11 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
   // Load theme from localStorage on mount
   useEffect(() => {
-    const savedTheme = localStorage.getItem("ui-theme") as Theme
-    if (savedTheme && ["light", "dark", "system", "auto"].includes(savedTheme)) {
-      setTheme(savedTheme)
+    if (typeof window !== "undefined") {
+      const savedTheme = getSetting('theme')
+      if (savedTheme !== theme) {
+        setTheme(savedTheme)
+      }
     }
   }, [])
 

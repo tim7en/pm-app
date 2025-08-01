@@ -272,6 +272,8 @@
     "allProjects": "Барча лойиҳалар",
     "listView": "Рўйхат",
     "boardView": "Доска",
+    "ganttView": "Gantt",
+    "ganttChart": "Gantt diagrammasi",
     "todo": "Бажарилиши керак",
     "inProgress": "Ишланмоқда",
     "review": "Кўриб чиқилмоқда",
