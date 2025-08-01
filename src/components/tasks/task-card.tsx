@@ -148,35 +148,39 @@ export function TaskCard({ task, onStatusChange, onEdit, onDelete, currentUserId
 
   return (
     <Card 
-      className="group hover:shadow-md transition-shadow cursor-pointer"
+      className="group hover-lift glass-card cursor-pointer border-2 hover:border-primary/20 transition-all duration-300"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => onEdit?.(task)}
     >
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <div className="flex items-start gap-2 flex-1">
+          <div className="flex items-start gap-3 flex-1">
             <Button
               variant="ghost"
               size="icon"
-              className="h-5 w-5 mt-0.5 flex-shrink-0"
+              className="h-7 w-7 mt-0.5 flex-shrink-0 hover-lift rounded-lg"
               onClick={(e) => {
                 e.stopPropagation()
                 handleStatusToggle()
               }}
             >
               {task.status === TaskStatus.DONE ? (
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
               ) : (
-                <Circle className="h-4 w-4 text-gray-400" />
+                <Circle className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
               )}
             </Button>
             <div className="flex-1 min-w-0">
-              <h3 className={`font-medium text-sm ${task.status === TaskStatus.DONE ? 'line-through text-muted-foreground' : ''}`}>
+              <h3 className={`font-semibold text-base transition-all duration-300 ${
+                task.status === TaskStatus.DONE 
+                  ? 'line-through text-muted-foreground' 
+                  : 'group-hover:text-primary'
+              }`}>
                 {task.title}
               </h3>
               {task.description && (
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                <p className="text-sm text-muted-foreground mt-2 line-clamp-2 leading-relaxed">
                   {task.description}
                 </p>
               )}
@@ -187,17 +191,23 @@ export function TaskCard({ task, onStatusChange, onEdit, onDelete, currentUserId
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-all duration-300 hover-lift rounded-lg"
                 onClick={(e) => e.stopPropagation()}
               >
-                <MoreHorizontal className="h-3 w-3" />
+                <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onEdit?.(task)}>
+            <DropdownMenuContent align="end" className="glass-card border-0 shadow-premium">
+              <DropdownMenuItem 
+                onClick={() => onEdit?.(task)}
+                className="gap-3 p-3 rounded-lg hover:bg-primary/10 transition-colors"
+              >
                 Edit Task
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDelete?.(task.id)}>
+              <DropdownMenuItem 
+                onClick={() => onDelete?.(task.id)}
+                className="gap-3 p-3 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+              >
                 Delete Task
               </DropdownMenuItem>
             </DropdownMenuContent>

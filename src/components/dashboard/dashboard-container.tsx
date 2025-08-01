@@ -387,10 +387,14 @@ export function DashboardContainer() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background relative overflow-hidden">
+      {/* Premium background gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/3 via-transparent to-accent/3 pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent pointer-events-none" />
+      
       <Sidebar />
       
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden relative z-10">
         <Header 
           tasks={tasks}
           projects={projects}
@@ -404,25 +408,50 @@ export function DashboardContainer() {
           }}
         />
         
-        <main id="dashboard-content" className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-7xl mx-auto space-y-6">
+        <main id="dashboard-content" className="flex-1 overflow-y-auto p-8 scrollbar-thin">
+          <div className="max-w-7xl mx-auto space-y-8">
             {/* Welcome Section */}
-            <DashboardHeader onCreateTask={() => setTaskDialogOpen(true)} />
+            <div className="animate-fade-in">
+              <DashboardHeader onCreateTask={() => setTaskDialogOpen(true)} />
+            </div>
 
             {/* Stats Cards */}
-            <DashboardStatsCards stats={stats} />
+            <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
+              <DashboardStatsCards stats={stats} />
+            </div>
 
             {/* Main Content Tabs */}
-            <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="overview">{t("dashboard.overview")}</TabsTrigger>
-                <TabsTrigger value="tasks">{t("dashboard.myTasks")}</TabsTrigger>
-                <TabsTrigger value="projects">{t("dashboard.projects")}</TabsTrigger>
-                <TabsTrigger value="activity">{t("dashboard.activity")}</TabsTrigger>
-              </TabsList>
+            <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
+              <Tabs defaultValue="overview" className="space-y-8">
+                <TabsList className="grid w-full grid-cols-4 glass-card border-0 shadow-premium p-1">
+                  <TabsTrigger 
+                    value="overview" 
+                    className="data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-300 font-medium rounded-lg"
+                  >
+                    {t("dashboard.overview")}
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="tasks"
+                    className="data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-300 font-medium rounded-lg"
+                  >
+                    {t("dashboard.myTasks")}
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="projects"
+                    className="data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-300 font-medium rounded-lg"
+                  >
+                    {t("dashboard.projects")}
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="activity"
+                    className="data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-300 font-medium rounded-lg"
+                  >
+                    {t("dashboard.activity")}
+                  </TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="overview" className="space-y-6">
-                                <DashboardOverview
+              <TabsContent value="overview" className="space-y-8">
+                <DashboardOverview
                   tasks={tasks}
                   projects={projects}
                   activities={recentActivity}
@@ -461,7 +490,7 @@ export function DashboardContainer() {
                 />
               </TabsContent>
 
-              <TabsContent value="tasks" className="space-y-6">
+              <TabsContent value="tasks" className="space-y-8">
                 <TaskManagement
                   tasks={tasks}
                   projects={projects}
@@ -480,7 +509,7 @@ export function DashboardContainer() {
                 />
               </TabsContent>
 
-              <TabsContent value="projects" className="space-y-6">
+              <TabsContent value="projects" className="space-y-8">
                 <ProjectManagement
                   projects={projects}
                   onProjectEdit={(project) => {
@@ -504,7 +533,7 @@ export function DashboardContainer() {
                 />
               </TabsContent>
 
-              <TabsContent value="activity" className="space-y-6">
+              <TabsContent value="activity" className="space-y-8">
                 <ActivityFeed 
                   activities={recentActivity} 
                   currentUserId={user?.id}
@@ -512,6 +541,7 @@ export function DashboardContainer() {
                 />
               </TabsContent>
             </Tabs>
+            </div>
           </div>
         </main>
       </div>

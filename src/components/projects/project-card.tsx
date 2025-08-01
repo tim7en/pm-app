@@ -139,30 +139,35 @@ export function ProjectCard({
   const isOverdue = project.dueDate && new Date(project.dueDate) < new Date() && project.status !== ProjectStatus.COMPLETED
 
   return (
-    <Card className="group hover:shadow-md transition-all cursor-pointer overflow-hidden">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 flex-1 min-w-0">
+    <Card className="group hover-lift glass-card overflow-hidden border-2 hover:border-primary/20 transition-all duration-300">
+      <CardHeader className="pb-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4 flex-1 min-w-0">
             <div 
-              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: project.color + '20' }}
+              className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md group-hover:shadow-lg transition-shadow duration-300"
+              style={{ 
+                background: `linear-gradient(135deg, ${project.color}20 0%, ${project.color}10 100%)`,
+                border: `1px solid ${project.color}30`
+              }}
             >
-              <FolderOpen className="h-5 w-5" style={{ color: project.color }} />
+              <FolderOpen className="h-6 w-6" style={{ color: project.color }} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2 mb-1">
+              <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-base break-words line-clamp-2 mb-1">{project.name}</h3>
+                  <h3 className="font-bold text-lg break-words line-clamp-2 mb-2 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent group-hover:from-primary group-hover:to-primary/80 transition-all duration-300">
+                    {project.name}
+                  </h3>
                   {/* Project participation badges */}
-                  <div className="flex flex-wrap items-center gap-1">
+                  <div className="flex flex-wrap items-center gap-2">
                     {currentUserId && project.owner?.id === currentUserId && (
-                      <Badge variant="outline" className="text-xs text-amber-600 border-amber-200 flex-shrink-0">
+                      <Badge variant="outline" className="text-xs font-medium text-amber-600 border-amber-200 bg-amber-50 flex-shrink-0 hover:bg-amber-100 transition-colors">
                         <Crown className="h-3 w-3 mr-1" />
                         {t("projects.creator")}
                       </Badge>
                     )}
                     {currentUserId && project.owner?.id !== currentUserId && (
-                      <Badge variant="outline" className="text-xs text-blue-600 border-blue-200 flex-shrink-0">
+                      <Badge variant="outline" className="text-xs font-medium text-blue-600 border-blue-200 bg-blue-50 flex-shrink-0 hover:bg-blue-100 transition-colors">
                         <UserCheck className="h-3 w-3 mr-1" />
                         {t("projects.member")}
                       </Badge>
@@ -172,7 +177,7 @@ export function ProjectCard({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 flex-shrink-0"
+                  className="h-8 w-8 flex-shrink-0 hover-lift rounded-lg"
                   onClick={(e) => {
                     e.stopPropagation()
                     onToggleStar?.(project.id)

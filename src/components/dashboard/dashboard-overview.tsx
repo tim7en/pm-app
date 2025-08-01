@@ -11,7 +11,7 @@ import { TeamChatDialog } from "@/components/messages/team-chat-dialog"
 import { TeamMembers } from "./team-members"
 import { Plus, CheckCircle, Clock, AlertTriangle, Users, FolderOpen, Calendar, MessageSquare } from "lucide-react"
 import { ActivityItem } from "@/hooks/use-dashboard-data"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useTranslation } from "@/hooks/use-translation"
 
 interface DashboardOverviewProps {
@@ -54,7 +54,6 @@ export function DashboardOverview({
   workspaceId
 }: DashboardOverviewProps) {
   const [chatWindowOpen, setChatWindowOpen] = useState(false)
-  const [teamMembers, setTeamMembers] = useState<any[]>([])
   const { t } = useTranslation()
   
   // Calculate quick stats
@@ -78,39 +77,6 @@ export function DashboardOverview({
     return recentTasks
   }
 
-  // Fetch team members for chat functionality
-  useEffect(() => {
-    const fetchTeamMembers = async () => {
-      if (!workspaceId) return
-      
-      try {
-        const response = await fetch(`/api/workspaces/${workspaceId}/members`)
-        if (response.ok) {
-          const data = await response.json()
-          
-          // Transform the data to match our interface
-          const transformedMembers = data.map((member: any) => ({
-            id: member.user.id,
-            name: member.user.name,
-            email: member.user.email,
-            avatar: member.user.avatar,
-            role: member.role,
-            isOnline: Math.random() > 0.3, // Simulate online status - 70% chance online
-            lastSeen: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000), // Random last seen within 24h
-            department: ['Engineering', 'Design', 'Product', 'Marketing', 'Sales'][Math.floor(Math.random() * 5)],
-            title: ['Developer', 'Designer', 'Product Manager', 'Marketing Specialist', 'Sales Rep'][Math.floor(Math.random() * 5)]
-          }))
-          
-          setTeamMembers(transformedMembers)
-        }
-      } catch (error) {
-        console.error('Error fetching team members:', error)
-      }
-    }
-
-    fetchTeamMembers()
-  }, [workspaceId])
-  
   const recentTasks = getUserRecentTasks()
 
   const handleStartChat = (memberId: string) => {
@@ -119,60 +85,60 @@ export function DashboardOverview({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-fade-in">
       {/* Quick Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <CheckCircle className="h-5 w-5 text-primary" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="hover-lift glass-card group">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 group-hover:from-emerald-500/30 group-hover:to-emerald-600/30 transition-all duration-300">
+                <CheckCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">{t("dashboard.completed")}</p>
-                <p className="text-2xl font-bold text-primary">{completedTasks}</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("dashboard.completed")}</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-emerald-500 bg-clip-text text-transparent">{completedTasks}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10">
-                <Clock className="h-5 w-5 text-blue-500" />
+        <Card className="hover-lift glass-card group">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 group-hover:from-blue-500/30 group-hover:to-blue-600/30 transition-all duration-300">
+                <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">{t("dashboard.inProgress")}</p>
-                <p className="text-2xl font-bold text-blue-500">{inProgressTasks}</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("dashboard.inProgress")}</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-500 bg-clip-text text-transparent">{inProgressTasks}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-500/10">
-                <AlertTriangle className="h-5 w-5 text-red-500" />
+        <Card className="hover-lift glass-card group">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-red-500/20 to-red-600/20 group-hover:from-red-500/30 group-hover:to-red-600/30 transition-all duration-300">
+                <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">{t("dashboard.overdue")}</p>
-                <p className="text-2xl font-bold text-red-500">{overdueTasks}</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("dashboard.overdue")}</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent">{overdueTasks}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/10">
-                <FolderOpen className="h-5 w-5 text-green-500" />
+        <Card className="hover-lift glass-card group">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-violet-500/20 to-violet-600/20 group-hover:from-violet-500/30 group-hover:to-violet-600/30 transition-all duration-300">
+                <FolderOpen className="h-6 w-6 text-violet-600 dark:text-violet-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">{t("dashboard.activeProjects")}</p>
-                <p className="text-2xl font-bold text-green-500">{activeProjects.length}</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("dashboard.activeProjects")}</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-violet-600 to-violet-500 bg-clip-text text-transparent">{activeProjects.length}</p>
               </div>
             </div>
           </CardContent>
@@ -180,31 +146,40 @@ export function DashboardOverview({
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column - Tasks and Projects */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-8">
           {/* Recent Tasks with Dynamic Fading */}
-          <RecentTasksList 
-            tasks={recentTasks}
-            onTaskStatusChange={onTaskStatusChange}
-            onTaskEdit={onTaskEdit}
-            onTaskDelete={onTaskDelete}
-            currentUserId={currentUserId}
-            maxHeight="450px"
-            showFilter={true}
-          />
+          <div className="animate-slide-up">
+            <RecentTasksList 
+              tasks={recentTasks}
+              onTaskStatusChange={onTaskStatusChange}
+              onTaskEdit={onTaskEdit}
+              onTaskDelete={onTaskDelete}
+              currentUserId={currentUserId}
+              maxHeight="450px"
+              showFilter={true}
+            />
+          </div>
 
           {/* Active Projects */}
-          <Card>
-            <CardHeader className="pb-3">
+          <Card className="glass-card animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-lg">{t("dashboard.activeProjects")}</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                    {t("dashboard.activeProjects")}
+                  </CardTitle>
+                  <CardDescription className="text-base mt-1">
                     {t("dashboard.projectsYouOwnAndParticipate")}
                   </CardDescription>
                 </div>
-                <Button variant="outline" size="sm" onClick={onCreateProject} className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={onCreateProject} 
+                  className="flex items-center gap-2 hover-lift border-2 hover:border-primary/50"
+                >
                   <Plus className="h-4 w-4" />
                   {t("dashboard.newProject")}
                 </Button>
@@ -212,32 +187,36 @@ export function DashboardOverview({
             </CardHeader>
             <CardContent>
               {activeProjects.length > 0 ? (
-                <div className="max-h-96 overflow-y-auto">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-2">
-                    {activeProjects.map((project) => (
-                      <ProjectCard 
-                        key={project.id} 
-                        project={project}
-                        onEdit={onProjectEdit}
-                        onDelete={onProjectDelete}
-                        onToggleStar={onProjectToggleStar}
-                        onViewTasks={onViewTasks}
-                        onGenerateInsights={onGenerateInsights}
-                        currentUserId={currentUserId}
-                      />
+                <div className="max-h-96 overflow-y-auto scrollbar-thin">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pr-2">
+                    {activeProjects.map((project, index) => (
+                      <div key={project.id} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                        <ProjectCard 
+                          project={project}
+                          onEdit={onProjectEdit}
+                          onDelete={onProjectDelete}
+                          onToggleStar={onProjectToggleStar}
+                          onViewTasks={onViewTasks}
+                          onGenerateInsights={onGenerateInsights}
+                          currentUserId={currentUserId}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <FolderOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">{t("dashboard.noActiveProjects")}</p>
+                <div className="text-center py-12">
+                  <div className="p-4 rounded-full bg-gradient-to-br from-muted/50 to-muted/30 w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+                    <FolderOpen className="h-10 w-10 text-muted-foreground/60" />
+                  </div>
+                  <p className="text-lg font-medium text-muted-foreground mb-3">{t("dashboard.noActiveProjects")}</p>
                   <Button 
-                    variant="outline" 
-                    className="mt-2"
+                    variant="default" 
+                    size="lg"
+                    className="mt-2 hover-lift"
                     onClick={onCreateProject}
                   >
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="h-5 w-5 mr-2" />
                     {t("dashboard.createYourFirstProject")}
                   </Button>
                 </div>
@@ -247,53 +226,50 @@ export function DashboardOverview({
         </div>
 
         {/* Right Column - Activity and Team */}
-        <div className="space-y-6">
-          <ActivityFeed 
-            activities={activities} 
-            currentUserId={currentUserId}
-            onClearActivity={onClearActivity}
-            onRestoreActivity={onRestoreActivity}
-            activitiesCleared={activitiesCleared}
-          />
+        <div className="space-y-8">
+          <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            <ActivityFeed 
+              activities={activities} 
+              currentUserId={currentUserId}
+              onClearActivity={onClearActivity}
+              onRestoreActivity={onRestoreActivity}
+              activitiesCleared={activitiesCleared}
+            />
+          </div>
           
-          <TeamMembers 
-            workspaceId={workspaceId}
-            maxHeight="400px"
-            onStartChat={handleStartChat}
-          />
+          <div className="animate-slide-up" style={{ animationDelay: '0.3s' }}>
+            <TeamMembers 
+              workspaceId={workspaceId}
+              maxHeight="400px"
+              onStartChat={handleStartChat}
+            />
+          </div>
 
           {/* Team Communication */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
+          <Card className="glass-card animate-slide-up" style={{ animationDelay: '0.4s' }}>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl font-bold flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10">
+                  <MessageSquare className="h-5 w-5 text-primary" />
+                </div>
                 {t("dashboard.teamCommunication")}
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-base">
                 {t("dashboard.chatWithTeamMembers")}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t("dashboard.teamMembersOnlineStatus")}</span>
-                  <span className="font-medium">
-                    {teamMembers.filter(m => m.isOnline).length} {t("dashboard.membersOnline", { count: teamMembers.length })}
-                  </span>
-                </div>
+              <div className="space-y-4">
+                <Button 
+                  onClick={() => setChatWindowOpen(true)}
+                  className="w-full hover-lift"
+                  size="lg"
+                >
+                  <MessageSquare className="h-5 w-5 mr-2" />
+                  {t("dashboard.openTeamChat")}
+                </Button>
                 
-                <div className="flex items-center gap-2">
-                  <Button 
-                    onClick={() => setChatWindowOpen(true)}
-                    className="flex-1"
-                    size="lg"
-                  >
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    {t("dashboard.openTeamChat")}
-                  </Button>
-                </div>
-                
-                <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                <div className="text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg border border-border/50">
                   {t("dashboard.messagesPersistInfo")}
                 </div>
               </div>

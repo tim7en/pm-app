@@ -110,26 +110,28 @@ export function Sidebar() {
 
   return (
     <div className={cn(
-      "flex flex-col h-full bg-background border-r transition-all duration-300",
-      isCollapsed ? "w-16" : "w-64"
+      "flex flex-col h-full bg-background/95 backdrop-blur-md border-r border-border/50 shadow-sm transition-all duration-300",
+      isCollapsed ? "w-16" : "w-72"
     )}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center justify-between p-6 border-b border-border/50">
         {!isCollapsed && (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold">PM</span>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-gradient-primary rounded-xl flex items-center justify-center shadow-md">
+              <span className="text-primary-foreground font-bold text-base">PM</span>
             </div>
-            <span className="font-semibold text-lg">Project Manager</span>
+            <span className="font-bold text-xl bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+              Project Manager
+            </span>
           </div>
         )}
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="ml-auto"
+          className="ml-auto hover-lift rounded-xl"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-5 w-5" />
         </Button>
       </div>
 
@@ -137,7 +139,7 @@ export function Sidebar() {
       {!isCollapsed && <WorkspaceSelector />}
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-6 space-y-3">
         {navigation.map((item) => {
           const isActive = pathname === item.href
           return (
@@ -145,27 +147,27 @@ export function Sidebar() {
               key={item.name}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                "flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 hover-lift",
                 isActive 
-                  ? "bg-primary text-primary-foreground" 
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  ? "bg-gradient-primary text-primary-foreground shadow-md" 
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground hover:shadow-sm"
               )}
             >
-              <item.icon className="h-4 w-4 flex-shrink-0" />
-              {!isCollapsed && item.name}
+              <item.icon className="h-5 w-5 flex-shrink-0" />
+              {!isCollapsed && <span className="font-medium">{item.name}</span>}
             </Link>
           )
         })}
 
         {/* Workspace Management */}
         {!isCollapsed && (
-          <div className="pt-4 mt-4 border-t">
-            <div className="flex items-center mb-3">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <div className="pt-6 mt-6 border-t border-border/50">
+            <div className="flex items-center mb-4">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">
                 Workspace
               </h3>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               {workspaceNavigation.map((item) => {
                 const isActive = pathname === item.href || 
                   (item.href === "/workspace/settings" && pathname.startsWith("/workspace/settings")) ||
@@ -175,14 +177,14 @@ export function Sidebar() {
                     key={item.name}
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                      "flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 hover-lift",
                       isActive 
-                        ? "bg-primary text-primary-foreground" 
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        ? "bg-gradient-primary text-primary-foreground shadow-md" 
+                        : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground hover:shadow-sm"
                     )}
                   >
-                    <item.icon className="h-4 w-4 flex-shrink-0" />
-                    {item.name}
+                    <item.icon className="h-5 w-5 flex-shrink-0" />
+                    <span className="font-medium">{item.name}</span>
                   </Link>
                 )
               })}
@@ -191,9 +193,9 @@ export function Sidebar() {
         )}
 
         {!isCollapsed && currentWorkspace && (
-          <div className="pt-4 mt-4 border-t">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <div className="pt-6 mt-6 border-t border-border/50">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">
                 Projects
               </h3>
               <Button 

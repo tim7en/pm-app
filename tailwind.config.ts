@@ -7,6 +7,7 @@ const config: Config = {
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
   	extend: {
@@ -55,7 +56,51 @@ const config: Config = {
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
-  			sm: 'calc(var(--radius) - 4px)'
+  			sm: 'calc(var(--radius) - 4px)',
+  			xl: 'calc(var(--radius) + 2px)',
+  			'2xl': 'calc(var(--radius) + 4px)'
+  		},
+  		animation: {
+  			'fade-in': 'fadeIn 0.5s ease-out',
+  			'slide-up': 'slideUp 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+  			'bounce-gentle': 'bounceGentle 2s infinite'
+  		},
+  		keyframes: {
+  			fadeIn: {
+  				'0%': {
+  					opacity: '0',
+  					transform: 'translateY(10px)'
+  				},
+  				'100%': {
+  					opacity: '1',
+  					transform: 'translateY(0)'
+  				}
+  			},
+  			slideUp: {
+  				'0%': {
+  					opacity: '0',
+  					transform: 'translateY(20px)'
+  				},
+  				'100%': {
+  					opacity: '1',
+  					transform: 'translateY(0)'
+  				}
+  			},
+  			bounceGentle: {
+  				'0%, 100%': {
+  					transform: 'translateY(0)'
+  				},
+  				'50%': {
+  					transform: 'translateY(-4px)'
+  				}
+  			}
+  		},
+  		boxShadow: {
+  			'premium': 'var(--shadow-lg)',
+  			'premium-xl': 'var(--shadow-xl)',
+  		},
+  		backdropBlur: {
+  			xs: '2px'
   		}
   	}
   },

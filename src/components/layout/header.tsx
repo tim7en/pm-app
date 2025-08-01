@@ -181,23 +181,25 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
   )
 
   return (
-    <header className="border-b bg-background">
-      <div className="flex h-16 items-center px-4 gap-4">
+    <header className="border-b bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/75 sticky top-0 z-50 shadow-sm">
+      <div className="flex h-16 items-center px-6 gap-6">
         {/* Logo/Brand */}
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">PM</span>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-gradient-primary rounded-xl flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+            <span className="text-primary-foreground font-bold text-base">PM</span>
           </div>
-          <span className="font-semibold text-lg">{t("header.projectManager")}</span>
+          <span className="font-bold text-xl bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+            {t("header.projectManager")}
+          </span>
         </div>
 
         {/* Search */}
-        <div className="flex-1 max-w-md">
+        <div className="flex-1 max-w-lg">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={t("header.searchPlaceholder")}
-              className="pl-10"
+              className="pl-12 h-11 bg-muted/50 border-0 focus:bg-background focus:ring-2 focus:ring-primary/20 rounded-xl transition-all duration-300"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -205,37 +207,44 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {/* Quick Actions */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button variant="default" size="sm" className="gap-2 hover-lift shadow-md">
                 <Plus className="h-4 w-4" />
                 {t("header.create")}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => setProjectDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                {t("header.newProject")}
+            <DropdownMenuContent align="end" className="w-52 glass-card border-0 shadow-premium">
+              <DropdownMenuItem 
+                onClick={() => setProjectDialogOpen(true)}
+                className="gap-3 p-3 rounded-lg hover:bg-primary/10 transition-colors"
+              >
+                <div className="p-1.5 rounded-md bg-gradient-to-br from-primary/20 to-primary/10">
+                  <Plus className="h-4 w-4 text-primary" />
+                </div>
+                <span className="font-medium">{t("header.newProject")}</span>
               </DropdownMenuItem>
-              <DropdownMenuItem disabled>
-                <Plus className="mr-2 h-4 w-4" />
-                {t("header.newTask")}
+              <DropdownMenuItem disabled className="gap-3 p-3 rounded-lg opacity-60">
+                <div className="p-1.5 rounded-md bg-gradient-to-br from-muted/20 to-muted/10">
+                  <Plus className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <span className="font-medium">{t("header.newTask")}</span>
                 <Badge variant="secondary" className="ml-auto text-xs">{t("header.soon")}</Badge>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
           {/* Navigation */}
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/calendar" className="gap-2">
+          <Button variant="ghost" size="sm" asChild className="hover-lift rounded-xl">
+            <Link href="/calendar" className="gap-2 px-4">
               <Calendar className="h-4 w-4" />
               {t("navigation.calendar")}
             </Link>
           </Button>
 
-          <Button variant="ghost" size="sm" className="gap-2" asChild>
+          <Button variant="ghost" size="sm" className="gap-2 hover-lift rounded-xl px-4" asChild>
             <Link href="/team">
               <Users className="h-4 w-4" />
               {t("navigation.team")}
@@ -271,40 +280,49 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8">
+              <Button variant="ghost" className="relative h-10 w-10 rounded-full hover-lift">
+                <Avatar className="h-10 w-10 ring-2 ring-primary/20 transition-all duration-300 hover:ring-primary/40">
                   <AvatarImage src={user?.avatar || ""} alt={user?.name || ""} />
-                  <AvatarFallback>
+                  <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">
                     {getUserInitials(user?.name || null)}
                   </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">
+            <DropdownMenuContent className="w-64 glass-card border-0 shadow-premium" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal p-4">
+                <div className="flex flex-col space-y-2">
+                  <p className="text-base font-semibold leading-none">
                     {user?.name || "User"}
                   </p>
-                  <p className="text-xs leading-none text-muted-foreground">
+                  <p className="text-sm leading-none text-muted-foreground">
                     {user?.email || ""}
                   </p>
                 </div>
               </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>{t("ui.settings")}</span>
+              <DropdownMenuSeparator className="bg-border/50" />
+              <DropdownMenuItem className="gap-3 p-3 rounded-lg hover:bg-primary/10 transition-colors">
+                <div className="p-1.5 rounded-md bg-gradient-to-br from-primary/20 to-primary/10">
+                  <Settings className="h-4 w-4 text-primary" />
+                </div>
+                <span className="font-medium">{t("ui.settings")}</span>
               </DropdownMenuItem>
-              <DropdownMenuItem disabled>
-                <MessageSquare className="mr-2 h-4 w-4" />
-                <span>{t("header.feedback")}</span>
+              <DropdownMenuItem disabled className="gap-3 p-3 rounded-lg opacity-60">
+                <div className="p-1.5 rounded-md bg-gradient-to-br from-muted/20 to-muted/10">
+                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <span className="font-medium">{t("header.feedback")}</span>
                 <Badge variant="secondary" className="ml-auto text-xs">{t("header.soon")}</Badge>
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>{t("ui.logout")}</span>
+              <DropdownMenuSeparator className="bg-border/50" />
+              <DropdownMenuItem 
+                onClick={handleLogout}
+                className="gap-3 p-3 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+              >
+                <div className="p-1.5 rounded-md bg-gradient-to-br from-destructive/20 to-destructive/10">
+                  <LogOut className="h-4 w-4 text-destructive" />
+                </div>
+                <span className="font-medium">{t("ui.logout")}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

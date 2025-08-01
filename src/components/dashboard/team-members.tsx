@@ -82,19 +82,38 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
       const response = await fetch(`/api/workspaces/${targetWorkspaceId}/members`)
       if (response.ok) {
         const data = await response.json()
+        console.log('Raw team members data:', data) // Debug log
         
-        // Transform the data to include position fields from the database
-        const transformedMembers: TeamMember[] = data.map((member: any) => ({
-          id: member.user.id,
-          name: member.user.name,
-          email: member.user.email,
-          avatar: member.user.avatar,
-          role: member.role,
-          isOnline: Math.random() > 0.3, // Simulate online status - 70% chance online
-          lastSeen: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000), // Random last seen within 24h
-          department: member.department, // Use actual database value
-          title: member.title // Use actual database value
-        }))
+        // Filter out any null/undefined members and safely transform the data
+        const transformedMembers: TeamMember[] = data
+          .filter((member: any) => member && (member.user || member.id)) // Filter out null/undefined entries
+          .map((member: any) => {
+            // Handle both nested (member.user.*) and flat (member.*) structures
+            const userId = member.user?.id || member.id || member.userId
+            const userName = member.user?.name || member.name
+            const userEmail = member.user?.email || member.email
+            const userAvatar = member.user?.avatar || member.avatar
+            
+            if (!userId || !userName || !userEmail) {
+              console.warn('Incomplete member data:', member)
+              return null
+            }
+            
+            return {
+              id: userId,
+              name: userName,
+              email: userEmail,
+              avatar: userAvatar,
+              role: member.role,
+              isOnline: Math.random() > 0.3, // Simulate online status - 70% chance online
+              lastSeen: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000), // Random last seen within 24h
+              department: member.department, // Use actual database value
+              title: member.title // Use actual database value
+            }
+          })
+          .filter((member): member is TeamMember => member !== null) // Type-safe filter to remove nulls
+        
+        console.log('Transformed members:', transformedMembers) // Debug log
         
         // Sort by online status first, then by role
         transformedMembers.sort((a, b) => {
@@ -106,6 +125,8 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
         })
         
         setMembers(transformedMembers)
+      } else {
+        console.error('Failed to fetch team members:', response.status, response.statusText)
       }
     } catch (error) {
       console.error('Error fetching team members:', error)
