@@ -244,7 +244,7 @@ export function MessengerSidebar({
                         <Avatar className="h-10 w-10">
                           <AvatarImage src={member.avatar} alt={member.name} />
                           <AvatarFallback>
-                            {member.name.split(' ').map((n: string) => n[0]).join('')}
+                            {member.name ? member.name.split(' ').map((n: string) => n[0]).join('') : 'U'}
                           </AvatarFallback>
                         </Avatar>
                         {/* Online status indicator */}
@@ -316,7 +316,7 @@ export function MessengerSidebar({
                         <Avatar className="h-10 w-10">
                           <AvatarImage src={otherParticipant.avatar} alt={otherParticipant.name} />
                           <AvatarFallback>
-                            {otherParticipant.name.split(' ').map(n => n[0]).join('')}
+                            {otherParticipant.name ? otherParticipant.name.split(' ').map(n => n[0]).join('') : 'U'}
                           </AvatarFallback>
                         </Avatar>
                         {/* Online status for internal conversations */}

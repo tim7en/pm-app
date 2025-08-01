@@ -345,7 +345,7 @@ export function ProjectDetails({
                             <Avatar className="h-6 w-6">
                               <AvatarImage src={task.assignee.avatar} />
                               <AvatarFallback className="text-xs">
-                                {task.assignee.name.split(" ").map(n => n[0]).join("")}
+                                {task.assignee.name ? task.assignee.name.split(" ").map(n => n[0]).join("") : 'U'}
                               </AvatarFallback>
                             </Avatar>
                           )}
@@ -391,7 +391,7 @@ export function ProjectDetails({
                             <Avatar className="h-6 w-6">
                               <AvatarImage src={task.assignee.avatar} />
                               <AvatarFallback className="text-xs">
-                                {task.assignee.name.split(" ").map(n => n[0]).join("")}
+                                {task.assignee.name ? task.assignee.name.split(" ").map(n => n[0]).join("") : 'U'}
                               </AvatarFallback>
                             </Avatar>
                           )}

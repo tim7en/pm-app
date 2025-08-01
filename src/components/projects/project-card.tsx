@@ -285,7 +285,7 @@ export function ProjectCard({
                 <Avatar className="h-6 w-6 border-2 border-background">
                   <AvatarImage src={project.owner.avatar} alt={project.owner.name} />
                   <AvatarFallback className="text-xs">
-                    {project.owner.name.split(' ').map(n => n[0]).join('')}
+                    {project.owner.name ? project.owner.name.split(' ').map(n => n[0]).join('') : 'U'}
                   </AvatarFallback>
                 </Avatar>
               )}

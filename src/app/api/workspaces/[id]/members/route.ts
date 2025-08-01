@@ -49,11 +49,12 @@ export async function GET(
 
     // Ensure consistent data structure and handle null values
     const sanitizedMembers = members.map(member => ({
-      ...member,
-      user: {
-        ...member.user,
-        name: member.user.name || member.user.email || 'Unknown User'
-      }
+      id: member.user.id,
+      name: member.user.name || member.user.email || 'Unknown User',
+      email: member.user.email,
+      avatar: member.user.avatar,
+      role: member.role,
+      joinedAt: member.joinedAt
     }))
 
     return NextResponse.json(sanitizedMembers)

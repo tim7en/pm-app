@@ -73,12 +73,9 @@ type InviteFormData = z.infer<typeof inviteSchema>
 
 interface WorkspaceMember {
   id: string
-  user: {
-    id: string
-    name: string
-    email: string
-    avatar?: string
-  }
+  name: string
+  email: string
+  avatar?: string
   role: "OWNER" | "ADMIN" | "MEMBER"
   joinedAt: string
 }
@@ -136,10 +133,22 @@ export default function TeamPage() {
       const response = await fetch(`/api/workspaces/${currentWorkspace.id}/members`)
       if (response.ok) {
         const data = await response.json()
-        setMembers(data)
+        console.log('Raw API response:', data) // Debug log
+        
+        // Add defensive check to ensure data is an array and members have proper structure
+        const validMembers = Array.isArray(data) ? data.filter(member => {
+          const isValid = member && typeof member === 'object' && member.id && member.email
+          if (!isValid) {
+            console.warn('Invalid member object:', member) // Debug log
+          }
+          return isValid
+        }) : []
+        
+        console.log('Valid members after filtering:', validMembers) // Debug log
+        setMembers(validMembers)
         
         // Find current user's role in this workspace
-        const currentMember = data.find((member: WorkspaceMember) => member.user.id === user?.id)
+        const currentMember = validMembers.find((member: WorkspaceMember) => member.id === user?.id)
         if (currentMember) {
           setCurrentUserRole(currentMember.role)
         }
@@ -435,14 +444,106 @@ export default function TeamPage() {
     }
   }
 
+    const handleSeedMockMembers = async () => {
+    if (!currentWorkspace) {
+      toast({
+        title: "Error",
+        description: "No workspace selected",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!confirm("This will add 3 mock team members to your workspace for testing purposes. Continue?")) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/workspaces/${currentWorkspace.id}/seed-mock-members`, {
+        method: 'POST',
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        toast({
+          title: "Success",
+          description: result.message,
+        })
+        
+        // Refresh the members list
+        fetchWorkspaceMembers()
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.error || "Failed to seed mock members",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Error seeding mock members:', error)
+      toast({
+        title: "Error",
+        description: "Failed to seed mock members",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleClearMockMembers = async () => {
+    if (!currentWorkspace) {
+      toast({
+        title: "Error",
+        description: "No workspace selected",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!confirm("This will remove all mock members from your workspace. Continue?")) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/workspaces/${currentWorkspace.id}/seed-mock-members`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        toast({
+          title: "Success",
+          description: result.message,
+        })
+        
+        // Refresh the members list
+        fetchWorkspaceMembers()
+      } else {
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.error || "Failed to clear mock members",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Error clearing mock members:', error)
+      toast({
+        title: "Error",
+        description: "Failed to clear mock members",
+        variant: "destructive",
+      })
+    }
+  }
+
   const filteredMembers = members.filter(member => {
-    // Ensure member and member.user exist before accessing properties
-    if (!member || !member.user) {
+    // Ensure member exists and has required properties
+    if (!member || typeof member !== 'object' || !member.id || !member.email) {
       return false
     }
     
-    const userName = member.user.name || ''
-    const userEmail = member.user.email || ''
+    const userName = member.name || ''
+    const userEmail = member.email || ''
     const matchesSearch = userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          userEmail.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesRole = filterRole === "all" || member.role === filterRole
@@ -515,6 +616,26 @@ export default function TeamPage() {
                     <Mail className="w-4 h-4 mr-2" />
                     Invitations ({invitations.length})
                   </Button>
+                )}
+                {(currentUserRole === 'OWNER' || currentUserRole === 'ADMIN') && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleSeedMockMembers}
+                      className="text-blue-600 hover:bg-blue-50"
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      Add Mock Members
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleClearMockMembers}
+                      className="text-orange-600 hover:bg-orange-50"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Clear Mock Members
+                    </Button>
+                  </>
                 )}
                 <Button 
                   variant="outline"
@@ -613,34 +734,41 @@ export default function TeamPage() {
 
             {/* Team Members Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredMembers.map((member) => (
+              {filteredMembers.map((member) => {
+                // Additional safety check for each member during rendering
+                if (!member || !member.id || !member.email) {
+                  console.warn('Skipping invalid member during render:', member)
+                  return null
+                }
+                
+                return (
                 <Card key={member.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader className="pb-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-12 w-12">
                           <AvatarImage 
-                            src={member.user.avatar || getDefaultAvatarByIndex(member.user.id.charCodeAt(0)).url} 
-                            alt={member.user.name || member.user.email} 
+                            src={member.avatar || getDefaultAvatarByIndex(member.id.charCodeAt(0)).url} 
+                            alt={member.name || member.email} 
                           />
                           <AvatarFallback className={
-                            member.user.avatar 
+                            member.avatar 
                               ? '' 
-                              : generateInitialsAvatar(member.user.name || member.user.email).backgroundColor
+                              : generateInitialsAvatar(member.name || member.email).backgroundColor
                           }>
-                            {generateInitialsAvatar(member.user.name || member.user.email).initials}
+                            {generateInitialsAvatar(member.name || member.email).initials}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <CardTitle className="text-lg">{member.user.name || member.user.email}</CardTitle>
-                          <CardDescription>{member.user.email}</CardDescription>
+                          <CardTitle className="text-lg">{member.name || member.email}</CardTitle>
+                          <CardDescription>{member.email}</CardDescription>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge className={getRoleColor(member.role)}>
                           {member.role}
                         </Badge>
-                        {user?.id !== member.user.id && (
+                        {user?.id !== member.id && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -696,7 +824,8 @@ export default function TeamPage() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                )
+              })}
             </div>
 
             {/* Empty State */}

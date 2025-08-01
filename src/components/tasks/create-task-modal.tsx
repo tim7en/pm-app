@@ -61,13 +61,11 @@ interface CreateTaskModalProps {
 
 interface WorkspaceMember {
   id: string
-  user: {
-    id: string
-    name: string
-    email: string
-    avatar?: string
-  }
+  name: string
+  email: string
+  avatar?: string
   role: string
+  joinedAt: string
 }
 
 export function CreateTaskModal({ projects, onCreateTask, children }: CreateTaskModalProps) {
@@ -209,7 +207,7 @@ export function CreateTaskModal({ projects, onCreateTask, children }: CreateTask
   }
 
   const selectedProject = projects.find(p => p.id === formData.projectId)
-  const selectedMember = workspaceMembers.find(m => m.user.id === formData.assigneeId)
+  const selectedMember = workspaceMembers.find(m => m.id === formData.assigneeId)
   const selectedPriority = priorityOptions.find(p => p.value === formData.priority)
 
   return (
@@ -365,9 +363,9 @@ export function CreateTaskModal({ projects, onCreateTask, children }: CreateTask
                     {selectedMember ? (
                       <>
                         <div className="w-6 h-6 rounded-full bg-gray-200 mr-2 flex items-center justify-center text-xs">
-                          {(selectedMember.user.name || selectedMember.user.email).split(' ').map(n => n[0]).join('')}
+                          {(selectedMember.name || selectedMember.email).split(' ').map(n => n[0]).join('')}
                         </div>
-                        {selectedMember.user.name || selectedMember.user.email}
+                        {selectedMember.name || selectedMember.email}
                       </>
                     ) : (
                       <>
@@ -387,16 +385,16 @@ export function CreateTaskModal({ projects, onCreateTask, children }: CreateTask
                   {formData.projectId ? (
                     workspaceMembers.map((member) => (
                       <DropdownMenuItem
-                        key={member.user.id}
-                        onClick={() => setFormData(prev => ({ ...prev, assigneeId: member.user.id }))}
+                        key={member.id}
+                        onClick={() => setFormData(prev => ({ ...prev, assigneeId: member.id }))}
                         className="flex items-center gap-2"
                       >
                         <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs">
-                          {(member.user.name || member.user.email).split(' ').map(n => n[0]).join('')}
+                          {(member.name || member.email).split(' ').map(n => n[0]).join('')}
                         </div>
                         <div>
-                          <div className="font-medium">{member.user.name || member.user.email}</div>
-                          <div className="text-xs text-muted-foreground">{member.user.email}</div>
+                          <div className="font-medium">{member.name || member.email}</div>
+                          <div className="text-xs text-muted-foreground">{member.email}</div>
                         </div>
                       </DropdownMenuItem>
                     ))

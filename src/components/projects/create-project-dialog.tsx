@@ -80,7 +80,7 @@ export function CreateProjectDialog({ onCreateProject, children }: CreateProject
       const response = await fetch(`/api/workspaces/${currentWorkspace.id}/members`)
       if (response.ok) {
         const members = await response.json()
-        const currentMember = members.find((member: any) => member.user.id === user.id)
+        const currentMember = members.find((member: any) => member.id === user.id)
         if (currentMember) {
           setUserRole(currentMember.role)
           setCanCreateProject(['OWNER', 'ADMIN'].includes(currentMember.role))

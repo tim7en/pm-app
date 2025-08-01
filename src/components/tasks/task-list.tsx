@@ -363,7 +363,7 @@ export function TaskList({
                           >
                             <AvatarImage src={task.assignee.avatar} alt={task.assignee.name} />
                             <AvatarFallback className="text-xs">
-                              {task.assignee.name.split(' ').map(n => n[0]).join('')}
+                              {task.assignee.name ? task.assignee.name.split(' ').map(n => n[0]).join('') : 'U'}
                             </AvatarFallback>
                           </Avatar>
                           <span className="text-xs">{task.assignee.name}</span>
@@ -376,7 +376,7 @@ export function TaskList({
                           <Avatar className="h-4 w-4">
                             <AvatarImage src={task.creator.avatar} alt={task.creator.name} />
                             <AvatarFallback className="text-xs">
-                              {task.creator.name.split(' ').map(n => n[0]).join('')}
+                              {task.creator.name ? task.creator.name.split(' ').map(n => n[0]).join('') : 'U'}
                             </AvatarFallback>
                           </Avatar>
                           <span className="text-xs">{task.creator.name}</span>
@@ -410,7 +410,7 @@ export function TaskList({
                       >
                         <AvatarImage src={task.assignee?.avatar} alt={task.assignee?.name} />
                         <AvatarFallback className="text-xs bg-blue-100 text-blue-600">
-                          {task.assignee?.name.split(' ').map(n => n[0]).join('') || 'ME'}
+                          {task.assignee?.name ? task.assignee.name.split(' ').map(n => n[0]).join('') : 'ME'}
                         </AvatarFallback>
                       </Avatar>
                     ) : (
@@ -423,7 +423,7 @@ export function TaskList({
                         >
                           <AvatarImage src={task.assignee.avatar} alt={task.assignee.name} />
                           <AvatarFallback className="text-xs">
-                            {task.assignee.name.split(' ').map(n => n[0]).join('')}
+                            {task.assignee.name ? task.assignee.name.split(' ').map(n => n[0]).join('') : 'U'}
                           </AvatarFallback>
                         </Avatar>
                       ) : (

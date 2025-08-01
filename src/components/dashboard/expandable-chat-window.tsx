@@ -462,7 +462,7 @@ export function ExpandableChatWindow({
                             <Avatar className="h-10 w-10">
                               <AvatarImage src={conversation.participants[0]?.avatar} />
                               <AvatarFallback>
-                                {conversation.participants[0]?.name.split(' ').map(n => n[0]).join('')}
+                                {conversation.participants[0]?.name ? conversation.participants[0].name.split(' ').map(n => n[0]).join('') : 'U'}
                               </AvatarFallback>
                             </Avatar>
                           )}
@@ -514,7 +514,7 @@ export function ExpandableChatWindow({
                         <Avatar className="h-10 w-10">
                           <AvatarImage src={member.avatar} alt={member.name} />
                           <AvatarFallback>
-                            {member.name.split(' ').map(n => n[0]).join('')}
+                            {member.name ? member.name.split(' ').map(n => n[0]).join('') : 'U'}
                           </AvatarFallback>
                         </Avatar>
                         
@@ -724,7 +724,7 @@ export function ExpandableChatWindow({
                       <Avatar className="h-10 w-10">
                         <AvatarImage src={member.avatar} alt={member.name} />
                         <AvatarFallback>
-                          {member.name.split(' ').map(n => n[0]).join('')}
+                          {member.name ? member.name.split(' ').map(n => n[0]).join('') : 'U'}
                         </AvatarFallback>
                       </Avatar>
                       

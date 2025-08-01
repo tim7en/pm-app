@@ -67,13 +67,11 @@ type TaskFormData = z.infer<typeof taskSchema>
 
 interface WorkspaceMember {
   id: string
-  user: {
-    id: string
-    name: string
-    email: string
-    avatar?: string
-  }
+  name: string
+  email: string
+  avatar?: string
   role: string
+  joinedAt: string
 }
 
 interface TaskDialogProps {
@@ -133,17 +131,47 @@ export function TaskDialog({
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
-      title: task?.title || "",
-      description: task?.description || "",
-      projectId: task?.projectId || projects[0]?.id || "",
-      assigneeId: task?.assigneeId || "unassigned",
-      priority: task?.priority || Priority.MEDIUM,
-      dueDate: task?.dueDate || undefined,
-      status: task?.status || TaskStatus.TODO,
-      tags: task?.tags || [],
-      subtasks: task?.subtasks || [],
+      title: "",
+      description: "",
+      projectId: "",
+      assigneeId: "unassigned",
+      priority: Priority.MEDIUM,
+      dueDate: undefined,
+      status: TaskStatus.TODO,
+      tags: [],
+      subtasks: [],
     },
   })
+
+  // Update form values when task prop changes
+  useEffect(() => {
+    if (task) {
+      form.reset({
+        title: task.title || "",
+        description: task.description || "",
+        projectId: task.projectId || "",
+        assigneeId: task.assigneeId || "unassigned",
+        priority: task.priority || Priority.MEDIUM,
+        dueDate: task.dueDate || undefined,
+        status: task.status || TaskStatus.TODO,
+        tags: task.tags || [],
+        subtasks: task.subtasks || [],
+      })
+    } else {
+      // Reset to default values for new task
+      form.reset({
+        title: "",
+        description: "",
+        projectId: projects[0]?.id || "",
+        assigneeId: "unassigned",
+        priority: Priority.MEDIUM,
+        dueDate: undefined,
+        status: TaskStatus.TODO,
+        tags: [],
+        subtasks: [],
+      })
+    }
+  }, [task, projects, form])
 
   // Watch project changes to fetch workspace members and check ownership
   const watchedProjectId = form.watch("projectId")
@@ -176,7 +204,7 @@ export function TaskDialog({
       const response = await fetch(`/api/workspaces/${currentWorkspace.id}/members`)
       if (response.ok) {
         const members = await response.json()
-        const currentMember = members.find((member: any) => member.user.id === user.id)
+        const currentMember = members.find((member: any) => member.id === user.id)
         if (currentMember) {
           setUserRole(currentMember.role)
         }
@@ -249,7 +277,7 @@ export function TaskDialog({
       return true
     }
     // Otherwise, can only assign to themselves
-    return member.user.id === user?.id
+    return member.id === user?.id
   })
 
   return (
@@ -356,9 +384,9 @@ export function TaskDialog({
                         {form.watch("projectId") ? (
                           availableAssignees.length > 0 ? (
                             availableAssignees.map((member) => (
-                              <SelectItem key={member.user.id} value={member.user.id}>
+                              <SelectItem key={member.id} value={member.id}>
                                 <div className="flex items-center gap-2">
-                                  <span>{member.user.name || member.user.email}</span>
+                                  <span>{member.name || member.email}</span>
                                   <span className="text-xs text-muted-foreground">
                                     ({member.role})
                                   </span>

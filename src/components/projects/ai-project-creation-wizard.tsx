@@ -1254,15 +1254,15 @@ export function AIProjectCreationWizard({
                                 </div>
                               </SelectItem>
                               {workspaceMembers.map((member) => (
-                                <SelectItem key={member.id} value={member.user.id}>
+                                <SelectItem key={member.id} value={member.id}>
                                   <div className="flex items-center gap-2">
                                     <Avatar className="w-5 h-5">
-                                      <AvatarImage src={member.user.avatar} />
+                                      <AvatarImage src={member.avatar} />
                                       <AvatarFallback className="text-xs">
-                                        {member.user.name?.charAt(0) || member.user.email?.charAt(0)}
+                                        {member.name?.charAt(0) || member.email?.charAt(0)}
                                       </AvatarFallback>
                                     </Avatar>
-                                    <span>{member.user.name || member.user.email}</span>
+                                    <span>{member.name || member.email}</span>
                                   </div>
                                 </SelectItem>
                               ))}

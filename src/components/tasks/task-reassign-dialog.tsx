@@ -94,23 +94,28 @@ export function TaskReassignDialog({
   const handleReassign = async () => {
     setReassigning(true)
     try {
-      const response = await apiCall(`/api/tasks/${taskId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          assigneeId: selectedMemberId || null
-        })
-      })
+      const response = selectedMemberId 
+        ? await apiCall(`/api/tasks/${taskId}/assign`, {
+            method: 'POST',
+            body: JSON.stringify({
+              assigneeId: selectedMemberId
+            })
+          })
+        : await apiCall(`/api/tasks/${taskId}/assign`, {
+            method: 'DELETE'
+          })
 
       if (response.ok) {
+        const result = await response.json()
         const assigneeName = selectedMemberId 
           ? members.find(m => m.id === selectedMemberId)?.name || t("tasks.unknown")
           : t("tasks.unassigned")
         
         toast({
           title: t("tasks.taskReassigned"),
-          description: selectedMemberId 
+          description: result.message || (selectedMemberId 
             ? t("tasks.taskAssignedTo", { name: assigneeName })
-            : t("tasks.taskUnassigned")
+            : t("tasks.taskUnassigned"))
         })
         
         onReassignComplete?.(taskId, selectedMemberId)
@@ -149,14 +154,14 @@ export function TaskReassignDialog({
 
         {currentAssignee && (
           <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-            <Avatar className="h-8 w-8">
+            <Avatar className="h-10 w-10">
               <AvatarImage src={currentAssignee.avatar} alt={currentAssignee.name} />
               <AvatarFallback className="text-xs">
-                {currentAssignee.name.split(' ').map(n => n[0]).join('')}
+                {currentAssignee.name ? currentAssignee.name.split(' ').map(n => n[0]).join('') : 'U'}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <p className="text-sm font-medium">{t("tasks.currentlyAssignedTo")}</p>
+              <p className="text-sm font-medium text-blue-900">{t("tasks.currentlyAssignedTo")}</p>
               <p className="text-sm text-muted-foreground">{currentAssignee.name}</p>
             </div>
             <Badge variant="secondary">{currentAssignee.role}</Badge>
@@ -204,7 +209,7 @@ export function TaskReassignDialog({
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={member.avatar} alt={member.name} />
                           <AvatarFallback className="text-xs">
-                            {member.name.split(' ').map(n => n[0]).join('')}
+                            {member.name ? member.name.split(' ').map(n => n[0]).join('') : 'U'}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
@@ -228,7 +233,7 @@ export function TaskReassignDialog({
               <Avatar className="h-8 w-8">
                 <AvatarImage src={selectedMember.avatar} alt={selectedMember.name} />
                 <AvatarFallback className="text-xs">
-                  {selectedMember.name.split(' ').map(n => n[0]).join('')}
+                  {selectedMember.name ? selectedMember.name.split(' ').map(n => n[0]).join('') : 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">

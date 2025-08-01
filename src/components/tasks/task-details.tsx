@@ -279,7 +279,7 @@ export function TaskDetails({
                   <Avatar className="h-6 w-6">
                     <AvatarImage src={task.assignee.avatar} />
                     <AvatarFallback className="text-xs">
-                      {task.assignee.name.split(" ").map(n => n[0]).join("")}
+                      {task.assignee.name ? task.assignee.name.split(" ").map(n => n[0]).join("") : 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <span className="text-sm">{task.assignee.name}</span>
@@ -302,7 +302,7 @@ export function TaskDetails({
                   <Avatar className="h-6 w-6">
                     <AvatarImage src={task.creator.avatar} />
                     <AvatarFallback className="text-xs">
-                      {task.creator.name.split(" ").map(n => n[0]).join("")}
+                      {task.creator.name ? task.creator.name.split(" ").map(n => n[0]).join("") : 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <span>{formatDate(task.createdAt)}</span>
@@ -390,7 +390,7 @@ export function TaskDetails({
                     <Avatar className="h-8 w-8 flex-shrink-0">
                       <AvatarImage src={comment.author.avatar} />
                       <AvatarFallback className="text-xs">
-                        {comment.author.name.split(" ").map(n => n[0]).join("")}
+                        {comment.author.name ? comment.author.name.split(" ").map(n => n[0]).join("") : 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">

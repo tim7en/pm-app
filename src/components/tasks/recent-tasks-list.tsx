@@ -354,7 +354,7 @@ export function RecentTasksList({
                             <Avatar className="h-5 w-5">
                               <AvatarImage src={task.assignee.avatar} alt={task.assignee.name} />
                               <AvatarFallback className="text-xs">
-                                {task.assignee.name.split(' ').map(n => n[0]).join('')}
+                                {task.assignee.name ? task.assignee.name.split(' ').map(n => n[0]).join('') : 'U'}
                               </AvatarFallback>
                             </Avatar>
                             <span className="text-xs text-muted-foreground">

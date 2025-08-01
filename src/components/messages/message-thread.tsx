@@ -171,7 +171,7 @@ export function MessageThread({
             <Avatar className="h-10 w-10">
               <AvatarImage src={otherParticipant.avatar} alt={otherParticipant.name} />
               <AvatarFallback>
-                {otherParticipant.name.split(' ').map(n => n[0]).join('')}
+                {otherParticipant.name ? otherParticipant.name.split(' ').map(n => n[0]).join('') : 'U'}
               </AvatarFallback>
             </Avatar>
             <div>
@@ -275,7 +275,7 @@ export function MessageThread({
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={message.sender.avatar} alt={message.sender.name} />
                         <AvatarFallback className="text-xs">
-                          {message.sender.name.split(' ').map(n => n[0]).join('')}
+                          {message.sender.name ? message.sender.name.split(' ').map(n => n[0]).join('') : 'U'}
                         </AvatarFallback>
                       </Avatar>
                     )}
