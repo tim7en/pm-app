@@ -11,6 +11,7 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { ProjectCard } from "@/components/projects/project-card"
 import { ProjectDialog } from "@/components/projects/project-dialog"
+import { EnhancedProjectCreation } from "@/components/projects/enhanced-project-creation"
 import { useToast } from "@/hooks/use-toast"
 import { useAPI } from "@/hooks/use-api"
 import { useAuth } from "@/contexts/AuthContext"
@@ -125,6 +126,55 @@ export default function ProjectsPage() {
         description: "An unexpected error occurred while creating the project",
         variant: "destructive",
       })
+    }
+  }
+
+  const handleEnhancedCreateProject = async (projectData: any, tasks?: any[], calendarEvents?: any[]): Promise<boolean> => {
+    try {
+      const response = await apiCall('/api/projects', {
+        method: 'POST',
+        body: JSON.stringify(projectData)
+      })
+      
+      if (response.ok) {
+        const newProject = await response.json()
+        
+        // TODO: Handle tasks and calendar events creation
+        if (tasks && tasks.length > 0) {
+          console.log('Creating AI-generated tasks:', tasks)
+          // Implementation for bulk task creation will be added here
+        }
+        
+        if (calendarEvents && calendarEvents.length > 0) {
+          console.log('Creating calendar events:', calendarEvents)
+          // Implementation for calendar event creation will be added here
+        }
+        
+        await fetchProjects()
+        setProjectDialogOpen(false)
+        setEditingProject(null)
+        toast({
+          title: t("common.success"),
+          description: t("projects.projectCreated"),
+        })
+        return true
+      } else {
+        const errorData = await response.json()
+        toast({
+          title: t("common.error"),
+          description: errorData.error || t("projects.createError"),
+          variant: "destructive",
+        })
+        return false
+      }
+    } catch (error) {
+      console.error('Error creating project:', error)
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while creating the project",
+        variant: "destructive",
+      })
+      return false
     }
   }
 
@@ -459,16 +509,26 @@ export default function ProjectsPage() {
         </main>
       </div>
 
-      {/* Project Dialog */}
-      <ProjectDialog
-        open={projectDialogOpen}
-        onOpenChange={(open) => {
-          setProjectDialogOpen(open)
-          if (!open) setEditingProject(null)
-        }}
-        project={editingProject || undefined}
-        onSubmit={editingProject ? handleUpdateProject : handleCreateProject}
-      />
+      {/* Project Dialogs */}
+      {!editingProject ? (
+        <EnhancedProjectCreation
+          open={projectDialogOpen}
+          onOpenChange={setProjectDialogOpen}
+          onCreateProject={handleEnhancedCreateProject}
+          projects={projects}
+          workspaceMembers={[]} // TODO: Fetch workspace members
+        />
+      ) : (
+        <ProjectDialog
+          open={projectDialogOpen}
+          onOpenChange={(open) => {
+            setProjectDialogOpen(open)
+            if (!open) setEditingProject(null)
+          }}
+          project={editingProject}
+          onSubmit={handleUpdateProject}
+        />
+      )}
     </div>
   )
 }

@@ -4,10 +4,12 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Building2 } from "lucide-react"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { ProjectDialog } from "@/components/projects/project-dialog"
+import { EnhancedProjectCreation } from "@/components/projects/enhanced-project-creation"
 import { TaskDialog } from "@/components/tasks/task-dialog"
 import { ProjectInsightsDialog } from "@/components/projects/project-insights-dialog"
 
@@ -71,7 +73,7 @@ export function DashboardContainer() {
     projectName: ''
   })
 
-  const onCreateProject = async (projectData: any) => {
+  const onCreateProject = async (projectData: any, tasks?: any[], calendarEvents?: any[]): Promise<boolean> => {
     console.log('onCreateProject called with:', projectData)
     const success = await handleCreateProject(projectData)
     console.log('Project creation result:', success)
@@ -95,9 +97,22 @@ export function DashboardContainer() {
       
       // Also refresh all data to ensure consistency
       await refreshData()
+      
+      // TODO: Handle tasks and calendar events creation
+      if (tasks && tasks.length > 0) {
+        console.log('Creating AI-generated tasks:', tasks)
+        // Implementation for bulk task creation will be added here
+      }
+      
+      if (calendarEvents && calendarEvents.length > 0) {
+        console.log('Creating calendar events:', calendarEvents)
+        // Implementation for calendar event creation will be added here
+      }
     } else {
       console.error('Project creation failed')
     }
+    
+    return success
   }
 
   const onUpdateProject = async (projectData: any) => {
@@ -476,17 +491,27 @@ export function DashboardContainer() {
         </main>
       </div>
 
-      {/* Project Dialog */}
-      <ProjectDialog
-        open={projectDialogOpen}
-        onOpenChange={(open) => {
-          setProjectDialogOpen(open)
-          if (!open) setEditingProject(null)
-        }}
-        project={editingProject}
-        onSubmit={editingProject ? onUpdateProject : onCreateProject}
-        isSubmitting={isSubmitting}
-      />
+      {/* Project Creation - Enhanced for new, Standard for editing */}
+      {!editingProject ? (
+        <EnhancedProjectCreation
+          open={projectDialogOpen}
+          onOpenChange={setProjectDialogOpen}
+          onCreateProject={onCreateProject}
+          projects={projects}
+          workspaceMembers={users}
+        />
+      ) : (
+        <ProjectDialog
+          open={projectDialogOpen}
+          onOpenChange={(open) => {
+            setProjectDialogOpen(open)
+            if (!open) setEditingProject(null)
+          }}
+          project={editingProject}
+          onSubmit={onUpdateProject}
+          isSubmitting={isSubmitting}
+        />
+      )}
 
       {/* Task Dialog */}
       <TaskDialog

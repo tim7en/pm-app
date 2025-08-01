@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ProjectDialog } from "@/components/projects/project-dialog"
+import { EnhancedProjectCreation } from "@/components/projects/enhanced-project-creation"
 import { DownloadMenu } from "@/components/layout/download-menu"
 import { NotificationsDropdown } from "@/components/layout/notifications-dropdown"
 import { BugReportDialog } from "@/components/bug-report/bug-report-dialog"
@@ -87,6 +88,63 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
         description: t("header.unexpectedError"),
         variant: "destructive",
       })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleEnhancedCreateProject = async (projectData: any, tasks?: any[], calendarEvents?: any[]): Promise<boolean> => {
+    setIsSubmitting(true)
+    try {
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify(projectData)
+      })
+      
+      if (response.ok) {
+        const newProject = await response.json()
+        
+        // TODO: Handle tasks and calendar events creation
+        if (tasks && tasks.length > 0) {
+          console.log('Creating AI-generated tasks:', tasks)
+          // Implementation for bulk task creation will be added here
+        }
+        
+        if (calendarEvents && calendarEvents.length > 0) {
+          console.log('Creating calendar events:', calendarEvents)
+          // Implementation for calendar event creation will be added here
+        }
+        
+        setProjectDialogOpen(false)
+        toast({
+          title: t("header.projectCreated"),
+          description: t("header.projectCreatedSuccess", { name: newProject.name }),
+        })
+        // Call the callback to refresh data
+        if (onProjectCreated) {
+          onProjectCreated()
+        }
+        return true
+      } else {
+        const data = await response.json()
+        console.error('Error creating project:', data.error)
+        toast({
+          title: t("header.projectCreationFailed"),
+          description: data.error || t("header.projectCreationError"),
+          variant: "destructive",
+        })
+        return false
+      }
+    } catch (error) {
+      console.error('Error creating project:', error)
+      toast({
+        title: t("header.projectCreationFailed"),
+        description: t("header.unexpectedError"),
+        variant: "destructive",
+      })
+      return false
     } finally {
       setIsSubmitting(false)
     }
@@ -262,12 +320,13 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
         </div>
       </div>
 
-      {/* Project Dialog */}
-      <ProjectDialog
+      {/* Enhanced Project Creation */}
+      <EnhancedProjectCreation
         open={projectDialogOpen}
         onOpenChange={setProjectDialogOpen}
-        onSubmit={handleCreateProject}
-        isSubmitting={isSubmitting}
+        onCreateProject={handleEnhancedCreateProject}
+        projects={projects}
+        workspaceMembers={users}
       />
     </header>
   )
