@@ -471,110 +471,190 @@ export function AIProjectCreationWizard({
       case WizardStep.PROJECT_INFO:
         return (
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, x: -20 }}
             className="space-y-6"
           >
-            <div className="text-center mb-6">
+            <div className="text-center mb-8">
               <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2 }}
-                className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ 
+                  type: "spring",
+                  stiffness: 260,
+                  damping: 20,
+                  delay: 0.2 
+                }}
+                className="w-20 h-20 bg-gradient-to-br from-blue-500 via-purple-600 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl"
               >
-                <Brain className="w-8 h-8 text-white" />
+                <Brain className="w-10 h-10 text-white" />
               </motion.div>
-              <h3 className="text-xl font-semibold">{t("ai.wizard.welcome")}</h3>
-              <p className="text-muted-foreground">{t("ai.wizard.welcomeDesc")}</p>
+              <motion.h3 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2"
+              >
+                {t("ai.wizard.welcome")}
+              </motion.h3>
+              <motion.p 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="text-muted-foreground leading-relaxed max-w-md mx-auto"
+              >
+                {t("ai.wizard.welcomeDesc")}
+              </motion.p>
             </div>
 
             <Form {...form}>
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("projects.name")} *</FormLabel>
-                      <FormControl>
-                        <Input placeholder={t("ai.wizard.projectNamePlaceholder")} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("projects.description")} *</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder={t("ai.wizard.descriptionPlaceholder")}
-                          rows={4}
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 }}
+                >
                   <FormField
                     control={form.control}
-                    name="category"
+                    name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t("projects.category")} *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder={t("projects.selectCategory")} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {projectCategories.map((category) => (
-                              <SelectItem key={category.value} value={category.value}>
+                        <FormLabel className="text-base font-semibold flex items-center gap-2">
+                          <Target className="w-4 h-4 text-blue-500" />
+                          {t("projects.name")} *
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder={t("ai.wizard.projectNamePlaceholder")} 
+                            className="h-12 text-base border-2 focus:border-blue-500 transition-all duration-300"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.0 }}
+                >
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-semibold flex items-center gap-2">
+                          <Lightbulb className="w-4 h-4 text-purple-500" />
+                          {t("projects.description")} *
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder={t("ai.wizard.descriptionPlaceholder")}
+                            rows={4}
+                            className="text-base border-2 focus:border-purple-500 transition-all duration-300 resize-none"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </motion.div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.2 }}
+                  >
+                    <FormField
+                      control={form.control}
+                      name="category"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base font-semibold flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-green-500" />
+                            {t("projects.category")} *
+                          </FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="h-12 border-2 focus:border-green-500">
+                                <SelectValue placeholder={t("projects.selectCategory")} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {projectCategories.map((category) => (
+                                <SelectItem key={category.value} value={category.value}>
+                                  <div className="flex items-center gap-3 py-1">
+                                    <span className="text-lg">{category.icon}</span>
+                                    <span className="font-medium">{category.label}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.4 }}
+                  >
+                    <FormField
+                      control={form.control}
+                      name="priority"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base font-semibold flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-orange-500" />
+                            {t("tasks.priority")}
+                          </FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="h-12 border-2 focus:border-orange-500">
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="LOW">
                                 <div className="flex items-center gap-2">
-                                  <span>{category.icon}</span>
-                                  <span>{category.label}</span>
+                                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                  {t("tasks.lowPriority")}
                                 </div>
                               </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="priority"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t("tasks.priority")}</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="LOW">{t("tasks.lowPriority")}</SelectItem>
-                            <SelectItem value="MEDIUM">{t("tasks.mediumPriority")}</SelectItem>
-                            <SelectItem value="HIGH">{t("tasks.highPriority")}</SelectItem>
-                            <SelectItem value="URGENT">{t("tasks.urgentPriority")}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                              <SelectItem value="MEDIUM">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                                  {t("tasks.mediumPriority")}
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="HIGH">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                                  {t("tasks.highPriority")}
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="URGENT">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                                  {t("tasks.urgentPriority")}
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </motion.div>
                 </div>
 
                 <FormField

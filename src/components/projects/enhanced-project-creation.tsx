@@ -150,65 +150,83 @@ export function EnhancedProjectCreation({
               transition={{ delay: 0.1 }}
             >
               <Card 
-                className="relative overflow-hidden border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 hover:border-blue-300 transition-all duration-300 cursor-pointer group"
+                className="relative overflow-hidden border-2 border-blue-200 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 hover:border-blue-300 hover:shadow-xl transition-all duration-500 cursor-pointer group"
                 onClick={() => {
                   setMainDialogOpen(false)
                   setAiWizardOpen(true)
                 }}
               >
-                <div className="absolute top-2 right-2">
-                  <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                <div className="absolute top-2 right-2 z-10">
+                  <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white animate-pulse">
                     {t("ai.recommended")}
                   </Badge>
                 </div>
+
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 via-purple-400/10 to-indigo-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-4 mx-auto group-hover:scale-110 transition-transform duration-300">
-                    <Brain className="w-8 h-8 text-white" />
+                <CardHeader className="pb-4 relative z-10">
+                  <div className="flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 via-purple-600 to-indigo-600 rounded-full mb-4 mx-auto group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg">
+                    <Brain className="w-10 h-10 text-white" />
                   </div>
-                  <CardTitle className="text-center">
+                  <CardTitle className="text-center text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     {t("ai.wizard.aiPoweredCreation")}
                   </CardTitle>
-                  <CardDescription className="text-center">
+                  <CardDescription className="text-center text-sm leading-relaxed">
                     {t("ai.wizard.aiCreationDesc")}
                   </CardDescription>
                 </CardHeader>
                 
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 relative z-10">
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3 text-sm">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                      <span>{t("ai.wizard.features.smartTasks")}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full" />
-                      <span>{t("ai.wizard.features.timelineOptimization")}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <div className="w-2 h-2 bg-green-500 rounded-full" />
-                      <span>{t("ai.wizard.features.calendarIntegration")}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full" />
-                      <span>{t("ai.wizard.features.teamAssignments")}</span>
-                    </div>
+                    <motion.div 
+                      className="flex items-center gap-3 text-sm"
+                      whileHover={{ x: 5 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full shadow-sm" />
+                      <span className="font-medium">{t("ai.wizard.features.smartTasks")}</span>
+                    </motion.div>
+                    <motion.div 
+                      className="flex items-center gap-3 text-sm"
+                      whileHover={{ x: 5 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <div className="w-3 h-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full shadow-sm" />
+                      <span className="font-medium">{t("ai.wizard.features.timelineOptimization")}</span>
+                    </motion.div>
+                    <motion.div 
+                      className="flex items-center gap-3 text-sm"
+                      whileHover={{ x: 5 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <div className="w-3 h-3 bg-gradient-to-r from-green-500 to-green-600 rounded-full shadow-sm" />
+                      <span className="font-medium">{t("ai.wizard.features.calendarIntegration")}</span>
+                    </motion.div>
+                    <motion.div 
+                      className="flex items-center gap-3 text-sm"
+                      whileHover={{ x: 5 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <div className="w-3 h-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full shadow-sm" />
+                      <span className="font-medium">{t("ai.wizard.features.teamAssignments")}</span>
+                    </motion.div>
                   </div>
 
-                  <div className="pt-4 border-t border-blue-200">
+                  <div className="pt-4 border-t border-blue-200/50">
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <div className="flex items-center gap-2">
-                        <Sparkles className="w-3 h-3" />
-                        <span>{t("ai.wizard.aiPowered")}</span>
+                        <Sparkles className="w-3 h-3 text-blue-500" />
+                        <span className="font-medium">{t("ai.wizard.aiPowered")}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span>{t("ai.recommended")}</span>
-                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                        <span className="font-medium">{t("ai.recommended")}</span>
+                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400 animate-pulse" />
                       </div>
                     </div>
                   </div>
 
                   <Button 
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300 font-semibold"
                     onClick={(e) => {
                       e.stopPropagation()
                       setMainDialogOpen(false)
@@ -217,7 +235,7 @@ export function EnhancedProjectCreation({
                   >
                     <Zap className="w-4 h-4 mr-2" />
                     {t("ai.wizard.startAICreation")}
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
                   </Button>
                 </CardContent>
               </Card>
