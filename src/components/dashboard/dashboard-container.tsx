@@ -11,6 +11,7 @@ import { Header } from "@/components/layout/header"
 import { ProjectDialog } from "@/components/projects/project-dialog"
 import { EnhancedProjectCreation } from "@/components/projects/enhanced-project-creation"
 import { TaskDialog } from "@/components/tasks/task-dialog"
+import { TaskReassignDialog } from "@/components/tasks/task-reassign-dialog"
 import { ProjectInsightsDialog } from "@/components/projects/project-insights-dialog"
 
 import { DashboardHeader } from "./dashboard-header"
@@ -62,6 +63,12 @@ export function DashboardContainer() {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<any>(null)
   const [editingTask, setEditingTask] = useState<any>(null)
+  const [reassignDialogOpen, setReassignDialogOpen] = useState(false)
+  const [reassignTaskData, setReassignTaskData] = useState<{
+    taskId: string
+    taskTitle: string
+    currentAssigneeId?: string
+  } | null>(null)
   const [taskView, setTaskView] = useState<"list" | "board">("list")
   const [insightsDialog, setInsightsDialog] = useState<{
     open: boolean
@@ -223,6 +230,23 @@ export function DashboardContainer() {
       ])
     }
     return success
+  }
+
+  const onTaskReassign = (taskId: string, currentAssigneeId?: string) => {
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) return
+    
+    setReassignTaskData({
+      taskId,
+      taskTitle: task.title,
+      currentAssigneeId
+    })
+    setReassignDialogOpen(true)
+  }
+
+  const onReassignComplete = async (taskId: string, newAssigneeId?: string) => {
+    // Refresh tasks to get updated assignee information
+    await fetchTasks()
   }
 
   const onImportData = async (data: any) => {
@@ -446,6 +470,7 @@ export function DashboardContainer() {
                   onTaskStatusChange={onTaskStatusChange}
                   onTaskUpdate={onTaskUpdate}
                   onTaskDelete={onDeleteTask}
+                  onTaskReassign={onTaskReassign}
                   onCreateTask={(status) => {
                     if (status) {
                       setEditingTask({ status, projectId: projects[0]?.id || '' })
@@ -525,6 +550,18 @@ export function DashboardContainer() {
         onSubmit={editingTask ? onUpdateTask : onCreateTask}
         isSubmitting={isSubmitting}
       />
+
+      {/* Task Reassign Dialog */}
+      {reassignTaskData && (
+        <TaskReassignDialog
+          open={reassignDialogOpen}
+          onOpenChange={setReassignDialogOpen}
+          taskId={reassignTaskData.taskId}
+          taskTitle={reassignTaskData.taskTitle}
+          currentAssigneeId={reassignTaskData.currentAssigneeId}
+          onReassignComplete={onReassignComplete}
+        />
+      )}
 
       {/* Project Insights Dialog */}
       <ProjectInsightsDialog

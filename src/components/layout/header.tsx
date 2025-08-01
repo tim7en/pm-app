@@ -93,7 +93,7 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
     }
   }
 
-  const handleEnhancedCreateProject = async (projectData: any, tasks?: any[], calendarEvents?: any[]): Promise<boolean> => {
+  const handleEnhancedCreateProject = async (projectData: any, tasks?: any[], calendarEvents?: any[]): Promise<any> => {
     setIsSubmitting(true)
     try {
       const response = await fetch('/api/projects', {
@@ -106,17 +106,6 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
       if (response.ok) {
         const newProject = await response.json()
         
-        // TODO: Handle tasks and calendar events creation
-        if (tasks && tasks.length > 0) {
-          console.log('Creating AI-generated tasks:', tasks)
-          // Implementation for bulk task creation will be added here
-        }
-        
-        if (calendarEvents && calendarEvents.length > 0) {
-          console.log('Creating calendar events:', calendarEvents)
-          // Implementation for calendar event creation will be added here
-        }
-        
         setProjectDialogOpen(false)
         toast({
           title: t("header.projectCreated"),
@@ -126,7 +115,9 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
         if (onProjectCreated) {
           onProjectCreated()
         }
-        return true
+        
+        // Return the created project for further processing
+        return newProject
       } else {
         const data = await response.json()
         console.error('Error creating project:', data.error)
@@ -135,7 +126,7 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
           description: data.error || t("header.projectCreationError"),
           variant: "destructive",
         })
-        return false
+        return null
       }
     } catch (error) {
       console.error('Error creating project:', error)
@@ -144,7 +135,7 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
         description: t("header.unexpectedError"),
         variant: "destructive",
       })
-      return false
+      return null
     } finally {
       setIsSubmitting(false)
     }

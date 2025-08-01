@@ -129,7 +129,7 @@ export default function ProjectsPage() {
     }
   }
 
-  const handleEnhancedCreateProject = async (projectData: any, tasks?: any[], calendarEvents?: any[]): Promise<boolean> => {
+  const handleEnhancedCreateProject = async (projectData: any, tasks?: any[], calendarEvents?: any[]): Promise<any> => {
     try {
       const response = await apiCall('/api/projects', {
         method: 'POST',
@@ -139,25 +139,16 @@ export default function ProjectsPage() {
       if (response.ok) {
         const newProject = await response.json()
         
-        // TODO: Handle tasks and calendar events creation
-        if (tasks && tasks.length > 0) {
-          console.log('Creating AI-generated tasks:', tasks)
-          // Implementation for bulk task creation will be added here
-        }
-        
-        if (calendarEvents && calendarEvents.length > 0) {
-          console.log('Creating calendar events:', calendarEvents)
-          // Implementation for calendar event creation will be added here
-        }
-        
+        // Refresh projects list
         await fetchProjects()
-        setProjectDialogOpen(false)
-        setEditingProject(null)
+        
         toast({
           title: t("common.success"),
           description: t("projects.projectCreated"),
         })
-        return true
+        
+        // Return the created project for further processing
+        return newProject
       } else {
         const errorData = await response.json()
         toast({
@@ -165,7 +156,7 @@ export default function ProjectsPage() {
           description: errorData.error || t("projects.createError"),
           variant: "destructive",
         })
-        return false
+        return null
       }
     } catch (error) {
       console.error('Error creating project:', error)
@@ -174,7 +165,7 @@ export default function ProjectsPage() {
         description: "An unexpected error occurred while creating the project",
         variant: "destructive",
       })
-      return false
+      return null
     }
   }
 

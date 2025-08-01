@@ -76,6 +76,7 @@ interface TaskListProps {
   onTaskDelete?: (taskId: string) => void
   onTaskEdit?: (task: any) => void
   onCreateTask?: () => void
+  onTaskReassign?: (taskId: string, currentAssigneeId?: string) => void
   currentUserId?: string
   taskType?: 'assigned' | 'created'
 }
@@ -100,6 +101,7 @@ export function TaskList({
   onTaskDelete, 
   onTaskEdit, 
   onCreateTask,
+  onTaskReassign,
   currentUserId,
   taskType = 'assigned'
 }: TaskListProps) {
@@ -354,7 +356,11 @@ export function TaskList({
                       {taskType === 'created' && task.assignee && (
                         <div className="flex items-center gap-1">
                           <span className="text-xs">{t("tasks.assignedTo")}</span>
-                          <Avatar className="h-4 w-4">
+                          <Avatar 
+                            className="h-4 w-4 cursor-pointer hover:ring-2 hover:ring-blue-200 hover:ring-offset-1 transition-all" 
+                            onClick={() => onTaskReassign?.(task.id, task.assigneeId)}
+                            title="Click to reassign task"
+                          >
                             <AvatarImage src={task.assignee.avatar} alt={task.assignee.name} />
                             <AvatarFallback className="text-xs">
                               {task.assignee.name.split(' ').map(n => n[0]).join('')}
@@ -396,24 +402,36 @@ export function TaskList({
                     )}
                     
                     {taskType === 'assigned' ? (
-                      // For assigned tasks, show the current user as assignee
-                      <Avatar className="h-6 w-6">
+                      // For assigned tasks, show the current user as assignee (clickable for reassignment)
+                      <Avatar 
+                        className="h-6 w-6 cursor-pointer hover:ring-2 hover:ring-blue-200 hover:ring-offset-1 transition-all" 
+                        onClick={() => onTaskReassign?.(task.id, task.assigneeId)}
+                        title="Click to reassign task"
+                      >
                         <AvatarImage src={task.assignee?.avatar} alt={task.assignee?.name} />
                         <AvatarFallback className="text-xs bg-blue-100 text-blue-600">
                           {task.assignee?.name.split(' ').map(n => n[0]).join('') || 'ME'}
                         </AvatarFallback>
                       </Avatar>
                     ) : (
-                      // For created tasks, show the assignee or unassigned
+                      // For created tasks, show the assignee or unassigned (clickable for assignment/reassignment)
                       task.assignee ? (
-                        <Avatar className="h-6 w-6">
+                        <Avatar 
+                          className="h-6 w-6 cursor-pointer hover:ring-2 hover:ring-blue-200 hover:ring-offset-1 transition-all" 
+                          onClick={() => onTaskReassign?.(task.id, task.assigneeId)}
+                          title="Click to reassign task"
+                        >
                           <AvatarImage src={task.assignee.avatar} alt={task.assignee.name} />
                           <AvatarFallback className="text-xs">
                             {task.assignee.name.split(' ').map(n => n[0]).join('')}
                           </AvatarFallback>
                         </Avatar>
                       ) : (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <div 
+                          className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer hover:text-blue-600 transition-colors"
+                          onClick={() => onTaskReassign?.(task.id, undefined)}
+                          title="Click to assign task"
+                        >
                           <User className="h-3 w-3" />
                           <span>{t("tasks.unassigned")}</span>
                         </div>

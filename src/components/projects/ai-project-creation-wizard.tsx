@@ -122,6 +122,7 @@ const projectCategories = [
   { value: "event", label: "Event Planning", icon: "🎉" },
   { value: "business", label: "Business Development", icon: "💼" },
   { value: "training", label: "Training & Education", icon: "📚" },
+  { value: "concept", label: "Concept Note/Proposal", icon: "📄" },
   { value: "other", label: "Other", icon: "📋" }
 ]
 
@@ -231,23 +232,84 @@ export function AIProjectCreationWizard({
       const { mockProjectScenarios, generateProjectInsights } = await import('@/data/ai-mock-data')
       console.log('✅ Mock data imported successfully', { scenarioCount: mockProjectScenarios.length })
       
-      // Simple keyword matching to select appropriate mock scenario
+      // Enhanced matching logic considering both category and description
       let selectedScenario = mockProjectScenarios[0] // default
       
       const description = projectData.description.toLowerCase()
-      console.log('🔍 Analyzing project description:', description)
+      const category = projectData.category.toLowerCase()
+      console.log('🔍 Analyzing project:', { category, description: description.substring(0, 100) + '...' })
       
-      if (description.includes('ecommerce') || description.includes('shopping') || description.includes('store')) {
-        selectedScenario = mockProjectScenarios.find(s => s.id === 'ecommerce-platform') || selectedScenario
-        console.log('🛒 Selected e-commerce scenario')
-      } else if (description.includes('mobile') || description.includes('app') || description.includes('fitness')) {
-        selectedScenario = mockProjectScenarios.find(s => s.id === 'mobile-fitness-app') || selectedScenario
-        console.log('📱 Selected mobile app scenario')
-      } else if (description.includes('ai') || description.includes('chatbot') || description.includes('bot')) {
-        selectedScenario = mockProjectScenarios.find(s => s.id === 'ai-chatbot') || selectedScenario
-        console.log('🤖 Selected AI chatbot scenario')
+      // First try to match by category
+      if (category === 'marketing') {
+        selectedScenario = mockProjectScenarios.find(s => s.id === 'marketing-campaign') || selectedScenario
+        console.log('📈 Selected marketing campaign scenario')
+      } else if (category === 'event') {
+        selectedScenario = mockProjectScenarios.find(s => s.id === 'event-planning') || selectedScenario
+        console.log('🎉 Selected event planning scenario')
+      } else if (category === 'business') {
+        selectedScenario = mockProjectScenarios.find(s => s.id === 'business-development') || selectedScenario
+        console.log('💼 Selected business development scenario')
+      } else if (category === 'research') {
+        selectedScenario = mockProjectScenarios.find(s => s.id === 'research-project') || selectedScenario
+        console.log('🔬 Selected research project scenario')
+      } else if (category === 'design') {
+        selectedScenario = mockProjectScenarios.find(s => s.id === 'concept-note-development') || selectedScenario
+        console.log('📝 Selected concept note development scenario')
+      } else if (category === 'concept') {
+        selectedScenario = mockProjectScenarios.find(s => s.id === 'concept-note-development') || selectedScenario
+        console.log('📄 Selected concept note development scenario')
+      } else if (category === 'training') {
+        selectedScenario = mockProjectScenarios.find(s => s.id === 'training-program') || selectedScenario
+        console.log('📚 Selected training program scenario')
+      } else if (category === 'software') {
+        // For software, use description keywords to pick the right type
+        if (description.includes('ecommerce') || description.includes('shopping') || description.includes('store')) {
+          selectedScenario = mockProjectScenarios.find(s => s.id === 'ecommerce-platform') || selectedScenario
+          console.log('🛒 Selected e-commerce scenario')
+        } else if (description.includes('mobile') || description.includes('app') || description.includes('fitness')) {
+          selectedScenario = mockProjectScenarios.find(s => s.id === 'mobile-fitness-app') || selectedScenario
+          console.log('📱 Selected mobile app scenario')
+        } else if (description.includes('ai') || description.includes('chatbot') || description.includes('bot')) {
+          selectedScenario = mockProjectScenarios.find(s => s.id === 'ai-chatbot') || selectedScenario
+          console.log('🤖 Selected AI chatbot scenario')
+        } else {
+          selectedScenario = mockProjectScenarios.find(s => s.id === 'ecommerce-platform') || selectedScenario
+          console.log('🛒 Selected default software scenario (e-commerce)')
+        }
       } else {
-        console.log('📋 Using default scenario')
+        // Fallback to description-based matching for other categories
+        if (description.includes('research') || description.includes('study') || description.includes('analysis') || description.includes('survey')) {
+          selectedScenario = mockProjectScenarios.find(s => s.id === 'research-project') || selectedScenario
+          console.log('🔬 Selected research scenario by description')
+        } else if (description.includes('concept') || description.includes('proposal') || description.includes('note') || description.includes('document')) {
+          selectedScenario = mockProjectScenarios.find(s => s.id === 'concept-note-development') || selectedScenario
+          console.log('📝 Selected concept note scenario by description')
+        } else if (description.includes('training') || description.includes('education') || description.includes('learning') || description.includes('curriculum')) {
+          selectedScenario = mockProjectScenarios.find(s => s.id === 'training-program') || selectedScenario
+          console.log('📚 Selected training scenario by description')
+        } else if (description.includes('marketing') || description.includes('campaign') || description.includes('promotion')) {
+          selectedScenario = mockProjectScenarios.find(s => s.id === 'marketing-campaign') || selectedScenario
+          console.log('� Selected marketing scenario by description')
+        } else if (description.includes('event') || description.includes('conference') || description.includes('meeting')) {
+          selectedScenario = mockProjectScenarios.find(s => s.id === 'event-planning') || selectedScenario
+          console.log('🎉 Selected event scenario by description')
+        } else if (description.includes('business') || description.includes('partnership') || description.includes('development')) {
+          selectedScenario = mockProjectScenarios.find(s => s.id === 'business-development') || selectedScenario
+          console.log('💼 Selected business scenario by description')
+        } else if (description.includes('ecommerce') || description.includes('shopping') || description.includes('store')) {
+          selectedScenario = mockProjectScenarios.find(s => s.id === 'ecommerce-platform') || selectedScenario
+          console.log('🛒 Selected e-commerce scenario by description')
+        } else if (description.includes('mobile') || description.includes('app') || description.includes('fitness')) {
+          selectedScenario = mockProjectScenarios.find(s => s.id === 'mobile-fitness-app') || selectedScenario
+          console.log('📱 Selected mobile app scenario by description')
+        } else if (description.includes('ai') || description.includes('chatbot') || description.includes('bot')) {
+          selectedScenario = mockProjectScenarios.find(s => s.id === 'ai-chatbot') || selectedScenario
+          console.log('🤖 Selected AI chatbot scenario by description')
+        } else {
+          // Default to research project for general cases
+          selectedScenario = mockProjectScenarios.find(s => s.id === 'research-project') || selectedScenario
+          console.log('� Using default scenario (research project)')
+        }
       }
       
       console.log('🎯 Selected scenario:', selectedScenario.name)
@@ -275,9 +337,131 @@ export function AIProjectCreationWizard({
       console.log('⏳ Simulating task generation delay...')
       await new Promise(resolve => setTimeout(resolve, 1500))
       
-      // Convert mock tasks to the expected format
-      console.log('📋 Converting tasks to expected format...')
-      const tasks = selectedScenario.generatedTasks.map((task, index) => ({
+      // Convert mock tasks to the expected format with intelligent scheduling
+      console.log('📋 Converting tasks to expected format with smart scheduling...')
+      
+      // Calculate intelligent task scheduling based on project deadline and priority
+      type MockTask = {
+        id: string
+        title: string
+        description: string
+        priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT"
+        estimatedHours: number
+        dependsOn?: string[]
+        category: string
+        tags: string[]
+        phase: string
+      }
+      
+      type ScheduledTask = MockTask & {
+        dueDate: Date
+        scheduledDays: number
+        originalIndex: number
+      }
+      
+      const calculateTaskSchedule = (tasks: MockTask[], projectDueDate: Date | undefined, projectPriority: string): ScheduledTask[] => {
+        if (!projectDueDate) {
+          console.log('⚠️ No project deadline provided, using default scheduling')
+          return tasks.map((task, index) => ({
+            ...task,
+            dueDate: addDays(new Date(), index * 2), // Default: space tasks 2 days apart
+            scheduledDays: 2,
+            originalIndex: index
+          }))
+        }
+
+        const today = new Date()
+        const totalProjectDays = Math.max(1, Math.floor((projectDueDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000)))
+        
+        console.log(`📅 Project timeline: ${totalProjectDays} days until deadline (${projectDueDate.toDateString()})`)
+        
+        // Priority-based urgency multipliers
+        const urgencyMultipliers = {
+          'URGENT': 0.6,    // Complete in 60% of available time
+          'HIGH': 0.75,     // Complete in 75% of available time  
+          'MEDIUM': 0.85,   // Complete in 85% of available time
+          'LOW': 0.95       // Use almost all available time
+        }
+        
+        const urgencyMultiplier = urgencyMultipliers[projectPriority as keyof typeof urgencyMultipliers] || 0.85
+        const effectiveProjectDays = Math.floor(totalProjectDays * urgencyMultiplier)
+        
+        console.log(`⚡ Urgency adjustment: ${projectPriority} priority → ${effectiveProjectDays} days for execution (${(urgencyMultiplier * 100).toFixed(0)}% of timeline)`)
+        
+        // Create dependency map
+        const dependencyMap = new Map<string, string[]>()
+        tasks.forEach(task => {
+          dependencyMap.set(task.id, task.dependsOn || [])
+        })
+        
+        // Topological sort to order tasks by dependencies
+        const sortedTasks: MockTask[] = []
+        const visited = new Set<string>()
+        const temp = new Set<string>()
+        
+        const visit = (taskId: string): void => {
+          if (temp.has(taskId)) return // Circular dependency, skip
+          if (visited.has(taskId)) return
+          
+          temp.add(taskId)
+          const task = tasks.find(t => t.id === taskId)
+          if (task) {
+            (dependencyMap.get(taskId) || []).forEach((depId: string) => visit(depId))
+            temp.delete(taskId)
+            visited.add(taskId)
+            sortedTasks.push(task)
+          }
+        }
+        
+        tasks.forEach(task => visit(task.id))
+        
+        // Calculate dates for sorted tasks
+        let currentDate = new Date(today)
+        const scheduledTasks: ScheduledTask[] = []
+        
+        for (const task of sortedTasks) {
+          // Task priority affects individual scheduling
+          const taskPriorityDays = {
+            'URGENT': 1,      // Complete urgent tasks quickly
+            'HIGH': 2,        // High priority tasks get 2 days
+            'MEDIUM': 3,      // Medium priority tasks get 3 days  
+            'LOW': 4          // Low priority tasks get 4 days
+          }
+          
+          const baseDays = taskPriorityDays[task.priority] || 3
+          
+          // Adjust based on estimated hours (more hours = more days)
+          const estimatedDays = Math.max(1, Math.ceil(task.estimatedHours / 8)) // 8 hours per day
+          const actualDays = Math.max(baseDays, estimatedDays)
+          
+          const taskDueDate = addDays(currentDate, actualDays)
+          
+          // Ensure we don't exceed the project deadline
+          const finalDueDate = taskDueDate > projectDueDate ? projectDueDate : taskDueDate
+          
+          scheduledTasks.push({
+            ...task,
+            dueDate: finalDueDate,
+            scheduledDays: actualDays,
+            originalIndex: tasks.indexOf(task)
+          })
+          
+          // Move current date forward, but with some overlap for parallel work
+          currentDate = addDays(currentDate, Math.max(1, Math.floor(actualDays * 0.7))) // 30% overlap
+        }
+        
+        console.log(`📋 Scheduled ${scheduledTasks.length} tasks over ${effectiveProjectDays} days`)
+        console.log('📅 Task scheduling summary:')
+        scheduledTasks.slice(0, 5).forEach(task => {
+          console.log(`   • ${task.title}: ${task.dueDate?.toDateString()} (${task.priority} priority, ${task.estimatedHours}h)`)
+        })
+        
+        return scheduledTasks
+      }
+      
+      const scheduledTasks = calculateTaskSchedule(selectedScenario.generatedTasks, projectData.dueDate, projectData.priority)
+      
+      const tasks = scheduledTasks.map(task => ({
         id: task.id,
         title: task.title,
         description: task.description,
@@ -285,7 +469,7 @@ export function AIProjectCreationWizard({
         estimatedHours: task.estimatedHours,
         dependsOn: task.dependsOn || [],
         assigneeId: undefined, // Will be assigned later
-        dueDate: projectData.dueDate ? new Date(projectData.dueDate.getTime() + (index * 24 * 60 * 60 * 1000)) : undefined,
+        dueDate: task.dueDate,
         category: task.category,
         tags: task.tags,
         status: 'TODO' as const
@@ -294,20 +478,82 @@ export function AIProjectCreationWizard({
       console.log('✅ Generated tasks:', tasks.length, 'tasks')
       setGeneratedTasks(tasks)
       
-      // Generate calendar events
-      console.log('📅 Generating calendar events...')
-      const events = selectedScenario.calendarEvents.map(event => ({
-        id: event.id,
-        title: event.title,
-        description: event.description,
-        date: event.date,
-        duration: event.duration,
-        type: event.type,
-        attendees: event.attendees
+      // Generate calendar events with proper deadline integration
+      console.log('📅 Generating calendar events with deadline awareness...')
+      console.log('🎯 Project deadline:', projectData.dueDate?.toDateString())
+      console.log('⚡ Project priority:', projectData.priority)
+      
+      // Convert scheduled tasks to GeneratedTask format for calendar generation
+      const generatedTasksForCalendar: GeneratedTask[] = scheduledTasks.map(task => ({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        estimatedHours: task.estimatedHours,
+        dependsOn: task.dependsOn || [],
+        assigneeId: undefined,
+        dueDate: task.dueDate,
+        category: task.category,
+        tags: task.tags,
+        status: 'TODO' as const
       }))
       
-      console.log('✅ Generated calendar events:', events.length, 'events')
-      setCalendarEvents(events)
+      // Generate intelligent calendar events that respect project deadlines
+      const events = generateCalendarEvents(generatedTasksForCalendar, projectData.dueDate)
+      
+      // Also include scenario-specific events but with proper date alignment
+      const scenarioEvents = selectedScenario.calendarEvents.map((event, index) => {
+        const today = new Date()
+        const deadline = projectData.dueDate || addDays(today, 30)
+        
+        console.log(`📅 Processing scenario event: ${event.title}`)
+        console.log(`   🎯 Project deadline: ${deadline.toDateString()}`)
+        
+        // Distribute scenario events evenly within project timeline
+        const totalDays = Math.max(1, Math.floor((deadline.getTime() - today.getTime()) / (24 * 60 * 60 * 1000)))
+        const eventSpacing = Math.max(1, Math.floor(totalDays / (selectedScenario.calendarEvents.length + 1)))
+        const eventDate = addDays(today, (index + 1) * eventSpacing)
+        
+        // Ensure event doesn't exceed deadline
+        const finalEventDate = eventDate > deadline ? addDays(deadline, -1) : eventDate
+        
+        // Set proper meeting times based on event type
+        const startTime = new Date(finalEventDate)
+        startTime.setHours(10 + (index % 6), 0, 0, 0) // Stagger times between 10 AM - 4 PM
+        
+        const endTime = new Date(startTime)
+        const duration = event.duration || 1 // Default to 1 hour
+        endTime.setHours(startTime.getHours() + duration, 0, 0, 0)
+        
+        // Enhance description with deadline awareness
+        const daysUntilDeadline = Math.floor((deadline.getTime() - finalEventDate.getTime()) / (24 * 60 * 60 * 1000))
+        const enhancedDescription = `${event.description} | Project deadline: ${deadline.toDateString()} (${daysUntilDeadline} days remaining)`
+        
+        console.log(`   📅 Scheduled for: ${finalEventDate.toDateString()} (${daysUntilDeadline} days before deadline)`)
+        
+        return {
+          id: event.id,
+          title: event.title,
+          description: enhancedDescription,
+          startTime: startTime,
+          endTime: endTime,
+          duration: duration,
+          type: event.type,
+          attendees: event.attendees,
+          notificationEnabled: true
+        }
+      })
+      
+      // Combine generated events with scenario events
+      const allEvents = [...events, ...scenarioEvents]
+      
+      console.log('✅ Generated calendar events:', allEvents.length, 'events')
+      console.log('📅 Event timeline:')
+      allEvents.slice(0, 5).forEach(event => {
+        console.log(`   • ${event.title}: ${event.startTime?.toDateString()} (${event.type})`)
+      })
+      
+      setCalendarEvents(allEvents)
 
       // Advance to next step after successful generation
       console.log('➡️ Advancing to next step...')
@@ -380,12 +626,18 @@ export function AIProjectCreationWizard({
     const today = new Date()
     
     // Create project kickoff event
+    const kickoffStart = new Date(today)
+    kickoffStart.setHours(9, 0, 0, 0) // Set to 9 AM
+    const kickoffEnd = new Date(kickoffStart)
+    kickoffEnd.setHours(10, 0, 0, 0) // 1 hour duration
+    
     events.push({
       id: `project-kickoff-${Date.now()}`,
       title: t("ai.calendar.kickoff"),
       description: t("ai.calendar.kickoffDesc"),
-      startTime: today,
-      endTime: addDays(today, 1),
+      startTime: kickoffStart,
+      endTime: kickoffEnd,
+      duration: 1, // 1 hour
       type: "MEETING",
       notificationEnabled: true
     })
@@ -398,13 +650,18 @@ export function AIProjectCreationWizard({
     )
 
     milestones.forEach((milestone, index) => {
-      const startDate = addWeeks(today, (index + 1) * 2)
+      const milestoneDate = addWeeks(today, (index + 1) * 2)
+      milestoneDate.setHours(17, 0, 0, 0) // Set to 5 PM for deadline
+      const milestoneEnd = new Date(milestoneDate)
+      milestoneEnd.setHours(17, 30, 0, 0) // 30 minutes for deadline review
+      
       events.push({
         id: `milestone-${milestone.id}`,
         title: `${t("ai.calendar.milestone")}: ${milestone.title}`,
         description: milestone.description,
-        startTime: startDate,
-        endTime: startDate,
+        startTime: milestoneDate,
+        endTime: milestoneEnd,
+        duration: 0.5, // 30 minutes
         type: "DEADLINE",
         notificationEnabled: true
       })
@@ -413,12 +670,17 @@ export function AIProjectCreationWizard({
     // Create review meetings
     if (projectDueDate) {
       const reviewDate = addDays(projectDueDate, -7)
+      reviewDate.setHours(14, 0, 0, 0) // Set to 2 PM
+      const reviewEnd = new Date(reviewDate)
+      reviewEnd.setHours(16, 0, 0, 0) // 2 hours duration
+      
       events.push({
         id: `project-review-${Date.now()}`,
         title: t("ai.calendar.finalReview"),
         description: t("ai.calendar.finalReviewDesc"),
         startTime: reviewDate,
-        endTime: reviewDate,
+        endTime: reviewEnd,
+        duration: 2, // 2 hours
         type: "MEETING",
         notificationEnabled: true
       })
@@ -434,7 +696,7 @@ export function AIProjectCreationWizard({
     // Apply task assignments
     const tasksWithAssignments = selectedTasksList.map(task => ({
       ...task,
-      assigneeId: taskAssignments[task.id] || undefined
+      assigneeId: taskAssignments[task.id] && taskAssignments[task.id] !== "unassigned" ? taskAssignments[task.id] : undefined
     }))
 
     setCurrentStep(WizardStep.CREATING)
@@ -474,9 +736,9 @@ export function AIProjectCreationWizard({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
+            className="space-y-4"
           >
-            <div className="text-center mb-8">
+            <div className="text-center mb-6">
               <motion.div
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
@@ -486,15 +748,15 @@ export function AIProjectCreationWizard({
                   damping: 20,
                   delay: 0.2 
                 }}
-                className="w-20 h-20 bg-gradient-to-br from-blue-500 via-purple-600 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl"
+                className="w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-600 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-2xl"
               >
-                <Brain className="w-10 h-10 text-white" />
+                <Brain className="w-8 h-8 text-white" />
               </motion.div>
               <motion.h3 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2"
+                className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2"
               >
                 {t("ai.wizard.welcome")}
               </motion.h3>
@@ -502,14 +764,14 @@ export function AIProjectCreationWizard({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="text-muted-foreground leading-relaxed max-w-md mx-auto"
+                className="text-sm text-muted-foreground leading-relaxed max-w-md mx-auto"
               >
                 {t("ai.wizard.welcomeDesc")}
               </motion.p>
             </div>
 
             <Form {...form}>
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -520,14 +782,14 @@ export function AIProjectCreationWizard({
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-base font-semibold flex items-center gap-2">
+                        <FormLabel className="text-sm font-semibold flex items-center gap-2">
                           <Target className="w-4 h-4 text-blue-500" />
                           {t("projects.name")} *
                         </FormLabel>
                         <FormControl>
                           <Input 
                             placeholder={t("ai.wizard.projectNamePlaceholder")} 
-                            className="h-12 text-base border-2 focus:border-blue-500 transition-all duration-300"
+                            className="h-10 text-sm border-2 focus:border-blue-500 transition-all duration-300"
                             {...field} 
                           />
                         </FormControl>
@@ -547,15 +809,15 @@ export function AIProjectCreationWizard({
                     name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-base font-semibold flex items-center gap-2">
+                        <FormLabel className="text-sm font-semibold flex items-center gap-2">
                           <Lightbulb className="w-4 h-4 text-purple-500" />
                           {t("projects.description")} *
                         </FormLabel>
                         <FormControl>
                           <Textarea 
                             placeholder={t("ai.wizard.descriptionPlaceholder")}
-                            rows={4}
-                            className="text-base border-2 focus:border-purple-500 transition-all duration-300 resize-none"
+                            rows={3}
+                            className="text-sm border-2 focus:border-purple-500 transition-all duration-300 resize-none"
                             {...field} 
                           />
                         </FormControl>
@@ -565,7 +827,7 @@ export function AIProjectCreationWizard({
                   />
                 </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -576,13 +838,16 @@ export function AIProjectCreationWizard({
                       name="category"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-base font-semibold flex items-center gap-2">
+                          <FormLabel className="text-sm font-semibold flex items-center gap-2">
                             <MapPin className="w-4 h-4 text-green-500" />
                             {t("projects.category")} *
                           </FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            value={field.value || undefined}
+                          >
                             <FormControl>
-                              <SelectTrigger className="h-12 border-2 focus:border-green-500">
+                              <SelectTrigger className="h-10 border-2 focus:border-green-500">
                                 <SelectValue placeholder={t("projects.selectCategory")} />
                               </SelectTrigger>
                             </FormControl>
@@ -613,13 +878,16 @@ export function AIProjectCreationWizard({
                       name="priority"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-base font-semibold flex items-center gap-2">
+                          <FormLabel className="text-sm font-semibold flex items-center gap-2">
                             <Clock className="w-4 h-4 text-orange-500" />
                             {t("tasks.priority")}
                           </FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            value={field.value || undefined}
+                          >
                             <FormControl>
-                              <SelectTrigger className="h-12 border-2 focus:border-orange-500">
+                              <SelectTrigger className="h-10 border-2 focus:border-orange-500">
                                 <SelectValue />
                               </SelectTrigger>
                             </FormControl>
@@ -657,45 +925,59 @@ export function AIProjectCreationWizard({
                   </motion.div>
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="dueDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>{t("projects.dueDate")}</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>{t("projects.pickDate")}</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) => date < new Date()}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.6 }}
+                >
+                  <FormField
+                    control={form.control}
+                    name="dueDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel className="text-sm font-semibold flex items-center gap-2">
+                          <CalendarIcon className="w-4 h-4 text-blue-500" />
+                          {t("projects.dueDate")}
+                        </FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "h-10 pl-4 text-left font-normal border-2 hover:border-blue-500 transition-all duration-300",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  <div className="flex items-center gap-2">
+                                    <CalendarIcon className="w-4 h-4 text-blue-500" />
+                                    {format(field.value, "PPP")}
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <CalendarIcon className="w-4 h-4" />
+                                    <span>{t("projects.pickDate")}</span>
+                                  </div>
+                                )}
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              disabled={(date) => date < new Date()}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </motion.div>
               </div>
             </Form>
           </motion.div>
@@ -833,6 +1115,16 @@ export function AIProjectCreationWizard({
                 <Users className="w-4 h-4 text-purple-500" />
                 <span>{t("ai.wizard.assigningMembers")}</span>
               </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.2 }}
+                className="flex items-center justify-center gap-2"
+              >
+                <CalendarIcon className="w-4 h-4 text-green-500" />
+                <span>{t("ai.wizard.schedulingEvents")}</span>
+              </motion.div>
             </div>
           </motion.div>
         )
@@ -845,12 +1137,16 @@ export function AIProjectCreationWizard({
             className="space-y-6"
           >
             <div className="text-center">
-              <h3 className="text-xl font-semibold mb-2">{t("ai.wizard.reviewTasks")}</h3>
-              <p className="text-muted-foreground">{t("ai.wizard.reviewTasksDesc")}</p>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                {t("ai.wizard.reviewTasks")}
+              </h3>
+              <p className="text-muted-foreground leading-relaxed max-w-md mx-auto">
+                {t("ai.wizard.reviewTasksDesc")}
+              </p>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-3">
                 <Checkbox
                   checked={selectedTasks.size === generatedTasks.length}
                   onCheckedChange={(checked) => {
@@ -860,18 +1156,19 @@ export function AIProjectCreationWizard({
                       setSelectedTasks(new Set())
                     }
                   }}
+                  className="border-2 border-blue-500 data-[state=checked]:bg-blue-500"
                 />
-                <span className="text-sm font-medium">
+                <span className="text-base font-semibold text-blue-900">
                   {t("ai.wizard.selectAll")} ({generatedTasks.length} {t("tasks.tasks")})
                 </span>
               </div>
               
-              <Badge variant="outline">
+              <Badge variant="outline" className="bg-white border-blue-300 text-blue-700 font-semibold px-3 py-1">
                 {selectedTasks.size} {t("ai.wizard.selected")}
               </Badge>
             </div>
 
-            <div className="max-h-96 overflow-y-auto space-y-3">
+            <div className="max-h-80 overflow-y-auto space-y-3 border border-gray-200 rounded-lg p-4 bg-white/50">
               <AnimatePresence>
                 {generatedTasks.map((task, index) => (
                   <motion.div
@@ -880,8 +1177,10 @@ export function AIProjectCreationWizard({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
                     className={cn(
-                      "border rounded-lg p-4",
-                      selectedTasks.has(task.id) ? "border-blue-500 bg-blue-50" : "border-gray-200"
+                      "border rounded-lg p-4 transition-all duration-200",
+                      selectedTasks.has(task.id) 
+                        ? "border-blue-500 bg-blue-50 shadow-sm" 
+                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                     )}
                   >
                     <div className="flex items-start gap-3">
@@ -929,21 +1228,31 @@ export function AIProjectCreationWizard({
                         </div>
 
                         {/* Task assignment */}
-                        <div className="pt-2">
+                        <div className="pt-2 border-t border-gray-100">
+                          <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                            {t("tasks.assignTo")}
+                          </label>
                           <Select
-                            value={taskAssignments[task.id] || ""}
+                            value={taskAssignments[task.id] || "unassigned"}
                             onValueChange={(value) => {
                               setTaskAssignments(prev => ({
                                 ...prev,
-                                [task.id]: value
+                                [task.id]: value === "unassigned" ? "" : value
                               }))
                             }}
                           >
-                            <SelectTrigger className="h-8">
-                              <SelectValue placeholder={t("tasks.assignTo")} />
+                            <SelectTrigger className="h-8 bg-white">
+                              <SelectValue placeholder={t("tasks.unassigned")} />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">{t("tasks.unassigned")}</SelectItem>
+                              <SelectItem value="unassigned">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center">
+                                    <span className="text-xs">?</span>
+                                  </div>
+                                  <span>{t("tasks.unassigned")}</span>
+                                </div>
+                              </SelectItem>
                               {workspaceMembers.map((member) => (
                                 <SelectItem key={member.id} value={member.user.id}>
                                   <div className="flex items-center gap-2">
@@ -981,27 +1290,27 @@ export function AIProjectCreationWizard({
               <p className="text-muted-foreground">{t("ai.wizard.calendarDesc")}</p>
             </div>
 
-            <div className="grid gap-4">
+            <div className="max-h-80 overflow-y-auto space-y-3 border border-gray-200 rounded-lg p-4 bg-white/50">
               {calendarEvents.map((event, index) => (
                 <motion.div
                   key={event.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className="border rounded-lg p-4"
+                  className="border rounded-lg p-4 bg-white hover:bg-gray-50 transition-colors duration-200"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full bg-blue-500" />
+                      <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500" />
                       <div>
-                        <h4 className="font-medium">{event.title}</h4>
+                        <h4 className="font-medium text-gray-900">{event.title}</h4>
                         <p className="text-sm text-muted-foreground">{event.description}</p>
                       </div>
                     </div>
                     
                     <div className="text-right">
                       <p className="text-sm font-medium">
-                        {format(new Date(event.startTime), "MMM dd, yyyy")}
+                        {format(new Date(event.startTime || event.date), "MMM dd, yyyy")}
                       </p>
                       <Badge variant="outline" className="text-xs">
                         {event.type}
@@ -1242,45 +1551,103 @@ export function AIProjectCreationWizard({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Brain className="w-5 h-5 text-blue-600" />
-            {stepTitles[currentStep]}
+      <DialogContent className="max-w-5xl max-h-[95vh] overflow-hidden bg-gradient-to-br from-white to-gray-50 flex flex-col">
+        <DialogHeader className="pb-6 flex-shrink-0">
+          <DialogTitle className="flex items-center gap-3 text-xl">
+            <motion.div
+              animate={{ rotate: currentStep === WizardStep.AI_ANALYSIS ? 360 : 0 }}
+              transition={{ duration: 2, repeat: currentStep === WizardStep.AI_ANALYSIS ? Infinity : 0, ease: "linear" }}
+              className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center"
+            >
+              <Brain className="w-5 h-5 text-white" />
+            </motion.div>
+            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-bold">
+              {stepTitles[currentStep]}
+            </span>
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-base leading-relaxed">
             {stepDescriptions[currentStep]}
           </DialogDescription>
           {currentStep < WizardStep.CREATING && (
-            <div className="flex items-center gap-2 mt-2">
-              <div className="flex-1">
-                <Progress value={progress} className="h-2" />
+            <div className="flex items-center gap-4 mt-4">
+              <div className="flex-1 relative">
+                <Progress value={progress} className="h-2 bg-gray-200" />
+                <motion.div
+                  className="absolute top-0 left-0 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+                  style={{ width: `${progress}%` }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.8, ease: "easeInOut" }}
+                />
               </div>
-              <span className="text-xs text-muted-foreground">
-                {currentStep + 1}/{WizardStep.SUCCESS + 1}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-blue-600">
+                  {currentStep + 1}/{WizardStep.SUCCESS + 1}
+                </span>
+                <div className="flex gap-1">
+                  {Array.from({ length: WizardStep.SUCCESS + 1 }, (_, i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        "w-2 h-2 rounded-full transition-all duration-300",
+                        i <= currentStep 
+                          ? "bg-gradient-to-r from-blue-500 to-purple-500 scale-110" 
+                          : "bg-gray-300 scale-90"
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </DialogHeader>
 
-        <div className="overflow-y-auto max-h-[70vh] px-1">
-          <AnimatePresence mode="wait">
-            {renderStepContent()}
-          </AnimatePresence>
+        <div className="flex-1 overflow-hidden">
+          <div 
+            className="h-full overflow-y-auto px-1 pr-4 scroll-smooth" 
+            style={{ 
+              scrollbarWidth: 'thin', 
+              scrollbarColor: '#cbd5e0 #f7fafc',
+              maxHeight: 'calc(95vh - 250px)' // Reduced from 300px for better space usage
+            }}
+          >
+            <style jsx>{`
+              div::-webkit-scrollbar {
+                width: 6px;
+              }
+              div::-webkit-scrollbar-track {
+                background: #f7fafc;
+                border-radius: 3px;
+              }
+              div::-webkit-scrollbar-thumb {
+                background: #cbd5e0;
+                border-radius: 3px;
+              }
+              div::-webkit-scrollbar-thumb:hover {
+                background: #a0aec0;
+              }
+            `}</style>
+            <div className="pb-4">
+              <AnimatePresence mode="wait">
+                {renderStepContent()}
+              </AnimatePresence>
+            </div>
+          </div>
         </div>
 
         {currentStep < WizardStep.CREATING && (
-          <div className="flex items-center justify-between pt-4 border-t">
+          <div className="flex items-center justify-between pt-6 border-t border-gradient-to-r from-blue-200 to-purple-200 bg-gradient-to-r from-gray-50 to-white px-2 flex-shrink-0">
             <Button
               variant="outline"
               onClick={prevStep}
               disabled={currentStep === WizardStep.PROJECT_INFO || isGenerating}
+              className="group hover:bg-gray-100 transition-all duration-300"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform duration-300" />
               {t("common.back")}
             </Button>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {currentStep === WizardStep.PROJECT_INFO && (
                 <Button
                   onClick={async () => {
@@ -1289,29 +1656,60 @@ export function AIProjectCreationWizard({
                       nextStep()
                     }
                   }}
+                  className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   {t("common.next")}
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
+                </Button>
+              )}
+
+              {currentStep === WizardStep.AI_ANALYSIS && (
+                <Button 
+                  onClick={nextStep}
+                  className="group bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  {t("common.next")}
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
+                </Button>
+              )}
+
+              {currentStep === WizardStep.TASK_GENERATION && (
+                <Button 
+                  onClick={nextStep}
+                  className="group bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  {t("common.next")}
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
                 </Button>
               )}
 
               {currentStep === WizardStep.TASK_REVIEW && (
-                <Button onClick={nextStep} disabled={selectedTasks.size === 0}>
+                <Button 
+                  onClick={nextStep} 
+                  disabled={selectedTasks.size === 0}
+                  className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50"
+                >
                   {t("common.next")}
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
                 </Button>
               )}
 
               {currentStep === WizardStep.CALENDAR_INTEGRATION && (
-                <Button onClick={nextStep}>
+                <Button 
+                  onClick={nextStep}
+                  className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                >
                   {t("common.next")}
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
                 </Button>
               )}
 
               {currentStep === WizardStep.FINAL_REVIEW && (
-                <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700">
-                  <Rocket className="w-4 h-4 mr-2" />
+                <Button 
+                  onClick={handleSubmit} 
+                  className="group bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300 px-8"
+                >
+                  <Rocket className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
                   {t("ai.wizard.createProject")}
                 </Button>
               )}

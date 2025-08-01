@@ -17,6 +17,7 @@ interface TaskManagementProps {
   onTaskUpdate: (taskId: string, updates: any) => Promise<boolean>
   onTaskDelete: (taskId: string) => Promise<boolean>
   onCreateTask: (status?: string) => void
+  onTaskReassign?: (taskId: string, currentAssigneeId?: string) => void
 }
 
 export function TaskManagement({
@@ -27,7 +28,8 @@ export function TaskManagement({
   onTaskStatusChange,
   onTaskUpdate,
   onTaskDelete,
-  onCreateTask
+  onCreateTask,
+  onTaskReassign
 }: TaskManagementProps) {
   const { user } = useAuth()
   const { t } = useTranslation()
@@ -171,6 +173,7 @@ export function TaskManagement({
               onTaskUpdate={onTaskUpdate}
               onTaskDelete={onTaskDelete}
               onCreateTask={() => onCreateTask()}
+              onTaskReassign={onTaskReassign}
               currentUserId={user.id}
               taskType="assigned"
             />
@@ -201,6 +204,7 @@ export function TaskManagement({
               onTaskUpdate={onTaskUpdate}
               onTaskDelete={onTaskDelete}
               onCreateTask={() => onCreateTask()}
+              onTaskReassign={onTaskReassign}
               currentUserId={user.id}
               taskType="created"
             />

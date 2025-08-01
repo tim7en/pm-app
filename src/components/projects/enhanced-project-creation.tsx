@@ -29,7 +29,7 @@ import { AIProjectCreationWizard } from "./ai-project-creation-wizard"
 import { useTranslation } from "@/hooks/use-translation"
 
 interface EnhancedProjectCreationProps {
-  onCreateProject: (projectData: any, tasks?: any[], calendarEvents?: any[]) => Promise<boolean>
+  onCreateProject: (projectData: any, tasks?: any[], calendarEvents?: any[]) => Promise<any> // Changed to return the project data
   projects?: any[]
   workspaceMembers?: any[]
   children?: React.ReactNode
@@ -58,11 +58,16 @@ export function EnhancedProjectCreation({
   const handleAIProjectCreation = async (projectData: any, tasks: any[], calendarEvents: any[]) => {
     try {
       // First create the project
-      const success = await onCreateProject(projectData)
-      if (!success) throw new Error('Project creation failed')
+      const createdProject = await onCreateProject(projectData)
+      if (!createdProject || !createdProject.id) throw new Error('Project creation failed - no project ID returned')
+
+      console.log('✅ Project created successfully:', createdProject.id)
 
       // Then create tasks
       if (tasks.length > 0) {
+        console.log(`🔄 Creating ${tasks.length} tasks for project ${createdProject.id}`)
+        let successfulTasks = 0
+        
         for (const task of tasks) {
           try {
             const response = await fetch('/api/tasks', {
@@ -70,54 +75,107 @@ export function EnhancedProjectCreation({
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 ...task,
-                projectId: projectData.id || 'new-project', // This would be the actual project ID
+                projectId: createdProject.id, // Use the actual project ID
+                workspaceId: projectData.workspaceId,
                 dueDate: task.dueDate?.toISOString(),
               })
             })
-            if (!response.ok) {
-              console.error('Failed to create task:', task.title)
+            if (response.ok) {
+              successfulTasks++
+              console.log(`✅ Created task: ${task.title}`)
+            } else {
+              const errorData = await response.json()
+              console.error(`❌ Failed to create task "${task.title}":`, errorData.error)
             }
           } catch (error) {
-            console.error('Error creating task:', error)
+            console.error(`❌ Error creating task "${task.title}":`, error)
           }
         }
+        console.log(`📋 Successfully created ${successfulTasks}/${tasks.length} tasks`)
       }
 
       // Then create calendar events
       if (calendarEvents.length > 0) {
+        console.log(`🔄 Creating ${calendarEvents.length} calendar events for project ${createdProject.id}`)
+        let successfulEvents = 0
+        
+        // Map event types to API-expected types
+        const mapEventType = (type: string) => {
+          switch (type.toLowerCase()) {
+            case 'meeting':
+              return 'MEETING'
+            case 'review':
+              return 'MEETING'
+            case 'planning':
+              return 'MEETING'
+            case 'milestone':
+              return 'DEADLINE'
+            default:
+              return 'MEETING'
+          }
+        }
+        
         for (const event of calendarEvents) {
           try {
+            // Ensure proper date handling for calendar events
+            const startTime = new Date(event.startTime || event.date)
+            let endTime = new Date(event.endTime || event.date)
+            
+            // Ensure endTime is after startTime (required by API validation)
+            if (endTime <= startTime) {
+              // Add duration from event, or default to 1 hour
+              const durationHours = event.duration || 1
+              endTime = new Date(startTime.getTime() + (durationHours * 60 * 60 * 1000))
+            }
+            
+            console.log(`📅 Creating calendar event: ${event.title}`)
+            console.log(`   ⏰ Start: ${startTime.toISOString()}`)
+            console.log(`   ⏰ End: ${endTime.toISOString()}`)
+            console.log(`   📍 Type: ${mapEventType(event.type)}`)
+            
             const response = await fetch('/api/calendar/events', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                ...event,
-                projectId: projectData.id || 'new-project',
+                title: event.title,
+                description: event.description,
+                projectId: createdProject.id, // Use the actual project ID
                 workspaceId: projectData.workspaceId,
-                startTime: new Date(event.startTime).toISOString(),
-                endTime: new Date(event.endTime).toISOString(),
+                startTime: startTime.toISOString(),
+                endTime: endTime.toISOString(),
+                type: mapEventType(event.type), // Map the type to API-expected values
+                location: event.location,
+                notificationEnabled: event.notificationEnabled !== false, // Default to true
               })
             })
-            if (!response.ok) {
-              console.error('Failed to create calendar event:', event.title)
+            
+            if (response.ok) {
+              successfulEvents++
+              console.log(`✅ Created calendar event: ${event.title}`)
+            } else {
+              const errorData = await response.json()
+              console.error(`❌ Failed to create calendar event "${event.title}":`, errorData.error)
             }
           } catch (error) {
-            console.error('Error creating calendar event:', error)
+            console.error(`❌ Error creating calendar event "${event.title}":`, error)
           }
         }
+        console.log(`📅 Successfully created ${successfulEvents}/${calendarEvents.length} calendar events`)
       }
 
       setAiWizardOpen(false)
       setMainDialogOpen(false)
+      
+      console.log('🎉 AI project creation completed successfully!')
     } catch (error) {
-      console.error('AI project creation error:', error)
+      console.error('❌ AI project creation error:', error)
       throw error
     }
   }
 
   const handleStandardProjectCreation = async (projectData: any) => {
-    const success = await onCreateProject(projectData)
-    if (success) {
+    const createdProject = await onCreateProject(projectData)
+    if (createdProject && createdProject.id) {
       setStandardDialogOpen(false)
       setMainDialogOpen(false)
     }
@@ -142,7 +200,7 @@ export function EnhancedProjectCreation({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid md:grid-cols-2 gap-6 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-6">
             {/* AI-Powered Creation */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}

@@ -13,6 +13,7 @@ import { Header } from "@/components/layout/header"
 import { TaskList } from "@/components/tasks/task-list"
 import { TaskBoard } from "@/components/tasks/task-board"
 import { TaskDialog } from "@/components/tasks/task-dialog"
+import { TaskReassignDialog } from "@/components/tasks/task-reassign-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { useAPI } from "@/hooks/use-api"
 import { useAuth } from "@/contexts/AuthContext"
@@ -77,6 +78,12 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true)
   const [taskDialogOpen, setTaskDialogOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [reassignDialogOpen, setReassignDialogOpen] = useState(false)
+  const [reassignTaskData, setReassignTaskData] = useState<{
+    taskId: string
+    taskTitle: string
+    currentAssigneeId?: string
+  } | null>(null)
   const [taskView, setTaskView] = useState<"list" | "board">("list")
   const [filters, setFilters] = useState({
     search: "",
@@ -280,6 +287,23 @@ export default function TasksPage() {
         variant: "destructive",
       })
     }
+  }
+
+  const handleTaskReassign = (taskId: string, currentAssigneeId?: string) => {
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) return
+    
+    setReassignTaskData({
+      taskId,
+      taskTitle: task.title,
+      currentAssigneeId
+    })
+    setReassignDialogOpen(true)
+  }
+
+  const handleReassignComplete = async (taskId: string, newAssigneeId?: string) => {
+    // Refresh tasks to get updated assignee information
+    await fetchTasks()
   }
 
   const filteredTasks = tasks.filter(task => {
@@ -509,6 +533,7 @@ export default function TasksPage() {
                     setTaskDialogOpen(true)
                   }}
                   onCreateTask={() => setTaskDialogOpen(true)}
+                  onTaskReassign={handleTaskReassign}
                   currentUserId={user?.id}
                 />
               </TabsContent>
@@ -538,6 +563,18 @@ export default function TasksPage() {
         projects={projects}
         onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
       />
+
+      {/* Task Reassign Dialog */}
+      {reassignTaskData && (
+        <TaskReassignDialog
+          open={reassignDialogOpen}
+          onOpenChange={setReassignDialogOpen}
+          taskId={reassignTaskData.taskId}
+          taskTitle={reassignTaskData.taskTitle}
+          currentAssigneeId={reassignTaskData.currentAssigneeId}
+          onReassignComplete={handleReassignComplete}
+        />
+      )}
     </div>
   )
 }
