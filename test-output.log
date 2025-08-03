@@ -1,0 +1,239 @@
+🔐 PM-App Authentication & Permissions Test Suite
+============================================================
+Testing comprehensive multi-user permission scenarios...
+
+Test Scenario Overview:
+1. Create 3 users with different roles
+2. Create multiple workspaces
+3. Cross-invite users between workspaces
+4. Create projects and add members with different roles
+5. Create tasks and test permission boundaries
+6. Verify all permission constraints are enforced
+
+\n============================================================
+🔍 🚀 Starting Comprehensive Authentication & Permissions Test Suite
+============================================================
+\n📋 User Registration Tests
+----------------------------------------
+ℹ️  Running: Register Admin User
+❌ ✗ Register Admin User: Registration failed: User already exists with this email
+ℹ️  Running: Register Member One
+❌ ✗ Register Member One: Registration failed: User already exists with this email
+ℹ️  Running: Register Member Two
+❌ ✗ Register Member Two: Registration failed: User already exists with this email
+\n📋 User Login Tests
+----------------------------------------
+ℹ️  Running: Login Admin User
+❌ ✗ Login Admin User: Cannot set properties of undefined (setting 'token')
+ℹ️  Running: Login Member One
+❌ ✗ Login Member One: Cannot set properties of undefined (setting 'token')
+ℹ️  Running: Login Member Two
+❌ ✗ Login Member Two: Cannot set properties of undefined (setting 'token')
+\n📋 Workspace Creation Tests
+----------------------------------------
+ℹ️  Switched to user: Admin User (admin)
+ℹ️  Running: Admin creates shared workspace
+❌ ✗ Admin creates shared workspace: Workspace creation failed: Authentication required
+ℹ️  Switched to user: Member Two (member2)
+ℹ️  Running: Member2 creates personal workspace
+❌ ✗ Member2 creates personal workspace: Workspace creation failed: Authentication required
+\n📋 Workspace Invitation Tests
+----------------------------------------
+ℹ️  Switched to user: Admin User (admin)
+ℹ️  Running: Admin invites Member One to shared workspace
+❌ ✗ Admin invites Member One to shared workspace: Cannot read properties of undefined (reading 'id')
+ℹ️  Running: Admin invites Member Two to shared workspace
+❌ ✗ Admin invites Member Two to shared workspace: Cannot read properties of undefined (reading 'id')
+ℹ️  Switched to user: Member Two (member2)
+ℹ️  Running: Member2 invites Member1 to personal workspace
+❌ ✗ Member2 invites Member1 to personal workspace: Cannot read properties of undefined (reading 'id')
+\n📋 Invitation Acceptance Tests
+----------------------------------------
+ℹ️  Switched to user: Member One (member1)
+ℹ️  Running: Get pending invitations for Member One
+❌ ✗ Get pending invitations for Member One: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+ℹ️  Switched to user: Member Two (member2)
+ℹ️  Running: Get pending invitations for Member Two
+❌ ✗ Get pending invitations for Member Two: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+\n📋 Project Creation Tests
+----------------------------------------
+ℹ️  Switched to user: Admin User (admin)
+ℹ️  Running: Admin creates project in shared workspace
+❌ ✗ Admin creates project in shared workspace: Cannot read properties of undefined (reading 'id')
+ℹ️  Switched to user: Member Two (member2)
+ℹ️  Running: Member2 creates project in personal workspace
+❌ ✗ Member2 creates project in personal workspace: Cannot read properties of undefined (reading 'id')
+\n📋 Project Member Management Tests
+----------------------------------------
+ℹ️  Switched to user: Admin User (admin)
+ℹ️  Running: Admin adds Member One as MEMBER to shared project
+❌ ✗ Admin adds Member One as MEMBER to shared project: Cannot read properties of undefined (reading 'id')
+ℹ️  Running: Admin adds Member Two as MANAGER to shared project
+❌ ✗ Admin adds Member Two as MANAGER to shared project: Cannot read properties of undefined (reading 'id')
+ℹ️  Switched to user: Member Two (member2)
+ℹ️  Running: Member2 adds Member1 to personal project
+❌ ✗ Member2 adds Member1 to personal project: Cannot read properties of undefined (reading 'id')
+\n📋 Task Creation Tests
+----------------------------------------
+ℹ️  Switched to user: Admin User (admin)
+ℹ️  Running: Admin creates task: Admin Task 1 - Setup Project Structure
+❌ ✗ Admin creates task: Admin Task 1 - Setup Project Structure: Cannot read properties of undefined (reading 'id')
+ℹ️  Running: Admin creates task: Admin Task 2 - Design Review
+❌ ✗ Admin creates task: Admin Task 2 - Design Review: Cannot read properties of undefined (reading 'id')
+ℹ️  Switched to user: Member Two (member2)
+ℹ️  Running: Member2 creates task in personal project
+❌ ✗ Member2 creates task in personal project: Cannot read properties of undefined (reading 'id')
+\n📋 Workspace Permission Tests
+----------------------------------------
+ℹ️  Switched to user: Admin User (admin)
+ℹ️  Running: Permission test: Admin accessing owned workspace
+❌ ✗ Permission test: Admin accessing owned workspace: Cannot read properties of undefined (reading 'id')
+ℹ️  Switched to user: Member One (member1)
+ℹ️  Running: Permission test: Member1 accessing shared workspace (invited)
+❌ ✗ Permission test: Member1 accessing shared workspace (invited): Cannot read properties of undefined (reading 'id')
+ℹ️  Switched to user: Member One (member1)
+ℹ️  Running: Permission test: Member1 accessing Member2 workspace (invited)
+❌ ✗ Permission test: Member1 accessing Member2 workspace (invited): Cannot read properties of undefined (reading 'id')
+ℹ️  Switched to user: Admin User (admin)
+ℹ️  Running: Permission test: Admin accessing Member2 workspace (not invited)
+❌ ✗ Permission test: Admin accessing Member2 workspace (not invited): Cannot read properties of undefined (reading 'id')
+\n📋 Project Permission Tests
+----------------------------------------
+ℹ️  Switched to user: Admin User (admin)
+ℹ️  Running: Permission test: Admin accessing owned project
+❌ ✗ Permission test: Admin accessing owned project: Cannot read properties of undefined (reading 'id')
+ℹ️  Switched to user: Member One (member1)
+ℹ️  Running: Permission test: Member1 accessing shared project (member)
+❌ ✗ Permission test: Member1 accessing shared project (member): Cannot read properties of undefined (reading 'id')
+ℹ️  Switched to user: Member Two (member2)
+ℹ️  Running: Permission test: Member2 updating shared project (manager role)
+❌ ✗ Permission test: Member2 updating shared project (manager role): Cannot read properties of undefined (reading 'id')
+ℹ️  Switched to user: Member One (member1)
+ℹ️  Running: Permission test: Member1 viewing Member2 project (viewer role)
+❌ ✗ Permission test: Member1 viewing Member2 project (viewer role): Cannot read properties of undefined (reading 'id')
+ℹ️  Switched to user: Member One (member1)
+ℹ️  Running: Permission test: Member1 updating Member2 project (viewer role - should fail)
+❌ ✗ Permission test: Member1 updating Member2 project (viewer role - should fail): Cannot read properties of undefined (reading 'id')
+ℹ️  Switched to user: Admin User (admin)
+ℹ️  Running: Permission test: Admin accessing Member2 project (not invited)
+❌ ✗ Permission test: Admin accessing Member2 project (not invited): Cannot read properties of undefined (reading 'id')
+\n📋 Task Permission Tests
+----------------------------------------
+ℹ️  Switched to user: Member One (member1)
+ℹ️  Running: Task permission: Member1 viewing assigned task
+❌ ✗ Task permission: Member1 viewing assigned task: Cannot read properties of undefined (reading '0')
+ℹ️  Switched to user: Member One (member1)
+ℹ️  Running: Task permission: Member1 updating assigned task
+❌ ✗ Task permission: Member1 updating assigned task: Cannot read properties of undefined (reading '0')
+ℹ️  Switched to user: Member One (member1)
+ℹ️  Running: Task permission: Member1 viewing other task in same project
+❌ ✗ Task permission: Member1 viewing other task in same project: Cannot read properties of undefined (reading '1')
+ℹ️  Switched to user: Member One (member1)
+ℹ️  Running: Task permission: Member1 viewing task in Member2 project (viewer)
+❌ ✗ Task permission: Member1 viewing task in Member2 project (viewer): Cannot read properties of undefined (reading 'id')
+ℹ️  Switched to user: Member One (member1)
+ℹ️  Running: Task permission: Member1 updating task in Member2 project (viewer - should fail)
+❌ ✗ Task permission: Member1 updating task in Member2 project (viewer - should fail): Cannot read properties of undefined (reading 'id')
+\n📋 Cleanup and Verification Tests
+----------------------------------------
+ℹ️  Switched to user: Admin User (admin)
+ℹ️  Running: Admin deletes shared workspace
+❌ ✗ Admin deletes shared workspace: Cannot read properties of undefined (reading 'id')
+ℹ️  Switched to user: Member Two (member2)
+ℹ️  Running: Member2 deletes personal workspace
+❌ ✗ Member2 deletes personal workspace: Cannot read properties of undefined (reading 'id')
+\n============================================================
+🔍 📊 Test Results Summary
+============================================================
+Total API Calls: 10
+Tests Passed: 0
+Tests Failed: 38
+Success Rate: 0.0%
+\n📋 Detailed Test Results:
+============================================================
+1. ❌ Register Admin User
+   Error: Registration failed: User already exists with this email
+2. ❌ Register Member One
+   Error: Registration failed: User already exists with this email
+3. ❌ Register Member Two
+   Error: Registration failed: User already exists with this email
+4. ❌ Login Admin User
+   Error: Cannot set properties of undefined (setting 'token')
+5. ❌ Login Member One
+   Error: Cannot set properties of undefined (setting 'token')
+6. ❌ Login Member Two
+   Error: Cannot set properties of undefined (setting 'token')
+7. ❌ Admin creates shared workspace
+   Error: Workspace creation failed: Authentication required
+8. ❌ Member2 creates personal workspace
+   Error: Workspace creation failed: Authentication required
+9. ❌ Admin invites Member One to shared workspace
+   Error: Cannot read properties of undefined (reading 'id')
+10. ❌ Admin invites Member Two to shared workspace
+   Error: Cannot read properties of undefined (reading 'id')
+11. ❌ Member2 invites Member1 to personal workspace
+   Error: Cannot read properties of undefined (reading 'id')
+12. ❌ Get pending invitations for Member One
+   Error: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+13. ❌ Get pending invitations for Member Two
+   Error: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+14. ❌ Admin creates project in shared workspace
+   Error: Cannot read properties of undefined (reading 'id')
+15. ❌ Member2 creates project in personal workspace
+   Error: Cannot read properties of undefined (reading 'id')
+16. ❌ Admin adds Member One as MEMBER to shared project
+   Error: Cannot read properties of undefined (reading 'id')
+17. ❌ Admin adds Member Two as MANAGER to shared project
+   Error: Cannot read properties of undefined (reading 'id')
+18. ❌ Member2 adds Member1 to personal project
+   Error: Cannot read properties of undefined (reading 'id')
+19. ❌ Admin creates task: Admin Task 1 - Setup Project Structure
+   Error: Cannot read properties of undefined (reading 'id')
+20. ❌ Admin creates task: Admin Task 2 - Design Review
+   Error: Cannot read properties of undefined (reading 'id')
+21. ❌ Member2 creates task in personal project
+   Error: Cannot read properties of undefined (reading 'id')
+22. ❌ Permission test: Admin accessing owned workspace
+   Error: Cannot read properties of undefined (reading 'id')
+23. ❌ Permission test: Member1 accessing shared workspace (invited)
+   Error: Cannot read properties of undefined (reading 'id')
+24. ❌ Permission test: Member1 accessing Member2 workspace (invited)
+   Error: Cannot read properties of undefined (reading 'id')
+25. ❌ Permission test: Admin accessing Member2 workspace (not invited)
+   Error: Cannot read properties of undefined (reading 'id')
+26. ❌ Permission test: Admin accessing owned project
+   Error: Cannot read properties of undefined (reading 'id')
+27. ❌ Permission test: Member1 accessing shared project (member)
+   Error: Cannot read properties of undefined (reading 'id')
+28. ❌ Permission test: Member2 updating shared project (manager role)
+   Error: Cannot read properties of undefined (reading 'id')
+29. ❌ Permission test: Member1 viewing Member2 project (viewer role)
+   Error: Cannot read properties of undefined (reading 'id')
+30. ❌ Permission test: Member1 updating Member2 project (viewer role - should fail)
+   Error: Cannot read properties of undefined (reading 'id')
+31. ❌ Permission test: Admin accessing Member2 project (not invited)
+   Error: Cannot read properties of undefined (reading 'id')
+32. ❌ Task permission: Member1 viewing assigned task
+   Error: Cannot read properties of undefined (reading '0')
+33. ❌ Task permission: Member1 updating assigned task
+   Error: Cannot read properties of undefined (reading '0')
+34. ❌ Task permission: Member1 viewing other task in same project
+   Error: Cannot read properties of undefined (reading '1')
+35. ❌ Task permission: Member1 viewing task in Member2 project (viewer)
+   Error: Cannot read properties of undefined (reading 'id')
+36. ❌ Task permission: Member1 updating task in Member2 project (viewer - should fail)
+   Error: Cannot read properties of undefined (reading 'id')
+37. ❌ Admin deletes shared workspace
+   Error: Cannot read properties of undefined (reading 'id')
+38. ❌ Member2 deletes personal workspace
+   Error: Cannot read properties of undefined (reading 'id')
+\n============================================================
+🔍 🎯 Test Context Summary
+============================================================
+Created Users:
+\nCreated Workspaces:
+\nCreated Projects:
+\n============================================================
+🔍 ⚠️  Some Tests Failed
+============================================================
+Please review the failed tests and fix the underlying issues.

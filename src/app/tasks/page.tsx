@@ -165,11 +165,12 @@ export default function TasksPage() {
       if (response.ok) {
         const data = await response.json()
         // Transform the workspace members data to match the expected format
+        // The API already returns flattened data with member.id, member.name, etc.
         const users = data.map((member: any) => ({
-          id: member.user.id,
-          name: member.user.name || member.user.email,
-          email: member.user.email,
-          avatar: member.user.avatar || "",
+          id: member.id,
+          name: member.name || member.email,
+          email: member.email,
+          avatar: member.avatar || "",
           role: member.role,
           joinedAt: member.joinedAt
         }))
