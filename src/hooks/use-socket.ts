@@ -28,7 +28,11 @@ export const useSocket = (): UseSocketReturn => {
       transports: ['websocket', 'polling'],
       upgrade: true,
       timeout: 20000,
-      forceNew: true
+      forceNew: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000
     })
 
     // Connection event handlers
@@ -86,7 +90,7 @@ export const useSocket = (): UseSocketReturn => {
     })
 
     socketInstance.on('notification-count', (data) => {
-      console.log('Notification count updated:', data.count)
+      console.log('Notification count updated via socket:', data.count)
       setNotificationCount(data.count)
     })
 

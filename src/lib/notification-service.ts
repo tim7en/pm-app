@@ -1,24 +1,9 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, NotificationType } from '@prisma/client'
 import { getSocketInstance, emitNotificationToUser, emitNotificationCountToUser } from './socket'
 
-// Define NotificationType enum locally to match database schema
-enum NotificationType {
-  TASK_ASSIGNED = 'TASK_ASSIGNED',
-  TASK_UPDATED = 'TASK_UPDATED',
-  TASK_COMPLETED = 'TASK_COMPLETED',
-  TASK_DUE_SOON = 'TASK_DUE_SOON',
-  TASK_VERIFICATION_REQUIRED = 'TASK_VERIFICATION_REQUIRED',
-  TASK_VERIFIED = 'TASK_VERIFIED',
-  TASK_REJECTED = 'TASK_REJECTED',
-  COMMENT_ADDED = 'COMMENT_ADDED',
-  PROJECT_INVITE = 'PROJECT_INVITE',
-  WORKSPACE_INVITE = 'WORKSPACE_INVITE',
-  WORKSPACE_REMOVED = 'WORKSPACE_REMOVED',
-  ROLE_CHANGE = 'ROLE_CHANGE',
-  DEADLINE_APPROACHING = 'DEADLINE_APPROACHING'
-}
-
 const prisma = new PrismaClient()
+
+export { NotificationType }
 
 export interface CreateNotificationParams {
   title: string
@@ -91,12 +76,16 @@ export class NotificationService {
       // Emit real-time notification to user
       const io = getSocketInstance()
       if (io) {
-        emitNotificationToUser(io, params.userId, formattedNotification)
-        
-        // Also emit updated unread count
-        const unreadCount = await this.getUnreadCount(params.userId)
-        emitNotificationCountToUser(io, params.userId, unreadCount)
-        console.log(`Emitted notification and count (${unreadCount}) to user ${params.userId}`)
+        // Small delay to ensure database transaction is complete
+        setTimeout(() => {
+          emitNotificationToUser(io, params.userId, formattedNotification)
+          
+          // Also emit updated unread count
+          this.getUnreadCount(params.userId).then(unreadCount => {
+            emitNotificationCountToUser(io, params.userId, unreadCount)
+            console.log(`Emitted notification and count (${unreadCount}) to user ${params.userId}`)
+          })
+        }, 50) // 50ms delay
       }
 
       return { notification, formattedNotification }
@@ -201,6 +190,12 @@ export class NotificationService {
       if (result.count > 0) {
         const io = getSocketInstance()
         if (io) {
+          // Emit notification read event for real-time UI updates
+          io.to(`user:${userId}`).emit('notification-read', { 
+            notificationId, 
+            userId 
+          })
+          
           const unreadCount = await this.getUnreadCount(userId)
           emitNotificationCountToUser(io, userId, unreadCount)
           console.log(`Updated notification count after marking as read: ${unreadCount}`)
@@ -256,6 +251,12 @@ export class NotificationService {
       if (result.updatedCount > 0) {
         const io = getSocketInstance()
         if (io) {
+          // Emit notifications mark all read event for real-time UI updates
+          io.to(`user:${userId}`).emit('notifications-mark-all-read', { 
+            userId,
+            markedCount: result.updatedCount
+          })
+          
           emitNotificationCountToUser(io, userId, 0) // All read, so count is 0
           console.log(`Marked ${result.updatedCount} notifications as read for user ${userId}`)
         }

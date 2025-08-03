@@ -182,16 +182,84 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
       
       // Add new notification to the beginning of the list
       setNotifications(prev => [newNotification, ...prev])
+      
+      // Force refresh notification count from API if socket isn't connected
+      if (!socket || !isConnected) {
+        console.log('Socket not connected, manually refreshing notification count')
+        setTimeout(async () => {
+          try {
+            const response = await fetch('/api/notifications/count', {
+              headers: { 'Content-Type': 'application/json' },
+              cache: 'no-cache'
+            })
+            if (response.ok) {
+              const data = await response.json()
+              if (data.success && typeof data.count === 'number') {
+                setNotificationCount(data.count)
+                console.log('Manually refreshed notification count:', data.count)
+              }
+            }
+          } catch (error) {
+            console.error('Failed to manually refresh notification count:', error)
+          }
+        }, 100) // Small delay to ensure DB transaction is complete
+      }
     }
 
     const handleNotificationUpdate = () => {
-      // Refresh notifications when updates occur
-      if (isOpen) {
-        loadNotifications() // Refresh notifications list
+      // Always refresh notifications when updates occur, not just when dropdown is open
+      console.log('Notification update event received, refreshing notification list')
+      loadNotifications() // Always refresh notifications list
+      
+      // Also refresh count if socket isn't connected
+      if (!socket || !isConnected) {
+        console.log('Refreshing notification count due to update event')
+        setTimeout(async () => {
+          try {
+            const response = await fetch('/api/notifications/count', {
+              headers: { 'Content-Type': 'application/json' },
+              cache: 'no-cache'
+            })
+            if (response.ok) {
+              const data = await response.json()
+              if (data.success && typeof data.count === 'number') {
+                setNotificationCount(data.count)
+                console.log('Refreshed notification count from update event:', data.count)
+              }
+            }
+          } catch (error) {
+            console.error('Failed to refresh notification count from update event:', error)
+          }
+        }, 100)
       }
     }
 
     window.addEventListener('newNotification', handleNewNotification as EventListener)
+    window.addEventListener('notificationUpdate', handleNotificationUpdate as EventListener)
+    
+    // Listen for task creation events to refresh notification count
+    const handleTaskCreated = () => {
+      console.log('Task created event detected, refreshing notification count')
+      setTimeout(async () => {
+        try {
+          const response = await fetch('/api/notifications/count', {
+            headers: { 'Content-Type': 'application/json' },
+            cache: 'no-cache'
+          })
+          if (response.ok) {
+            const data = await response.json()
+            if (data.success && typeof data.count === 'number') {
+              setNotificationCount(data.count)
+              console.log('Refreshed notification count after task creation:', data.count)
+            }
+          }
+        } catch (error) {
+          console.error('Failed to refresh notification count after task creation:', error)
+        }
+      }, 200) // Slightly longer delay for task creation
+    }
+    
+    window.addEventListener('taskCreated', handleTaskCreated as EventListener)
     
     if (socket) {
       socket.on('notification-count', ({ count }) => {
@@ -201,16 +269,65 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
       
       socket.on('notification', (notification) => {
         console.log('Received new notification via socket:', notification)
+        
+        // Add new notification to the list immediately
+        const formattedNotification = {
+          id: notification.id,
+          type: notification.type || 'system',
+          title: notification.title,
+          message: notification.message,
+          isRead: notification.isRead || false,
+          createdAt: new Date(notification.createdAt || Date.now()),
+          relatedId: notification.relatedId,
+          relatedUrl: notification.relatedUrl,
+          senderName: notification.senderName,
+          senderAvatar: notification.senderAvatar
+        }
+        
+        // Add to notifications list
+        setNotifications(prev => [formattedNotification, ...prev])
+        console.log('Added new notification to dropdown list')
+        
         // Count will be updated via the separate notification-count event
         // No need to manually calculate here
+      })
+      
+      // Listen for notification read/update events
+      socket.on('notification-read', ({ notificationId, userId }) => {
+        console.log('Received notification read event:', notificationId)
+        
+        // Update the notification in the list
+        setNotifications(prev => 
+          prev.map(notif => 
+            notif.id === notificationId 
+              ? { ...notif, isRead: true }
+              : notif
+          )
+        )
+        console.log('Updated notification read status in dropdown list')
+      })
+      
+      // Listen for mark all read events
+      socket.on('notifications-mark-all-read', ({ userId, markedCount }) => {
+        console.log('Received notifications mark all read event:', markedCount)
+        
+        // Mark all notifications as read in the list
+        setNotifications(prev => 
+          prev.map(notif => ({ ...notif, isRead: true }))
+        )
+        console.log('Marked all notifications as read in dropdown list')
       })
     }
 
     return () => {
       window.removeEventListener('newNotification', handleNewNotification as EventListener)
+      window.removeEventListener('notificationUpdate', handleNotificationUpdate as EventListener)
+      window.removeEventListener('taskCreated', handleTaskCreated as EventListener)
       if (socket) {
         socket.off('notification-count')
         socket.off('notification')
+        socket.off('notification-read')
+        socket.off('notifications-mark-all-read')
       }
     }
   }, [socket, isOpen, setNotificationCount])
@@ -232,11 +349,12 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
   // Load notifications when dropdown opens with debouncing
   useEffect(() => {
     if (isOpen) {
-      // Debounce the loading to prevent rapid requests
+      // Always reload notifications when dropdown opens to ensure fresh data
       const timeoutId = setTimeout(() => {
+        console.log('Dropdown opened, refreshing notifications')
         debouncedLoadNotifications()
         refetchInvitations()
-      }, 300) // 300ms debounce
+      }, 100) // Short delay to ensure smooth UI
       
       return () => clearTimeout(timeoutId)
     }
@@ -278,6 +396,35 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
       loadInitialCount()
     }
   }, [user?.id, setNotificationCount, socket, isConnected])
+
+  // Add polling fallback for notification count if socket is not connected
+  useEffect(() => {
+    if (!user?.id || (socket && isConnected)) return
+
+    console.log('Socket not connected, setting up notification count polling')
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch('/api/notifications/count', {
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-cache'
+        })
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && typeof data.count === 'number') {
+            setNotificationCount(data.count)
+            console.log('Polled notification count:', data.count)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to poll notification count:', error)
+      }
+    }, 5000) // Poll every 5 seconds when socket is not connected
+
+    return () => {
+      clearInterval(pollInterval)
+      console.log('Cleared notification count polling interval')
+    }
+  }, [user?.id, socket, isConnected, setNotificationCount])
 
   const loadNotifications = async (retryCount = 0) => {
     if (isLoading) {
@@ -478,6 +625,11 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
       
       const result = await response.json()
       if (result.success) {
+        // Emit socket event to acknowledge all notifications read
+        if (socket) {
+          socket.emit('notifications-mark-all-read', { userId: user?.id })
+        }
+        
         toast({
           title: "Success",
           description: result.message || `Marked ${unreadNotifications.length} notifications as read`

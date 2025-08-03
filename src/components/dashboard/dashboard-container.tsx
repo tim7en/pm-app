@@ -145,6 +145,13 @@ export function DashboardContainer() {
         },
         timestamp: new Date()
       })
+      
+      // Emit task created event for notification system
+      window.dispatchEvent(new CustomEvent('taskCreated', { 
+        detail: { taskData, userId: user.id } 
+      }))
+      console.log('Emitted taskCreated event for notification refresh')
+      
       // Refresh both tasks and projects since project cards show task completion progress
       await Promise.all([
         fetchTasks(),

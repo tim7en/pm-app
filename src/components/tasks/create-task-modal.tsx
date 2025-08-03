@@ -175,6 +175,12 @@ export function CreateTaskModal({ projects, onCreateTask, children }: CreateTask
       tags: formData.tags
     })
 
+    // Emit task created event for notification system
+    window.dispatchEvent(new CustomEvent('taskCreated', { 
+      detail: { title: formData.title.trim() } 
+    }))
+    console.log('Emitted taskCreated event from modal for notification refresh')
+
     // Reset form
     setFormData({
       title: "",

@@ -246,6 +246,15 @@ export async function POST(request: NextRequest) {
       // Don't fail the task creation if notification fails
     }
 
+    // Ensure notification count is synced after task creation
+    try {
+      await NotificationService.syncNotificationCountForUser(session.user.id)
+      console.log(`Synced notification count for user ${session.user.id} after task creation`)
+    } catch (error) {
+      console.error('Failed to sync notification count after task creation:', error)
+      // Don't fail the task creation if sync fails
+    }
+
     return NextResponse.json(task, { status: 201 })
   } catch (error) {
     console.error('Error creating task:', error)
