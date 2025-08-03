@@ -578,11 +578,25 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
         }
         
         console.log('Successfully marked notification as read')
-        // Socket will handle count update, but update local count as fallback
-        if (!socket || !isConnected) {
-          const currentCount = notificationCount
-          setNotificationCount(Math.max(0, currentCount - 1))
-        }
+        
+        // Force an immediate count refresh to ensure UI is in sync
+        setTimeout(async () => {
+          try {
+            const countResponse = await fetch('/api/notifications/count', {
+              headers: { 'Content-Type': 'application/json' },
+              cache: 'no-cache'
+            })
+            if (countResponse.ok) {
+              const countData = await countResponse.json()
+              if (countData.success && typeof countData.count === 'number') {
+                setNotificationCount(countData.count)
+                console.log('Refreshed notification count after mark as read:', countData.count)
+              }
+            }
+          } catch (error) {
+            console.error('Failed to refresh notification count after mark as read:', error)
+          }
+        }, 100)
       } else {
         throw new Error(result.error || 'Failed to mark notification as read')
       }
@@ -635,10 +649,24 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
           description: result.message || `Marked ${unreadNotifications.length} notifications as read`
         })
         
-        // Socket will handle count update, but update local count as fallback
-        if (!socket || !isConnected) {
-          setNotificationCount(0)
-        }
+        // Force an immediate count refresh to ensure UI is in sync
+        setTimeout(async () => {
+          try {
+            const countResponse = await fetch('/api/notifications/count', {
+              headers: { 'Content-Type': 'application/json' },
+              cache: 'no-cache'
+            })
+            if (countResponse.ok) {
+              const countData = await countResponse.json()
+              if (countData.success && typeof countData.count === 'number') {
+                setNotificationCount(countData.count)
+                console.log('Refreshed notification count after mark all as read:', countData.count)
+              }
+            }
+          } catch (error) {
+            console.error('Failed to refresh notification count after mark all as read:', error)
+          }
+        }, 100)
       } else {
         throw new Error(result.error || 'Failed to mark all notifications as read')
       }
@@ -660,14 +688,18 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
     }
   }, [notifications, toast, socket, isConnected, setNotificationCount])
 
-  // Use real-time notification count from socket, fallback to calculated count
+  // Use local count as primary source of truth for better UI consistency
   const unreadCount = useMemo(() => {
-    // If we have a valid socket connection and received count from server, use socket count
-    if (socket && isConnected && notificationCount >= 0) {
+    const localCount = notifications.filter(n => !n.isRead).length
+    
+    // Use local count as primary source of truth for UI consistency
+    // Socket count is only used for initial load when no local notifications are loaded yet
+    if (notifications.length === 0 && socket && isConnected && notificationCount >= 0) {
+      console.log(`Using socket count (no local data): ${notificationCount}`)
       return notificationCount
     }
-    // Otherwise calculate from local notifications as fallback
-    const localCount = notifications.filter(n => !n.isRead).length
+    
+    // Otherwise, always use local count for immediate UI feedback
     console.log(`Using local count: ${localCount}, socket count: ${notificationCount}, connected: ${isConnected}`)
     return localCount
   }, [notifications, notificationCount, socket, isConnected])
