@@ -55,6 +55,7 @@ import {
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/contexts/AuthContext"
 import MessagingErrorBoundary from "./messaging-error-boundary"
 
 interface TeamMember {
@@ -137,22 +138,27 @@ function TeamChatDialogContent({
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
+  const { user, currentWorkspace, isAuthenticated } = useAuth()
 
-  // Get current user ID and name
+  // Get current user ID and name from auth context
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const authUser = localStorage.getItem('auth-user')
-      if (authUser) {
-        const user = JSON.parse(authUser)
-        setCurrentUserId(user.id)
-        setCurrentUserName(user.name || user.email)
-      }
+    if (user) {
+      console.log('User from auth context:', user)
+      setCurrentUserId(user.id)
+      setCurrentUserName(user.name || user.email)
+    } else {
+      console.warn('No user found in auth context')
+      setCurrentUserId('')
+      setCurrentUserName('')
     }
-  }, [])
+  }, [user])
 
   // Clear conversations and load team members when dialog opens
   useEffect(() => {
-    if (isOpen && currentUserId) {
+    if (isOpen && currentUserId && isAuthenticated) {
+      console.log('Dialog opened, authenticated user:', currentUserId)
+      console.log('Current workspace:', currentWorkspace)
+      
       // Clear conversations when dialog opens to start fresh
       setConversations([])
       setActiveConversation(null)
@@ -160,7 +166,7 @@ function TeamChatDialogContent({
       // Only load team members
       loadTeamMembers()
     }
-  }, [isOpen, workspaceId, currentUserId])
+  }, [isOpen, currentUserId, isAuthenticated, currentWorkspace])
 
   // Enhanced error handling for API calls
   const handleApiError = useCallback((error: any, context: string) => {
@@ -210,9 +216,15 @@ function TeamChatDialogContent({
     if (isLoading) return // Prevent concurrent requests
     
     try {
+      // Use workspace from props, auth context, or localStorage as fallback
       const currentWorkspaceId = workspaceId || 
-        (typeof window !== 'undefined' ? localStorage.getItem('currentWorkspaceId') : null) || 
-        'default-workspace'
+        currentWorkspace?.id || 
+        (typeof window !== 'undefined' ? localStorage.getItem('currentWorkspaceId') : null)
+      
+      console.log('Loading team members for workspace:', currentWorkspaceId)
+      console.log('Current user ID:', currentUserId)
+      console.log('Is authenticated:', isAuthenticated)
+      console.log('Workspace from context:', currentWorkspace)
       
       if (!currentWorkspaceId || currentWorkspaceId === 'null') {
         console.warn('No valid workspace ID found, cannot load team members')
@@ -224,10 +236,24 @@ function TeamChatDialogContent({
         return
       }
 
+      if (!isAuthenticated) {
+        console.warn('User not authenticated, cannot load team members')
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to view team members",
+          variant: "destructive"
+        })
+        return
+      }
+
       setIsLoading(true)
       const response = await fetch(`/api/messages/team-members?workspaceId=${currentWorkspaceId}`)
       
+      console.log('Team members API response status:', response.status)
+      
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Team members API error:', errorText)
         throw {
           status: response.status,
           statusText: response.statusText,
@@ -236,7 +262,10 @@ function TeamChatDialogContent({
       }
 
       const data = await response.json()
+      console.log('Team members API response data:', data)
+      
       if (data.success && data.members) {
+        console.log('Found team members:', data.members.length)
         setTeamMembers(data.members)
       } else {
         console.warn('Team members API returned no data:', data)
@@ -248,6 +277,7 @@ function TeamChatDialogContent({
         })
       }
     } catch (error) {
+      console.error('Error in loadTeamMembers:', error)
       handleApiError(error, 'loading team members')
       setTeamMembers([]) // Set empty array as fallback
     } finally {
@@ -1055,58 +1085,129 @@ function TeamChatDialogContent({
 
                   {/* Team Members */}
                   <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-3">Team Members</h3>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-medium text-muted-foreground">Team Members</h3>
+                      <Badge variant="outline" className="text-xs">
+                        {filteredMembers.filter(m => m.isOnline).length} online
+                      </Badge>
+                    </div>
                     {isLoading ? (
                       <div className="flex items-center justify-center py-8">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                         <span className="ml-2 text-sm text-muted-foreground">Loading team members...</span>
                       </div>
                     ) : filteredMembers.length > 0 ? (
-                      <div className="space-y-2">
-                        {filteredMembers.map((member) => (
-                          <div
-                            key={member.id}
-                            className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors hover:bg-accent/50"
-                            onClick={() => startDirectMessage(member)}
-                          >
-                            <div className="relative">
-                              <Avatar className="h-10 w-10">
-                                <AvatarImage src={member.avatar} alt={member.name} />
-                                <AvatarFallback>
-                                  {member.name ? member.name.split(' ').map(n => n[0]).join('') : 'U'}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className={cn(
-                                "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background",
-                                member.isOnline ? "bg-green-500" : "bg-gray-400"
-                              )} />
+                      <div className="space-y-1">
+                        {/* Online Members */}
+                        {filteredMembers.filter(m => m.isOnline).length > 0 && (
+                          <>
+                            <div className="text-xs font-medium text-muted-foreground mb-2 px-2">
+                              Online ({filteredMembers.filter(m => m.isOnline).length})
                             </div>
-                            
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between mb-1">
-                                <h4 className="font-medium text-sm truncate">
-                                  {member.name}
-                                </h4>
-                                <div className="flex items-center gap-2">
-                                  {member.workspaceRole && (
-                                    <Badge variant="outline" className="text-xs">
-                                      {member.workspaceRole}
-                                    </Badge>
-                                  )}
+                            {filteredMembers.filter(m => m.isOnline).map((member) => (
+                              <div
+                                key={member.id}
+                                className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200 hover:bg-accent/50 hover:shadow-sm border border-transparent hover:border-accent/30"
+                                onClick={() => startDirectMessage(member)}
+                              >
+                                <div className="relative">
+                                  <Avatar className="h-10 w-10">
+                                    <AvatarImage src={member.avatar} alt={member.name} />
+                                    <AvatarFallback className="bg-green-100 text-green-700">
+                                      {member.name ? member.name.split(' ').map(n => n[0]).join('') : 'U'}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background bg-green-500 animate-pulse" />
+                                </div>
+                                
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <h4 className="font-medium text-sm truncate">
+                                      {member.name}
+                                    </h4>
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-xs text-green-600 font-medium">Online</span>
+                                      {member.workspaceRole && (
+                                        <Badge variant="outline" className="text-xs ml-1">
+                                          {member.workspaceRole}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      {member.email}
+                                    </p>
+                                    <div className="flex items-center gap-1">
+                                      <MessageSquare className="h-3 w-3 text-green-500" />
+                                      <span className="text-xs text-muted-foreground">Send message</span>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
-                              
-                              <div className="flex items-center justify-between">
-                                <p className="text-xs text-muted-foreground truncate">
-                                  {member.email}
-                                </p>
-                                <span className="text-xs text-muted-foreground">
-                                  {member.isOnline ? 'Online' : member.lastSeen ? formatLastSeen(member.lastSeen) : 'Offline'}
-                                </span>
-                              </div>
+                            ))}
+                          </>
+                        )}
+                        
+                        {/* Offline Members */}
+                        {filteredMembers.filter(m => !m.isOnline).length > 0 && (
+                          <>
+                            {filteredMembers.filter(m => m.isOnline).length > 0 && (
+                              <div className="border-t border-border/50 my-3" />
+                            )}
+                            <div className="text-xs font-medium text-muted-foreground mb-2 px-2">
+                              Offline ({filteredMembers.filter(m => !m.isOnline).length})
                             </div>
-                          </div>
-                        ))}
+                            {filteredMembers.filter(m => !m.isOnline).map((member) => (
+                              <div
+                                key={member.id}
+                                className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200 hover:bg-accent/30 opacity-75 hover:opacity-100"
+                                onClick={() => startDirectMessage(member)}
+                              >
+                                <div className="relative">
+                                  <Avatar className="h-10 w-10">
+                                    <AvatarImage src={member.avatar} alt={member.name} />
+                                    <AvatarFallback className="bg-gray-100 text-gray-600">
+                                      {member.name ? member.name.split(' ').map(n => n[0]).join('') : 'U'}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background bg-gray-400" />
+                                </div>
+                                
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <h4 className="font-medium text-sm truncate">
+                                      {member.name}
+                                    </h4>
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-xs text-gray-500">Offline</span>
+                                      {member.workspaceRole && (
+                                        <Badge variant="outline" className="text-xs ml-1 opacity-60">
+                                          {member.workspaceRole}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      {member.email}
+                                    </p>
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-xs text-muted-foreground">
+                                        {member.lastSeen ? formatLastSeen(member.lastSeen) : 'Last seen: N/A'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground/70 mt-1">
+                                    💬 Click to send a message (they'll see it when they return)
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </>
+                        )}
                       </div>
                     ) : (
                       <div className="flex items-center justify-center py-8">
@@ -1120,10 +1221,13 @@ function TeamChatDialogContent({
                           ) : (
                             <div className="space-y-1">
                               <p className="text-xs text-muted-foreground">
-                                Current workspace: {workspaceId || (typeof window !== 'undefined' ? localStorage.getItem('currentWorkspaceId') : null) || 'Not set'}
+                                Current workspace: {workspaceId || currentWorkspace?.id || (typeof window !== 'undefined' ? localStorage.getItem('currentWorkspaceId') : null) || 'Not set'}
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 Current user: {currentUserId || 'Not logged in'}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Authenticated: {isAuthenticated ? 'Yes' : 'No'}
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 Total team members loaded: {teamMembers.length}

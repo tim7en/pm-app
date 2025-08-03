@@ -10,6 +10,7 @@ import { ProjectDialog } from "@/components/projects/project-dialog"
 import { EnhancedProjectCreation } from "@/components/projects/enhanced-project-creation"
 import { DownloadMenu } from "@/components/layout/download-menu"
 import { NotificationsDropdown } from "@/components/layout/notifications-dropdown"
+import { MessageNotification } from "@/components/messages/message-notification"
 import { BugReportDialog } from "@/components/bug-report/bug-report-dialog"
 import { LanguageSelector } from "@/components/ui/language-selector"
 import { useAuth } from "@/contexts/AuthContext"
@@ -261,6 +262,9 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
 
           {/* Notifications */}
           <NotificationsDropdown />
+
+          {/* Team Messages */}
+          <MessageNotification />
 
           {/* Language Selector */}
           <LanguageSelector />
