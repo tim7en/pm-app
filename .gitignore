@@ -23,6 +23,15 @@
 # misc
 .DS_Store
 *.pem
+Thumbs.db
+Desktop.ini
+*.tmp
+*.temp
+
+# Windows specific
+*.lnk
+*.exe
+*.msi
 
 # debug
 npm-debug.log*

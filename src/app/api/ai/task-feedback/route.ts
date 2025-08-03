@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
       { status: 503 }
     )
 
+    // TODO: Re-enable when AI assistant is available
     // const body = await request.json()
     // const { taskId, completionTime } = body
 
@@ -37,48 +38,48 @@ export async function POST(request: NextRequest) {
     // const task = await db.task.findUnique({
     //   where: { id: taskId },
     //   include: {
-        assignee: true,
-        creator: true,
-        project: true
-      }
-    })
+    //     assignee: true,
+    //     creator: true,
+    //     project: true
+    //   }
+    // })
 
-    if (!task) {
-      return NextResponse.json(
-        { error: 'Task not found' },
-        { status: 404 }
-      )
-    }
+    // if (!task) {
+    //   return NextResponse.json(
+    //     { error: 'Task not found' },
+    //     { status: 404 }
+    //   )
+    // }
 
-    // Get user's recent performance
-    const recentTasks = await db.task.findMany({
-      where: {
-        assigneeId: session.user.id,
-        status: 'DONE',
-        updatedAt: {
-          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
-        }
-      },
-      take: 10,
-      orderBy: { updatedAt: 'desc' }
-    })
+    // // Get user's recent performance
+    // const recentTasks = await db.task.findMany({
+    //   where: {
+    //     assigneeId: session.user.id,
+    //     status: 'DONE',
+    //     updatedAt: {
+    //       gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
+    //     }
+    //   },
+    //   take: 10,
+    //   orderBy: { updatedAt: 'desc' }
+    // })
 
-    const userPerformance = {
-      recentCompletions: recentTasks.length,
-      avgPriority: recentTasks.reduce((acc, t) => {
-        const priorityScore = { LOW: 1, MEDIUM: 2, HIGH: 3, URGENT: 4 }
-        return acc + (priorityScore[t.priority] || 2)
-      }, 0) / (recentTasks.length || 1),
-      streak: recentTasks.length
-    }
+    // const userPerformance = {
+    //   recentCompletions: recentTasks.length,
+    //   avgPriority: recentTasks.reduce((acc, t) => {
+    //     const priorityScore = { LOW: 1, MEDIUM: 2, HIGH: 3, URGENT: 4 }
+    //     return acc + (priorityScore[t.priority] || 2)
+    //   }, 0) / (recentTasks.length || 1),
+    //   streak: recentTasks.length
+    // }
 
-    const feedback = await aiAssistant.generateTaskCompletionFeedback(
-      task,
-      completionTime || 1,
-      userPerformance
-    )
+    // const feedback = await aiAssistant.generateTaskCompletionFeedback(
+    //   task,
+    //   completionTime || 1,
+    //   userPerformance
+    // )
 
-    return NextResponse.json({ feedback })
+    // return NextResponse.json({ feedback })
   } catch (error) {
     console.error('AI feedback generation error:', error)
     return NextResponse.json(

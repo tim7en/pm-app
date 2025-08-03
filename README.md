@@ -56,19 +56,57 @@ This scaffold provides a robust foundation built with:
 
 ## 🚀 Quick Start
 
-```bash
-# Install dependencies
-npm install
+### Prerequisites
+- Node.js >= 20.19.0 (check `.nvmrc` file)
+- npm >= 10.0.0
 
-# Start development server
+### Platform-specific Node.js Installation
+
+#### Windows
+```bash
+# Install nvm-windows from: https://github.com/coreybutler/nvm-windows
+nvm install 20.19.0
+nvm use 20.19.0
+```
+
+#### macOS/Linux
+```bash
+# Install nvm from: https://github.com/nvm-sh/nvm
+nvm install 20.19.0
+nvm use 20.19.0
+```
+
+### Installation & Development
+
+```bash
+# Install dependencies (use legacy peer deps for compatibility)
+npm install --legacy-peer-deps
+
+# Start development server (cross-platform)
 npm run dev
+
+# Platform-specific development commands:
+npm run dev:windows    # Windows
+npm run dev:mac        # macOS/Linux
 
 # Build for production
 npm run build
 
-# Start production server
+# Start production server (cross-platform)
 npm start
+
+# Platform-specific production commands:
+npm run start:windows  # Windows  
+npm run start:mac      # macOS/Linux
 ```
+
+### Troubleshooting Cross-Platform Issues
+
+1. **Node.js version mismatch**: Ensure you're using Node.js >= 20.19.0
+2. **Permission errors on Windows**: Run PowerShell as Administrator
+3. **CSS compilation issues**: Clear browser cache and restart dev server
+4. **Dependency conflicts**: Always use `--legacy-peer-deps` flag
+5. **Path separator issues**: The scripts are now cross-platform compatible
 
 Open [http://localhost:3000](http://localhost:3000) to see your application running.
 
