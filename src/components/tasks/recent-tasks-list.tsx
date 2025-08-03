@@ -261,11 +261,12 @@ export function RecentTasksList({
                   <div
                     key={task.id}
                     className={cn(
-                      "relative rounded-lg border p-3 transition-all duration-500 ease-in-out hover:shadow-md",
+                      "relative rounded-lg border p-3 transition-all duration-500 ease-in-out hover:shadow-md cursor-pointer",
                       "bg-background/50 backdrop-blur-sm",
                       taskAge.isNew && "ring-2 ring-blue-200 shadow-lg"
                     )}
                     style={{ opacity }}
+                    onClick={() => onTaskEdit(task)}
                   >
                     {/* New task indicator */}
                     {taskAge.isNew && (
@@ -283,7 +284,10 @@ export function RecentTasksList({
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6 flex-shrink-0 mt-1"
-                        onClick={() => onTaskStatusChange(task.id, task.status === 'DONE' ? 'TODO' : 'DONE')}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onTaskStatusChange(task.id, task.status === 'DONE' ? 'TODO' : 'DONE')
+                        }}
                       >
                         {task.status === 'DONE' ? (
                           <CheckCircle className="h-4 w-4 text-green-500" />
@@ -342,7 +346,7 @@ export function RecentTasksList({
                               {formatRelativeTime(task)}
                             </span>
                             
-                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => e.stopPropagation()}>
                               <MoreHorizontal className="h-3 w-3" />
                             </Button>
                           </div>

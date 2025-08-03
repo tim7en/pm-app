@@ -14,7 +14,7 @@ interface UseSocketReturn {
 export const useSocket = (): UseSocketReturn => {
   const [socket, setSocket] = useState<Socket | null>(null)
   const [isConnected, setIsConnected] = useState(false)
-  const [notificationCount, setNotificationCount] = useState(0)
+  const [notificationCount, setNotificationCount] = useState(0) // Start with 0, not -1
   const { user } = useAuth()
   const reconnectAttempts = useRef(0)
   const maxReconnectAttempts = 5
@@ -39,6 +39,9 @@ export const useSocket = (): UseSocketReturn => {
       
       // Join user room for real-time notifications
       socketInstance.emit('join-user', user.id)
+      
+      // Request current notification count from server to sync
+      socketInstance.emit('get-notification-count', user.id)
     })
 
     socketInstance.on('disconnect', (reason) => {
@@ -99,6 +102,52 @@ export const useSocket = (): UseSocketReturn => {
       setIsConnected(false)
     }
   }, [user?.id])
+
+  // Fetch initial notification count when user changes (only if socket is not connected)
+  useEffect(() => {
+    const fetchInitialCount = async () => {
+      if (!user?.id) {
+        setNotificationCount(0)
+        return
+      }
+
+      // If socket is connected, let it handle the count
+      if (socket && isConnected) {
+        console.log('Socket connected, skipping initial API count fetch')
+        return
+      }
+
+      try {
+        const response = await fetch('/api/notifications/count', {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          cache: 'no-cache'
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && typeof data.count === 'number') {
+            setNotificationCount(data.count)
+            console.log('Initial notification count loaded from database via API:', data.count)
+          }
+        } else {
+          console.error('Failed to fetch notification count:', response.status)
+          setNotificationCount(0)
+        }
+      } catch (error) {
+        console.error('Failed to fetch initial notification count:', error)
+        setNotificationCount(0)
+      }
+    }
+
+    // Only fetch from API if socket is not connected or user changed
+    if (user?.id && (!socket || !isConnected)) {
+      fetchInitialCount()
+    } else if (!user?.id) {
+      setNotificationCount(0)
+    }
+  }, [user?.id, socket, isConnected])
 
   // Request notification permission on mount
   useEffect(() => {

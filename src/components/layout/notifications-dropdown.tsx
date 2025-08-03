@@ -195,10 +195,15 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
     
     if (socket) {
       socket.on('notification-count', ({ count }) => {
+        console.log('Received notification count update via socket:', count)
         setNotificationCount(count)
       })
       
-      socket.on('notification', handleNotificationUpdate)
+      socket.on('notification', (notification) => {
+        console.log('Received new notification via socket:', notification)
+        // Count will be updated via the separate notification-count event
+        // No need to manually calculate here
+      })
     }
 
     return () => {
@@ -236,6 +241,43 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
       return () => clearTimeout(timeoutId)
     }
   }, [isOpen, debouncedLoadNotifications, refetchInvitations])
+
+  // Load initial notification count on mount - only if socket is not connected
+  useEffect(() => {
+    const loadInitialCount = async () => {
+      if (!user?.id) return
+      
+      // Only fetch via API if socket is not connected or available
+      if (socket && isConnected) {
+        console.log('Socket is connected, skipping dropdown API count fetch')
+        return
+      }
+      
+      try {
+        const response = await fetch('/api/notifications/count', {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          cache: 'no-cache'
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && typeof data.count === 'number') {
+            console.log('Loaded notification count from database via API (dropdown):', data.count)
+            setNotificationCount(data.count)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load initial notification count:', error)
+      }
+    }
+
+    // Load from API only if no socket connection
+    if (user?.id && (!socket || !isConnected)) {
+      loadInitialCount()
+    }
+  }, [user?.id, setNotificationCount, socket, isConnected])
 
   const loadNotifications = async (retryCount = 0) => {
     if (isLoading) {
@@ -345,6 +387,18 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
       return
     }
 
+    // Check if the notification exists and is unread
+    const notification = notifications.find(n => n.id === notificationId)
+    if (!notification) {
+      console.warn('Notification not found')
+      return
+    }
+    
+    if (notification.isRead) {
+      console.log('Notification already read, skipping')
+      return
+    }
+
     // Optimistic update
     setNotifications(prev => 
       prev.map(n => 
@@ -375,6 +429,15 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
         if (socket) {
           socket.emit('notification-read', { notificationId, userId: user?.id })
         }
+        
+        console.log('Successfully marked notification as read')
+        // Socket will handle count update, but update local count as fallback
+        if (!socket || !isConnected) {
+          const currentCount = notificationCount
+          setNotificationCount(Math.max(0, currentCount - 1))
+        }
+      } else {
+        throw new Error(result.error || 'Failed to mark notification as read')
       }
     } catch (error) {
       console.error('Error marking notification as read:', error)
@@ -390,7 +453,7 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
         variant: "destructive"
       })
     }
-  }, [toast])
+  }, [toast, notifications, socket, user?.id, isConnected, setNotificationCount])
 
   const markAllAsRead = useCallback(async () => {
     const unreadNotifications = notifications.filter(n => !n.isRead)
@@ -413,10 +476,20 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
         throw new Error(`Failed to mark all notifications as read: ${response.status}`)
       }
       
-      toast({
-        title: "Success",
-        description: `Marked ${unreadNotifications.length} notifications as read`
-      })
+      const result = await response.json()
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: result.message || `Marked ${unreadNotifications.length} notifications as read`
+        })
+        
+        // Socket will handle count update, but update local count as fallback
+        if (!socket || !isConnected) {
+          setNotificationCount(0)
+        }
+      } else {
+        throw new Error(result.error || 'Failed to mark all notifications as read')
+      }
     } catch (error) {
       console.error('Error marking all notifications as read:', error)
       // Revert optimistic update on error
@@ -426,23 +499,26 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
           return wasUnread ? { ...n, isRead: false } : n
         })
       )
+      
       toast({
         title: "Error",
         description: "Failed to mark notifications as read",
         variant: "destructive"
       })
     }
-  }, [notifications, toast])
+  }, [notifications, toast, socket, isConnected, setNotificationCount])
 
   // Use real-time notification count from socket, fallback to calculated count
   const unreadCount = useMemo(() => {
-    // If we have a real-time count from socket, use that
-    if (notificationCount >= 0) {
+    // If we have a valid socket connection and received count from server, use socket count
+    if (socket && isConnected && notificationCount >= 0) {
       return notificationCount
     }
-    // Otherwise calculate from local notifications
-    return notifications.filter(n => !n.isRead).length
-  }, [notifications, notificationCount])
+    // Otherwise calculate from local notifications as fallback
+    const localCount = notifications.filter(n => !n.isRead).length
+    console.log(`Using local count: ${localCount}, socket count: ${notificationCount}, connected: ${isConnected}`)
+    return localCount
+  }, [notifications, notificationCount, socket, isConnected])
 
   const totalCount = unreadCount + invitationCount
 

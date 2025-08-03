@@ -530,6 +530,9 @@ export function DashboardContainer() {
                       console.error('Failed to toggle star:', error)
                     }
                   }}
+                  onViewTasks={onViewTasks}
+                  onGenerateInsights={onGenerateInsights}
+                  currentUserId={user?.id}
                 />
               </TabsContent>
 

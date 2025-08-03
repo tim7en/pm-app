@@ -254,19 +254,41 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // Here you would update the database
-    // For now, we'll just return success
-    
+    // Handle database operations
     let responseMessage = ''
+    let count = 0
+    
     switch (action) {
       case 'mark-read':
+        if (!notificationId) {
+          return NextResponse.json(
+            { success: false, error: 'notificationId is required for mark-read action' },
+            { status: 400 }
+          )
+        }
+        
+        const success = await NotificationService.markAsRead(notificationId, session.user.id)
+        if (!success) {
+          return NextResponse.json(
+            { success: false, error: 'Notification not found or already read' },
+            { status: 404 }
+          )
+        }
         responseMessage = 'Notification marked as read'
         break
+        
       case 'mark-all-read':
-        responseMessage = 'All notifications marked as read'
+        count = await NotificationService.markAllAsRead(session.user.id)
+        responseMessage = `${count} notifications marked as read`
         break
+        
       case 'delete':
-        responseMessage = 'Notification deleted'
+        // Delete functionality would go here - not implemented yet
+        responseMessage = 'Delete functionality not implemented'
+        return NextResponse.json(
+          { success: false, error: 'Delete functionality not implemented' },
+          { status: 501 }
+        )
         break
     }
 
@@ -274,6 +296,7 @@ export async function PATCH(request: NextRequest) {
       success: true,
       message: responseMessage,
       action: action,
+      count: action === 'mark-all-read' ? count : undefined,
       notificationId: action === 'mark-all-read' ? undefined : notificationId
     })
 

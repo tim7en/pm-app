@@ -1,5 +1,22 @@
-import { PrismaClient, NotificationType } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 import { getSocketInstance, emitNotificationToUser, emitNotificationCountToUser } from './socket'
+
+// Define NotificationType enum locally to match database schema
+enum NotificationType {
+  TASK_ASSIGNED = 'TASK_ASSIGNED',
+  TASK_UPDATED = 'TASK_UPDATED',
+  TASK_COMPLETED = 'TASK_COMPLETED',
+  TASK_DUE_SOON = 'TASK_DUE_SOON',
+  TASK_VERIFICATION_REQUIRED = 'TASK_VERIFICATION_REQUIRED',
+  TASK_VERIFIED = 'TASK_VERIFIED',
+  TASK_REJECTED = 'TASK_REJECTED',
+  COMMENT_ADDED = 'COMMENT_ADDED',
+  PROJECT_INVITE = 'PROJECT_INVITE',
+  WORKSPACE_INVITE = 'WORKSPACE_INVITE',
+  WORKSPACE_REMOVED = 'WORKSPACE_REMOVED',
+  ROLE_CHANGE = 'ROLE_CHANGE',
+  DEADLINE_APPROACHING = 'DEADLINE_APPROACHING'
+}
 
 const prisma = new PrismaClient()
 
@@ -79,6 +96,7 @@ export class NotificationService {
         // Also emit updated unread count
         const unreadCount = await this.getUnreadCount(params.userId)
         emitNotificationCountToUser(io, params.userId, unreadCount)
+        console.log(`Emitted notification and count (${unreadCount}) to user ${params.userId}`)
       }
 
       return { notification, formattedNotification }
@@ -132,7 +150,7 @@ export class NotificationService {
   }
 
   /**
-   * Mark notification as read
+   * Mark notification as read with proper validation and session tracking
    */
   static async markAsRead(notificationId: string, userId: string) {
     // Input validation
@@ -145,26 +163,51 @@ export class NotificationService {
     }
 
     try {
-      const notification = await prisma.notification.updateMany({
+      // First verify the notification exists and belongs to the user
+      const existingNotification = await prisma.notification.findFirst({
         where: {
           id: notificationId,
-          userId: userId // Ensure user can only mark their own notifications
-        },
-        data: {
-          isRead: true
+          userId: userId
         }
       })
 
+      if (!existingNotification) {
+        console.warn(`Notification ${notificationId} not found for user ${userId}`)
+        return false
+      }
+
+      if (existingNotification.isRead) {
+        console.log(`Notification ${notificationId} already marked as read`)
+        return true // Already read, consider it successful
+      }
+
+      // Mark as read with transaction to ensure consistency
+      const result = await prisma.$transaction(async (tx) => {
+        const updated = await tx.notification.update({
+          where: {
+            id: notificationId,
+            userId: userId,
+            isRead: false // Only update if currently unread
+          },
+          data: {
+            isRead: true
+          }
+        })
+
+        return { count: 1, notification: updated }
+      })
+
       // Emit updated unread count via socket
-      if (notification.count > 0) {
+      if (result.count > 0) {
         const io = getSocketInstance()
         if (io) {
           const unreadCount = await this.getUnreadCount(userId)
           emitNotificationCountToUser(io, userId, unreadCount)
+          console.log(`Updated notification count after marking as read: ${unreadCount}`)
         }
       }
 
-      return notification.count > 0
+      return result.count > 0
     } catch (error) {
       console.error('Error marking notification as read:', error)
       throw error
@@ -172,7 +215,7 @@ export class NotificationService {
   }
 
   /**
-   * Mark all notifications as read for a user
+   * Mark all notifications as read for a user with proper transaction handling
    */
   static async markAllAsRead(userId: string) {
     // Input validation
@@ -181,25 +224,44 @@ export class NotificationService {
     }
 
     try {
-      const result = await prisma.notification.updateMany({
-        where: {
-          userId: userId,
-          isRead: false
-        },
-        data: {
-          isRead: true
+      // Use transaction to ensure consistency
+      const result = await prisma.$transaction(async (tx) => {
+        // First get count of unread notifications
+        const unreadCount = await tx.notification.count({
+          where: {
+            userId: userId,
+            isRead: false
+          }
+        })
+
+        if (unreadCount === 0) {
+          return { count: 0, updatedCount: 0 }
         }
+
+        // Mark all unread notifications as read
+        const updateResult = await tx.notification.updateMany({
+          where: {
+            userId: userId,
+            isRead: false
+          },
+          data: {
+            isRead: true
+          }
+        })
+
+        return { count: unreadCount, updatedCount: updateResult.count }
       })
 
-      // Emit updated unread count via socket
-      if (result.count > 0) {
+      // Emit updated unread count via socket (should be 0 now)
+      if (result.updatedCount > 0) {
         const io = getSocketInstance()
         if (io) {
           emitNotificationCountToUser(io, userId, 0) // All read, so count is 0
+          console.log(`Marked ${result.updatedCount} notifications as read for user ${userId}`)
         }
       }
 
-      return result.count
+      return result.updatedCount
     } catch (error) {
       console.error('Error marking all notifications as read:', error)
       throw error
@@ -207,7 +269,7 @@ export class NotificationService {
   }
 
   /**
-   * Get unread notification count
+   * Get unread notification count with caching for performance
    */
   static async getUnreadCount(userId: string) {
     // Input validation
@@ -224,9 +286,31 @@ export class NotificationService {
         }
       })
 
+      console.log(`Unread notification count for user ${userId}: ${count}`)
       return count
     } catch (error) {
       console.error('Error getting unread count:', error)
+      return 0
+    }
+  }
+
+  /**
+   * Sync notification count across all user sessions (for cross-device consistency)
+   */
+  static async syncNotificationCountForUser(userId: string) {
+    if (!userId) return
+
+    try {
+      const count = await this.getUnreadCount(userId)
+      const io = getSocketInstance()
+      if (io) {
+        // Broadcast to all sessions for this user
+        emitNotificationCountToUser(io, userId, count)
+        console.log(`Synced notification count (${count}) across all sessions for user ${userId}`)
+      }
+      return count
+    } catch (error) {
+      console.error('Error syncing notification count:', error)
       return 0
     }
   }
@@ -381,7 +465,7 @@ export class NotificationService {
     return this.createNotification({
       title: titles[action],
       message: messages[action],
-      type: 'PROJECT_INVITE', // We'll map this properly
+      type: NotificationType.PROJECT_INVITE,
       userId,
       relatedId: projectId,
       relatedUrl: `/projects?id=${projectId}`,

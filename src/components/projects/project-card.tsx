@@ -28,8 +28,16 @@ import {
   Target,
   Zap
 } from "lucide-react"
-import { ProjectStatus } from "@prisma/client"
 import { useTranslation } from "@/hooks/use-translation"
+
+// Define ProjectStatus enum locally to avoid import issues
+enum ProjectStatus {
+  PLANNING = "PLANNING",
+  ACTIVE = "ACTIVE", 
+  ON_HOLD = "ON_HOLD",
+  COMPLETED = "COMPLETED",
+  ARCHIVED = "ARCHIVED"
+}
 
 interface ProjectCardProps {
   project: {
@@ -139,7 +147,10 @@ export function ProjectCard({
   const isOverdue = project.dueDate && new Date(project.dueDate) < new Date() && project.status !== ProjectStatus.COMPLETED
 
   return (
-    <Card className="group hover-lift glass-card overflow-hidden border-2 hover:border-primary/20 transition-all duration-300">
+    <Card 
+      className="group hover-lift glass-card overflow-hidden border-2 hover:border-primary/20 transition-all duration-300 cursor-pointer"
+      onClick={() => onViewTasks?.(project.id)}
+    >
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-4 flex-1 min-w-0">

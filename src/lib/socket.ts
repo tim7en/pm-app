@@ -1,7 +1,8 @@
 import { Server } from 'socket.io';
+import { NotificationService } from './notification-service';
 
 // Store user socket mappings for real-time notifications
-const userSockets = new Map<string, string>(); // userId -> socketId
+const userSockets = new Map<string, Set<string>>(); // userId -> Set of socketIds for multiple sessions
 
 export const setupSocket = (io: Server) => {
   io.on('connection', (socket) => {
@@ -10,18 +11,39 @@ export const setupSocket = (io: Server) => {
     // Handle user authentication/joining
     socket.on('join-user', (userId: string) => {
       if (userId) {
-        userSockets.set(userId, socket.id);
+        // Add socket to user's session set
+        if (!userSockets.has(userId)) {
+          userSockets.set(userId, new Set());
+        }
+        userSockets.get(userId)!.add(socket.id);
         socket.join(`user:${userId}`);
-        console.log(`User ${userId} joined with socket ${socket.id}`);
+        console.log(`User ${userId} joined with socket ${socket.id}. Total sessions: ${userSockets.get(userId)!.size}`);
+      }
+    });
+
+    // Handle request for current notification count
+    socket.on('get-notification-count', async (userId: string) => {
+      if (userId) {
+        try {
+          const count = await NotificationService.getUnreadCount(userId);
+          socket.emit('notification-count', { count });
+          console.log(`Sent notification count (${count}) to user ${userId} socket ${socket.id}`);
+        } catch (error) {
+          console.error('Error fetching notification count for socket:', error);
+        }
       }
     });
 
     // Handle user leaving
     socket.on('leave-user', (userId: string) => {
-      if (userId) {
-        userSockets.delete(userId);
+      if (userId && userSockets.has(userId)) {
+        const userSocketSet = userSockets.get(userId)!;
+        userSocketSet.delete(socket.id);
+        if (userSocketSet.size === 0) {
+          userSockets.delete(userId);
+        }
         socket.leave(`user:${userId}`);
-        console.log(`User ${userId} left`);
+        console.log(`User ${userId} left socket ${socket.id}. Remaining sessions: ${userSocketSet.size}`);
       }
     });
     
@@ -44,10 +66,13 @@ export const setupSocket = (io: Server) => {
     // Handle disconnect
     socket.on('disconnect', () => {
       // Remove user from socket mapping
-      for (const [userId, socketId] of userSockets.entries()) {
-        if (socketId === socket.id) {
-          userSockets.delete(userId);
-          console.log(`User ${userId} disconnected`);
+      for (const [userId, socketSet] of userSockets.entries()) {
+        if (socketSet.has(socket.id)) {
+          socketSet.delete(socket.id);
+          if (socketSet.size === 0) {
+            userSockets.delete(userId);
+          }
+          console.log(`User ${userId} disconnected socket ${socket.id}. Remaining sessions: ${socketSet.size}`);
           break;
         }
       }

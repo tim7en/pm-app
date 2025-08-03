@@ -5,6 +5,8 @@ interface ProjectManagementProps {
   onProjectEdit: (project: any) => void
   onProjectDelete: (projectId: string) => Promise<boolean>
   onProjectToggleStar: (projectId: string) => void
+  onViewTasks?: (projectId: string) => void
+  onGenerateInsights?: (projectId: string, projectName: string) => void
   currentUserId?: string
 }
 
@@ -13,6 +15,8 @@ export function ProjectManagement({
   onProjectEdit,
   onProjectDelete,
   onProjectToggleStar,
+  onViewTasks,
+  onGenerateInsights,
   currentUserId
 }: ProjectManagementProps) {
   return (
@@ -26,6 +30,8 @@ export function ProjectManagement({
               onEdit={onProjectEdit}
               onDelete={onProjectDelete}
               onToggleStar={onProjectToggleStar}
+              onViewTasks={onViewTasks}
+              onGenerateInsights={onGenerateInsights}
               currentUserId={currentUserId}
             />
           ))

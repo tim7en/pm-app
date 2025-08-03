@@ -249,18 +249,22 @@ export function TaskList({
               return (
                 <div
                   key={task.id}
-                  className={`flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-all duration-300 ${
+                  className={`flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-all duration-300 cursor-pointer ${
                     taskType === 'assigned' ? 'border-l-4 border-l-blue-500' : 'border-l-4 border-l-purple-500'
                   } ${task.status === TaskStatus.DONE ? 'opacity-75' : 'opacity-100'}`}
+                  onClick={() => onTaskEdit?.(task)}
                 >
                   {/* Checkbox */}
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-5 w-5 flex-shrink-0"
-                    onClick={() => onTaskUpdate?.(task.id, { 
-                      status: task.status === TaskStatus.DONE ? TaskStatus.TODO : TaskStatus.DONE 
-                    })}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onTaskUpdate?.(task.id, { 
+                        status: task.status === TaskStatus.DONE ? TaskStatus.TODO : TaskStatus.DONE 
+                      })
+                    }}
                   >
                     {task.status === TaskStatus.DONE ? (
                       <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -358,7 +362,10 @@ export function TaskList({
                           <span className="text-xs">{t("tasks.assignedTo")}</span>
                           <Avatar 
                             className="h-4 w-4 cursor-pointer hover:ring-2 hover:ring-blue-200 hover:ring-offset-1 transition-all" 
-                            onClick={() => onTaskReassign?.(task.id, task.assigneeId)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onTaskReassign?.(task.id, task.assigneeId)
+                            }}
                             title="Click to reassign task"
                           >
                             <AvatarImage src={task.assignee.avatar} alt={task.assignee.name} />
@@ -405,7 +412,10 @@ export function TaskList({
                       // For assigned tasks, show the current user as assignee (clickable for reassignment)
                       <Avatar 
                         className="h-6 w-6 cursor-pointer hover:ring-2 hover:ring-blue-200 hover:ring-offset-1 transition-all" 
-                        onClick={() => onTaskReassign?.(task.id, task.assigneeId)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onTaskReassign?.(task.id, task.assigneeId)
+                        }}
                         title="Click to reassign task"
                       >
                         <AvatarImage src={task.assignee?.avatar} alt={task.assignee?.name} />
@@ -418,7 +428,10 @@ export function TaskList({
                       task.assignee ? (
                         <Avatar 
                           className="h-6 w-6 cursor-pointer hover:ring-2 hover:ring-blue-200 hover:ring-offset-1 transition-all" 
-                          onClick={() => onTaskReassign?.(task.id, task.assigneeId)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onTaskReassign?.(task.id, task.assigneeId)
+                          }}
                           title="Click to reassign task"
                         >
                           <AvatarImage src={task.assignee.avatar} alt={task.assignee.name} />
@@ -429,7 +442,10 @@ export function TaskList({
                       ) : (
                         <div 
                           className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer hover:text-blue-600 transition-colors"
-                          onClick={() => onTaskReassign?.(task.id, undefined)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onTaskReassign?.(task.id, undefined)
+                          }}
                           title="Click to assign task"
                         >
                           <User className="h-3 w-3" />
