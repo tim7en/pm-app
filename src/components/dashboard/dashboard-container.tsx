@@ -80,12 +80,12 @@ export function DashboardContainer() {
     projectName: ''
   })
 
-  const onCreateProject = async (projectData: any, tasks?: any[], calendarEvents?: any[]): Promise<boolean> => {
+  const onCreateProject = async (projectData: any, tasks?: any[], calendarEvents?: any[]): Promise<any> => {
     console.log('onCreateProject called with:', projectData)
-    const success = await handleCreateProject(projectData)
-    console.log('Project creation result:', success)
+    const createdProject = await handleCreateProject(projectData)
+    console.log('Project creation result:', createdProject)
     
-    if (success && user) {
+    if (createdProject && user) {
       // Add real-time activity for project creation
       addRealtimeActivity({
         id: `realtime-project-created-${Date.now()}`,
@@ -115,11 +115,12 @@ export function DashboardContainer() {
         console.log('Creating calendar events:', calendarEvents)
         // Implementation for calendar event creation will be added here
       }
+      
+      return createdProject
     } else {
       console.error('Project creation failed')
+      return null
     }
-    
-    return success
   }
 
   const onUpdateProject = async (projectData: any) => {

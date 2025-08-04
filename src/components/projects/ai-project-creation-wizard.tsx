@@ -69,6 +69,7 @@ import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/AuthContext"
 import { useTranslation } from "@/hooks/use-translation"
 import { useToast } from "@/hooks/use-toast"
+import { projectColorGenerator } from "@/lib/project-color-generator"
 
 const projectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
@@ -140,6 +141,7 @@ export function AIProjectCreationWizard({
   const [progress, setProgress] = useState(0)
   const [aiAnalysis, setAiAnalysis] = useState<any>(null)
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set())
+  const [selectedEvents, setSelectedEvents] = useState<Set<string>>(new Set())
   const [taskAssignments, setTaskAssignments] = useState<Record<string, string>>({})
   const [selectedMembers, setSelectedMembers] = useState<string[]>([])
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -167,6 +169,7 @@ export function AIProjectCreationWizard({
       setCalendarEvents([])
       setAiAnalysis(null)
       setSelectedTasks(new Set())
+      setSelectedEvents(new Set())
       setTaskAssignments({})
       setProgress(0)
       form.reset()
@@ -179,6 +182,13 @@ export function AIProjectCreationWizard({
       setSelectedTasks(new Set(generatedTasks.map(task => task.id)))
     }
   }, [generatedTasks])
+
+  // Auto-select all calendar events initially
+  useEffect(() => {
+    if (calendarEvents.length > 0) {
+      setSelectedEvents(new Set(calendarEvents.map(event => event.id)))
+    }
+  }, [calendarEvents])
 
   const stepTitles = {
     [WizardStep.PROJECT_INFO]: t("ai.wizard.projectInfo"),
@@ -499,9 +509,15 @@ export function AIProjectCreationWizard({
       }))
       
       // Generate intelligent calendar events that respect project deadlines
-      const events = generateCalendarEvents(generatedTasksForCalendar, projectData.dueDate)
+      const events = generateCalendarEvents(generatedTasksForCalendar, projectData.dueDate, projectData)
       
-      // Also include scenario-specific events but with proper date alignment
+      // Generate consistent project color for all events
+      const projectColor = projectColorGenerator.generateProjectColor(
+        projectData.name || "Untitled Project", 
+        currentWorkspaceId || "default"
+      )
+      
+      // Also include scenario-specific events but with proper date alignment and consistent colors
       const scenarioEvents = selectedScenario.calendarEvents.map((event, index) => {
         const today = new Date()
         const deadline = projectData.dueDate || addDays(today, 30)
@@ -540,6 +556,7 @@ export function AIProjectCreationWizard({
           duration: duration,
           type: event.type,
           attendees: event.attendees,
+          color: projectColor,
           notificationEnabled: true
         }
       })
@@ -602,6 +619,12 @@ export function AIProjectCreationWizard({
       ]
       
       setGeneratedTasks(fallbackTasks)
+      
+      // Generate fallback calendar events with project color
+      const projectFormData = form.getValues()
+      const fallbackEvents = generateCalendarEvents(fallbackTasks, projectFormData.dueDate, projectFormData)
+      setCalendarEvents(fallbackEvents)
+      
       setAiAnalysis({
         complexity: 'Medium',
         estimatedHours: 64,
@@ -621,9 +644,15 @@ export function AIProjectCreationWizard({
     setIsGenerating(false)
   }
 
-  const generateCalendarEvents = (tasks: GeneratedTask[], projectDueDate?: Date) => {
+  const generateCalendarEvents = (tasks: GeneratedTask[], projectDueDate?: Date, projectFormData?: ProjectFormData) => {
     const events: any[] = []
     const today = new Date()
+    
+    // Generate a consistent project color for calendar events
+    const projectColor = projectColorGenerator.generateProjectColor(
+      projectFormData?.name || "Untitled Project", 
+      currentWorkspaceId || "default"
+    )
     
     // Create project kickoff event
     const kickoffStart = new Date(today)
@@ -639,6 +668,7 @@ export function AIProjectCreationWizard({
       endTime: kickoffEnd,
       duration: 1, // 1 hour
       type: "MEETING",
+      color: projectColor,
       notificationEnabled: true
     })
 
@@ -663,6 +693,7 @@ export function AIProjectCreationWizard({
         endTime: milestoneEnd,
         duration: 0.5, // 30 minutes
         type: "DEADLINE",
+        color: projectColor,
         notificationEnabled: true
       })
     })
@@ -682,6 +713,7 @@ export function AIProjectCreationWizard({
         endTime: reviewEnd,
         duration: 2, // 2 hours
         type: "MEETING",
+        color: projectColor,
         notificationEnabled: true
       })
     }
@@ -699,10 +731,13 @@ export function AIProjectCreationWizard({
       assigneeId: taskAssignments[task.id] && taskAssignments[task.id] !== "unassigned" ? taskAssignments[task.id] : undefined
     }))
 
+    // Filter calendar events to only include selected ones
+    const selectedEventsList = calendarEvents.filter(event => selectedEvents.has(event.id))
+
     setCurrentStep(WizardStep.CREATING)
     
     try {
-      await onSubmit(formData, tasksWithAssignments, calendarEvents)
+      await onSubmit(formData, tasksWithAssignments, selectedEventsList)
       setCurrentStep(WizardStep.SUCCESS)
       toast({
         title: t("ai.success.title"),
@@ -1290,35 +1325,86 @@ export function AIProjectCreationWizard({
               <p className="text-muted-foreground">{t("ai.wizard.calendarDesc")}</p>
             </div>
 
+            <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  checked={selectedEvents.size === calendarEvents.length}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedEvents(new Set(calendarEvents.map(event => event.id)))
+                    } else {
+                      setSelectedEvents(new Set())
+                    }
+                  }}
+                  className="border-2 border-blue-500 data-[state=checked]:bg-blue-500"
+                />
+                <span className="text-base font-semibold text-blue-900">
+                  {t("ai.wizard.selectAll")} ({calendarEvents.length} {t("ai.wizard.events")})
+                </span>
+              </div>
+              
+              <Badge variant="outline" className="bg-white border-blue-300 text-blue-700 font-semibold px-3 py-1">
+                {selectedEvents.size} {t("ai.wizard.selected")}
+              </Badge>
+            </div>
+
             <div className="max-h-80 overflow-y-auto space-y-3 border border-gray-200 rounded-lg p-4 bg-white/50">
-              {calendarEvents.map((event, index) => (
-                <motion.div
-                  key={event.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="border rounded-lg p-4 bg-white hover:bg-gray-50 transition-colors duration-200"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500" />
-                      <div>
-                        <h4 className="font-medium text-gray-900">{event.title}</h4>
-                        <p className="text-sm text-muted-foreground">{event.description}</p>
+              <AnimatePresence>
+                {calendarEvents.map((event, index) => (
+                  <motion.div
+                    key={event.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className={cn(
+                      "border rounded-lg p-4 transition-all duration-200",
+                      selectedEvents.has(event.id) 
+                        ? "border-blue-500 bg-blue-50 shadow-sm" 
+                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                    )}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        checked={selectedEvents.has(event.id)}
+                        onCheckedChange={(checked) => {
+                          const newSelected = new Set(selectedEvents)
+                          if (checked) {
+                            newSelected.add(event.id)
+                          } else {
+                            newSelected.delete(event.id)
+                          }
+                          setSelectedEvents(newSelected)
+                        }}
+                        className="mt-1"
+                      />
+                      
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: event.color || "#6b7280" }}
+                            />
+                            <div>
+                              <h4 className="font-medium text-gray-900">{event.title}</h4>
+                              <p className="text-sm text-muted-foreground">{event.description}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="text-right">
+                            <p className="text-sm font-medium">
+                              {format(new Date(event.startTime || event.date), "MMM dd, yyyy")}
+                            </p>
+                            <Badge variant="outline" className="text-xs">
+                              {event.type}
+                            </Badge>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="text-right">
-                      <p className="text-sm font-medium">
-                        {format(new Date(event.startTime || event.date), "MMM dd, yyyy")}
-                      </p>
-                      <Badge variant="outline" className="text-xs">
-                        {event.type}
-                      </Badge>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
 
             <Card>
@@ -1407,7 +1493,7 @@ export function AIProjectCreationWizard({
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">{t("ai.wizard.calendarEvents")}:</span>
-                    <Badge variant="outline">{calendarEvents.length}</Badge>
+                    <Badge variant="outline">{selectedEvents.size}</Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">{t("ai.wizard.estimatedHours")}:</span>

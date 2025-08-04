@@ -368,15 +368,28 @@ export function ProjectCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onEdit?.(project)}>
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEdit?.(project)
+                }}
+              >
                 {t("projects.editProject")}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onToggleStar?.(project.id)}>
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onToggleStar?.(project.id)
+                }}
+              >
                 {project.isStarred ? t("projects.removeFromFavorites") : t("projects.addToFavorites")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                onClick={() => onDelete?.(project.id)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete?.(project.id)
+                }}
                 className="text-red-600"
               >
                 {t("projects.deleteProject")}

@@ -23,7 +23,7 @@ export const useDashboardActions = () => {
       
       if (!cleanProjectData.workspaceId) {
         console.error('No workspace ID available for project creation')
-        return false
+        return null
       }
       
       const response = await fetch('/api/projects', {
@@ -35,15 +35,15 @@ export const useDashboardActions = () => {
       if (!response.ok) {
         const errorData = await response.json()
         console.error('Project creation failed:', errorData)
-        return false
+        return null
       }
       
       const createdProject = await response.json()
       console.log('Project created successfully:', createdProject)
-      return true
+      return createdProject
     } catch (error) {
       console.error('Error creating project:', error)
-      return false
+      return null
     } finally {
       setIsSubmitting(false)
     }
