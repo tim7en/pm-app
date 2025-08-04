@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "nodemon --exec \"npx tsx server.ts\" --watch server.ts --watch src --ext ts,tsx,js,jsx",
+    "dev:network": "nodemon --exec \"npx tsx server.ts 0.0.0.0 3000\" --watch server.ts --watch src --ext ts,tsx,js,jsx",
     "dev:windows": "nodemon --exec \"npx tsx server.ts\" --watch server.ts --watch src --ext ts,tsx,js,jsx",
     "dev:mac": "nodemon --exec 'npx tsx server.ts' --watch server.ts --watch src --ext ts,tsx,js,jsx",
     "build": "next build",
