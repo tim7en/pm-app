@@ -68,9 +68,14 @@ export function DashboardOverview({
   const getUserRecentTasks = () => {
     if (!currentUserId) return tasks.slice(0, 6)
     
-    const assignedTasks = tasks.filter(task => task.assigneeId === currentUserId)
-    const createdTasks = tasks.filter(task => task.creatorId === currentUserId && task.assigneeId !== currentUserId)
-    const otherTasks = tasks.filter(task => task.assigneeId !== currentUserId && task.creatorId !== currentUserId)
+    // Check both legacy single assignee and new multi-assignee system
+    const isUserAssigned = (task: any) => 
+      (task.assigneeId === currentUserId) ||
+      (task.assignees && task.assignees.some((assignee: any) => assignee.user.id === currentUserId))
+    
+    const assignedTasks = tasks.filter(task => isUserAssigned(task))
+    const createdTasks = tasks.filter(task => task.creatorId === currentUserId && !isUserAssigned(task))
+    const otherTasks = tasks.filter(task => !isUserAssigned(task) && task.creatorId !== currentUserId)
     
     // Combine and limit to 10 for better display in scrollable list
     const recentTasks = [...assignedTasks, ...createdTasks, ...otherTasks].slice(0, 10)

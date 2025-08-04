@@ -23,7 +23,7 @@ import { useTranslation } from "@/hooks/use-translation"
 import { useAPI } from "@/hooks/use-api"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
-import { Check, User, UserX, Loader2 } from "lucide-react"
+import { Check, User, UserX, Loader2, X } from "lucide-react"
 
 interface TaskReassignDialogProps {
   open: boolean
@@ -31,7 +31,8 @@ interface TaskReassignDialogProps {
   taskId: string
   taskTitle: string
   currentAssigneeId?: string
-  onReassignComplete?: (taskId: string, newAssigneeId?: string) => void
+  currentAssigneeIds?: string[] // Support for multiple current assignees
+  onReassignComplete?: (taskId: string, newAssigneeIds?: string[]) => void
 }
 
 interface WorkspaceMember {
@@ -48,6 +49,7 @@ export function TaskReassignDialog({
   taskId,
   taskTitle,
   currentAssigneeId,
+  currentAssigneeIds,
   onReassignComplete
 }: TaskReassignDialogProps) {
   const { t } = useTranslation()
@@ -58,7 +60,9 @@ export function TaskReassignDialog({
   const [members, setMembers] = useState<WorkspaceMember[]>([])
   const [loading, setLoading] = useState(true)
   const [reassigning, setReassigning] = useState(false)
-  const [selectedMemberId, setSelectedMemberId] = useState<string | undefined>(currentAssigneeId)
+  const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<string[]>(
+    currentAssigneeIds || (currentAssigneeId ? [currentAssigneeId] : [])
+  )
 
   useEffect(() => {
     if (open && currentWorkspace?.id) {
@@ -94,39 +98,60 @@ export function TaskReassignDialog({
   const handleReassign = async () => {
     setReassigning(true)
     try {
-      const response = selectedMemberId 
-        ? await apiCall(`/api/tasks/${taskId}/assign`, {
-            method: 'POST',
-            body: JSON.stringify({
-              assigneeId: selectedMemberId
-            })
+      // Use the new assignees endpoint for multi-assignee support
+      if (selectedAssigneeIds.length > 0) {
+        // Replace all assignees with the selected ones
+        const response = await apiCall(`/api/tasks/${taskId}/assignees`, {
+          method: 'POST',
+          body: JSON.stringify({
+            userIds: selectedAssigneeIds
           })
-        : await apiCall(`/api/tasks/${taskId}/assign`, {
-            method: 'DELETE'
-          })
+        })
 
-      if (response.ok) {
-        const result = await response.json()
-        const assigneeName = selectedMemberId 
-          ? members.find(m => m.id === selectedMemberId)?.name || t("tasks.unknown")
-          : t("tasks.unassigned")
-        
-        toast({
-          title: t("tasks.taskReassigned"),
-          description: result.message || (selectedMemberId 
-            ? t("tasks.taskAssignedTo", { name: assigneeName })
-            : t("tasks.taskUnassigned"))
-        })
-        
-        onReassignComplete?.(taskId, selectedMemberId)
-        onOpenChange(false)
+        if (response.ok) {
+          const result = await response.json()
+          const assigneeNames = selectedAssigneeIds
+            .map(id => members.find(m => m.id === id)?.name || t("tasks.unknown"))
+            .join(", ")
+          
+          toast({
+            title: t("tasks.taskReassigned"),
+            description: result.message || t("tasks.taskAssignedTo", { name: assigneeNames })
+          })
+          
+          onReassignComplete?.(taskId, selectedAssigneeIds)
+          onOpenChange(false)
+        } else {
+          const errorData = await response.json().catch(() => ({}))
+          toast({
+            title: t("error.title"),
+            description: errorData.message || t("error.reassigningTask"),
+            variant: "destructive"
+          })
+        }
       } else {
-        const errorData = await response.json().catch(() => ({}))
-        toast({
-          title: t("error.title"),
-          description: errorData.message || t("error.reassigningTask"),
-          variant: "destructive"
+        // Remove all assignees by calling DELETE
+        const response = await apiCall(`/api/tasks/${taskId}/assignees`, {
+          method: 'DELETE'
         })
+
+        if (response.ok) {
+          const result = await response.json()
+          toast({
+            title: t("tasks.taskReassigned"),
+            description: result.message || t("tasks.taskUnassigned")
+          })
+          
+          onReassignComplete?.(taskId, [])
+          onOpenChange(false)
+        } else {
+          const errorData = await response.json().catch(() => ({}))
+          toast({
+            title: t("error.title"),
+            description: errorData.message || t("error.reassigningTask"),
+            variant: "destructive"
+          })
+        }
       }
     } catch (error) {
       console.error('Error reassigning task:', error)
@@ -139,8 +164,30 @@ export function TaskReassignDialog({
     setReassigning(false)
   }
 
-  const currentAssignee = members.find(m => m.id === currentAssigneeId)
-  const selectedMember = members.find(m => m.id === selectedMemberId)
+  const currentAssigneeIdsList = currentAssigneeIds || (currentAssigneeId ? [currentAssigneeId] : [])
+  const currentAssignees = members.filter(m => currentAssigneeIdsList.includes(m.id))
+  const selectedAssignees = members.filter(m => selectedAssigneeIds.includes(m.id))
+  
+  // Helper function to toggle assignee selection
+  const toggleAssignee = (assigneeId: string) => {
+    setSelectedAssigneeIds(prev => 
+      prev.includes(assigneeId) 
+        ? prev.filter(id => id !== assigneeId)
+        : [...prev, assigneeId]
+    )
+  }
+
+  // Helper function to remove assignee
+  const removeAssignee = (assigneeId: string) => {
+    setSelectedAssigneeIds(prev => prev.filter(id => id !== assigneeId))
+  }
+
+  // Helper function to check if assignees have changed
+  const hasAssigneesChanged = () => {
+    const current = new Set(currentAssigneeIdsList)
+    const selected = new Set(selectedAssigneeIds)
+    return current.size !== selected.size || [...current].some(id => !selected.has(id))
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -152,25 +199,50 @@ export function TaskReassignDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {currentAssignee && (
-          <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={currentAssignee.avatar} alt={currentAssignee.name} />
-              <AvatarFallback className="text-xs">
-                {currentAssignee.name ? currentAssignee.name.split(' ').map(n => n[0]).join('') : 'U'}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-blue-900">{t("tasks.currentlyAssignedTo")}</p>
-              <p className="text-sm text-muted-foreground">{currentAssignee.name}</p>
+        {currentAssignees.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">{t("tasks.currentAssignees")}</p>
+            <div className="flex flex-wrap gap-2">
+              {currentAssignees.map((assignee) => (
+                <div key={assignee.id} className="flex items-center gap-2 p-2 bg-muted rounded-lg">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={assignee.avatar} alt={assignee.name} />
+                    <AvatarFallback className="text-xs">
+                      {assignee.name ? assignee.name.split(' ').map(n => n[0]).join('') : 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm">{assignee.name}</span>
+                  <Badge variant="secondary" className="text-xs">{assignee.role}</Badge>
+                </div>
+              ))}
             </div>
-            <Badge variant="secondary">{currentAssignee.role}</Badge>
+          </div>
+        )}
+
+        {/* Selected assignees display */}
+        {selectedAssignees.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium">{t("tasks.newAssignees")}</p>
+            <div className="flex flex-wrap gap-2">
+              {selectedAssignees.map((assignee) => (
+                <Badge key={assignee.id} variant="default" className="flex items-center gap-1">
+                  {assignee.name || assignee.email}
+                  <button
+                    type="button"
+                    onClick={() => removeAssignee(assignee.id)}
+                    className="ml-1 hover:bg-destructive/20 rounded-full w-4 h-4 flex items-center justify-center"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
           </div>
         )}
 
         <div className="space-y-4">
           <div>
-            <p className="text-sm font-medium mb-2">{t("tasks.selectNewAssignee")}</p>
+            <p className="text-sm font-medium mb-2">{t("tasks.selectAssignees")}</p>
             
             {loading ? (
               <div className="flex items-center justify-center py-6">
@@ -182,10 +254,10 @@ export function TaskReassignDialog({
                 <CommandList>
                   <CommandEmpty>{t("tasks.noMembersFound")}</CommandEmpty>
                   <CommandGroup>
-                    {/* Option to unassign */}
+                    {/* Option to unassign all */}
                     <CommandItem
                       value="unassigned"
-                      onSelect={() => setSelectedMemberId(undefined)}
+                      onSelect={() => setSelectedAssigneeIds([])}
                       className="flex items-center gap-2"
                     >
                       <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100">
@@ -193,9 +265,9 @@ export function TaskReassignDialog({
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-medium">{t("tasks.unassigned")}</p>
-                        <p className="text-xs text-muted-foreground">{t("tasks.removeAssignment")}</p>
+                        <p className="text-xs text-muted-foreground">{t("tasks.removeAllAssignees")}</p>
                       </div>
-                      {!selectedMemberId && <Check className="h-4 w-4" />}
+                      {selectedAssigneeIds.length === 0 && <Check className="h-4 w-4" />}
                     </CommandItem>
                     
                     {/* Workspace members */}
@@ -203,7 +275,7 @@ export function TaskReassignDialog({
                       <CommandItem
                         key={member.id}
                         value={`${member.name} ${member.email}`}
-                        onSelect={() => setSelectedMemberId(member.id)}
+                        onSelect={() => toggleAssignee(member.id)}
                         className="flex items-center gap-2"
                       >
                         <Avatar className="h-8 w-8">
@@ -219,7 +291,7 @@ export function TaskReassignDialog({
                         <Badge variant="outline" className="text-xs">
                           {member.role}
                         </Badge>
-                        {selectedMemberId === member.id && <Check className="h-4 w-4" />}
+                        {selectedAssigneeIds.includes(member.id) && <Check className="h-4 w-4" />}
                       </CommandItem>
                     ))}
                   </CommandGroup>
@@ -228,29 +300,23 @@ export function TaskReassignDialog({
             )}
           </div>
 
-          {selectedMember && selectedMember.id !== currentAssigneeId && (
+          {/* Status message */}
+          {hasAssigneesChanged() && (
             <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={selectedMember.avatar} alt={selectedMember.name} />
-                <AvatarFallback className="text-xs">
-                  {selectedMember.name ? selectedMember.name.split(' ').map(n => n[0]).join('') : 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-blue-900">{t("tasks.willBeAssignedTo")}</p>
-                <p className="text-sm text-blue-700">{selectedMember.name}</p>
-              </div>
-            </div>
-          )}
-
-          {!selectedMemberId && currentAssigneeId && (
-            <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-100">
-                <UserX className="h-4 w-4 text-orange-600" />
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100">
+                <User className="h-4 w-4 text-blue-600" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-orange-900">{t("tasks.taskWillBeUnassigned")}</p>
-                <p className="text-sm text-orange-700">{t("tasks.noAssigneeSelected")}</p>
+                <p className="text-sm font-medium text-blue-900">
+                  {selectedAssigneeIds.length === 0 
+                    ? t("tasks.taskWillBeUnassigned") 
+                    : t("tasks.assigneesWillBeUpdated")}
+                </p>
+                <p className="text-sm text-blue-700">
+                  {selectedAssigneeIds.length === 0
+                    ? t("tasks.noAssigneeSelected")
+                    : `${selectedAssigneeIds.length} assignee(s) selected`}
+                </p>
               </div>
             </div>
           )}
@@ -262,7 +328,7 @@ export function TaskReassignDialog({
           </Button>
           <Button 
             onClick={handleReassign} 
-            disabled={reassigning || selectedMemberId === currentAssigneeId}
+            disabled={reassigning || !hasAssigneesChanged()}
           >
             {reassigning && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             {reassigning ? t("tasks.reassigning") : t("tasks.reassign")}

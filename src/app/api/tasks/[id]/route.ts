@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { TaskStatus, Priority } from '@prisma/client'
 import { getAuthSession } from '@/lib/auth'
-import { canUserPerformAction, canUserPerformTaskAction } from '@/lib/roles'
+import { canUserPerformAction, canUserPerformTaskAction, getAccessibleTasks, getUserSystemRole } from '@/lib/roles'
 
 export async function GET(
   request: NextRequest,
@@ -24,11 +24,18 @@ export async function GET(
         assignee: {
           select: { id: true, name: true, avatar: true }
         },
+        assignees: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true, avatar: true }
+            }
+          }
+        },
         creator: {
           select: { id: true, name: true, avatar: true }
         },
         project: {
-          select: { id: true, name: true, color: true, workspaceId: true }
+          select: { id: true, name: true, color: true, workspaceId: true, ownerId: true }
         },
         comments: {
           include: {
@@ -56,23 +63,63 @@ export async function GET(
       )
     }
 
-    // Check if user has access to this task
-    // User can access if they are:
-    // 1. A member of the task's workspace
-    // 2. Assigned to the task
-    // 3. The creator of the task
-    const workspaceMember = await db.workspaceMember.findUnique({
-      where: {
-        userId_workspaceId: {
-          userId: session.user.id,
-          workspaceId: task.project.workspaceId
-        }
-      }
-    })
+    // Check if user has access to this task using the same logic as getAccessibleTasks
+    const systemRole = await getUserSystemRole(session.user.id)
+    let hasAccess = false
 
-    const hasAccess = workspaceMember || 
-                     task.assigneeId === session.user.id || 
-                     task.creatorId === session.user.id
+    // System admins can access all tasks
+    if (systemRole === 'ADMIN' || systemRole === 'OWNER') {
+      hasAccess = true
+    } 
+    // PROJECT_MANAGER and PROJECT_OFFICER can access tasks from projects they have access to
+    else if (systemRole === 'PROJECT_MANAGER' || systemRole === 'PROJECT_OFFICER') {
+      // Check if user is assigned to the task
+      const isAssigned = task.assigneeId === session.user.id || 
+                        task.assignees?.some(a => a.userId === session.user.id)
+      
+      // Check if user created the task
+      const isCreator = task.creatorId === session.user.id
+      
+      // Check if user owns the project
+      const isProjectOwner = task.project?.ownerId === session.user.id
+      
+      // Check if user is a member of the project
+      const isProjectMember = task.project ? await db.projectMember.findUnique({
+        where: {
+          userId_projectId: {
+            userId: session.user.id,
+            projectId: task.project.id
+          }
+        }
+      }) : null
+      
+      // Check if user is workspace owner/admin
+      const workspaceMember = await db.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: {
+            userId: session.user.id,
+            workspaceId: task.project.workspaceId
+          }
+        }
+      })
+      const isWorkspaceOwnerOrAdmin = workspaceMember && (workspaceMember.role === 'OWNER' || workspaceMember.role === 'ADMIN')
+      
+      hasAccess = isAssigned || isCreator || isProjectOwner || isProjectMember || isWorkspaceOwnerOrAdmin
+    }
+    // For invited members (MEMBER, GUEST), only allow access to tasks they are directly involved with
+    else {
+      // Check if user is assigned to the task
+      const isAssigned = task.assigneeId === session.user.id || 
+                        task.assignees?.some(a => a.userId === session.user.id)
+      
+      // Check if user created the task
+      const isCreator = task.creatorId === session.user.id
+      
+      // Check if user owns the project (in case they own a project but have MEMBER role)
+      const isProjectOwner = task.project?.ownerId === session.user.id
+      
+      hasAccess = isAssigned || isCreator || isProjectOwner
+    }
 
     if (!hasAccess) {
       return NextResponse.json(

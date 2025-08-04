@@ -37,15 +37,18 @@ export function TaskManagement({
   if (!user) return null
 
   // Separate tasks into assigned and created categories
-  // Fix: Ensure we're checking the assigneeId correctly
+  // Fix: Ensure we're checking the assigneeId correctly for both single and multi-assignee
   const assignedTasks = tasks.filter(task => {
-    // Only include tasks that are specifically assigned to the current user
-    return task.assigneeId && task.assigneeId === user.id
+    // Check both legacy single assignee and new multi-assignee system
+    return (task.assigneeId && task.assigneeId === user.id) ||
+           (task.assignees && task.assignees.some((assignee: any) => assignee.user.id === user.id))
   })
   
   const createdTasks = tasks.filter(task => {
-    // Only include tasks created by the current user that are assigned to someone else
-    return task.creatorId === user.id && task.assigneeId !== user.id
+    // Only include tasks created by the current user that are not assigned to them
+    const isAssignedToUser = (task.assigneeId && task.assigneeId === user.id) ||
+                            (task.assignees && task.assignees.some((assignee: any) => assignee.user.id === user.id))
+    return task.creatorId === user.id && !isAssignedToUser
   })
   
   // Calculate stats for assigned tasks

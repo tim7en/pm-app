@@ -42,6 +42,13 @@ interface TaskCardProps {
       name: string
       avatar?: string
     }
+    assignees?: Array<{
+      user: {
+        id: string
+        name: string
+        avatar?: string
+      }
+    }>
     creator: {
       id: string
       name: string
@@ -229,12 +236,15 @@ export function TaskCard({ task, onStatusChange, onEdit, onDelete, currentUserId
           </span>
           
           {/* Assignment badge */}
-          {currentUserId && task.assignee?.id === currentUserId && (
+          {currentUserId && (
+            // Check both legacy single assignee and new multi-assignee system
+            (task.assignee?.id === currentUserId || 
+             task.assignees?.some(assignee => assignee.user.id === currentUserId)) && (
             <Badge variant="outline" className="text-xs text-blue-600 border-blue-200">
               <UserCheck className="h-3 w-3 mr-1" />
               Assigned to you
             </Badge>
-          )}
+          ))}
         </div>
 
         {/* Tags */}
@@ -304,27 +314,65 @@ export function TaskCard({ task, onStatusChange, onEdit, onDelete, currentUserId
               </div>
             )}
 
-            {/* Assignee */}
-            {task.assignee ? (
-              <Avatar className="h-5 w-5">
-                <AvatarImage 
-                  src={task.assignee.avatar || getDefaultAvatarByIndex(task.assignee.id.charCodeAt(0)).url} 
-                  alt={task.assignee.name} 
-                />
-                <AvatarFallback className={`text-xs ${
-                  task.assignee.avatar 
-                    ? '' 
-                    : generateInitialsAvatar(task.assignee.name).backgroundColor
-                }`}>
-                  {generateInitialsAvatar(task.assignee.name).initials}
-                </AvatarFallback>
-              </Avatar>
-            ) : (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <User className="h-3 w-3" />
-                <span>Unassigned</span>
-              </div>
-            )}
+            {/* Assignees */}
+            {(() => {
+              // Check if we have multi-assignees or single assignee
+              const hasMultiAssignees = task.assignees && task.assignees.length > 0
+              const hasSingleAssignee = task.assignee && !hasMultiAssignees
+              
+              if (hasMultiAssignees) {
+                // Show multiple assignee avatars
+                return (
+                  <div className="flex items-center -space-x-1">
+                    {task.assignees!.slice(0, 3).map((assigneeData, index) => (
+                      <Avatar key={assigneeData.user.id} className="h-5 w-5 border-2 border-white">
+                        <AvatarImage 
+                          src={assigneeData.user.avatar || getDefaultAvatarByIndex(assigneeData.user.id.charCodeAt(0)).url} 
+                          alt={assigneeData.user.name} 
+                        />
+                        <AvatarFallback className={`text-xs ${
+                          assigneeData.user.avatar 
+                            ? '' 
+                            : generateInitialsAvatar(assigneeData.user.name).backgroundColor
+                        }`}>
+                          {generateInitialsAvatar(assigneeData.user.name).initials}
+                        </AvatarFallback>
+                      </Avatar>
+                    ))}
+                    {task.assignees!.length > 3 && (
+                      <div className="flex items-center justify-center h-5 w-5 bg-gray-200 text-gray-600 text-xs rounded-full border-2 border-white">
+                        +{task.assignees!.length - 3}
+                      </div>
+                    )}
+                  </div>
+                )
+              } else if (hasSingleAssignee) {
+                // Show single assignee avatar (legacy support)
+                return (
+                  <Avatar className="h-5 w-5">
+                    <AvatarImage 
+                      src={task.assignee!.avatar || getDefaultAvatarByIndex(task.assignee!.id.charCodeAt(0)).url} 
+                      alt={task.assignee!.name} 
+                    />
+                    <AvatarFallback className={`text-xs ${
+                      task.assignee!.avatar 
+                        ? '' 
+                        : generateInitialsAvatar(task.assignee!.name).backgroundColor
+                    }`}>
+                      {generateInitialsAvatar(task.assignee!.name).initials}
+                    </AvatarFallback>
+                  </Avatar>
+                )
+              } else {
+                // Show unassigned state
+                return (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <User className="h-3 w-3" />
+                    <span>Unassigned</span>
+                  </div>
+                )
+              }
+            })()}
           </div>
         </div>
       </CardContent>

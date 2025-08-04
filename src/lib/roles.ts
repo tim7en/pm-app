@@ -104,39 +104,80 @@ export async function getAccessibleProjects(userId: string) {
       orderBy: { updatedAt: 'desc' }
     })
   }
-  
-  // Get user's workspace memberships
-  const userWorkspaces = await db.workspaceMember.findMany({
-    where: { userId },
-    select: { workspaceId: true }
-  })
-  
-  const workspaceIds = userWorkspaces.map(w => w.workspaceId)
-  
-  // For invited members, only show projects they are explicitly part of
-  return db.project.findMany({
-    where: {
-      OR: [
-        // Projects they own
-        { ownerId: userId },
-        // Projects they are explicitly members of
-        { members: { some: { userId } } },
-        // For workspace owners/admins, show all workspace projects
-        { 
-          AND: [
-            { workspaceId: { in: workspaceIds } },
-            {
-              workspace: {
-                members: {
-                  some: {
-                    userId,
-                    role: { in: ['OWNER', 'ADMIN'] }
+
+  // For PROJECT_MANAGER and PROJECT_OFFICER roles, show projects they have access to
+  if (systemRole === 'PROJECT_MANAGER' || systemRole === 'PROJECT_OFFICER') {
+    // Get user's workspace memberships
+    const userWorkspaces = await db.workspaceMember.findMany({
+      where: { userId },
+      select: { workspaceId: true }
+    })
+    
+    const workspaceIds = userWorkspaces.map(w => w.workspaceId)
+    
+    return db.project.findMany({
+      where: {
+        OR: [
+          // Projects they own
+          { ownerId: userId },
+          // Projects they are explicitly members of
+          { members: { some: { userId } } },
+          // For workspace owners/admins, show all workspace projects
+          { 
+            AND: [
+              { workspaceId: { in: workspaceIds } },
+              {
+                workspace: {
+                  members: {
+                    some: {
+                      userId,
+                      role: { in: ['OWNER', 'ADMIN'] }
+                    }
                   }
                 }
               }
-            }
-          ]
+            ]
+          }
+        ]
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatar: true
+          }
+        },
+        workspace: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        _count: {
+          select: {
+            tasks: true,
+            members: true
+          }
         }
+      },
+      orderBy: { updatedAt: 'desc' }
+    })
+  }
+  
+  // For invited members (MEMBER, GUEST), only show projects where they have assigned tasks or own projects
+  return db.project.findMany({
+    where: {
+      OR: [
+        // Projects they own (in case they own a project but have MEMBER role)
+        { ownerId: userId },
+        // Projects that have tasks assigned to them (legacy single assignee)
+        { tasks: { some: { assigneeId: userId } } },
+        // Projects that have tasks assigned to them (new multi-assignee)
+        { tasks: { some: { assignees: { some: { userId } } } } },
+        // Projects that have tasks created by them
+        { tasks: { some: { creatorId: userId } } }
       ]
     },
     include: {
@@ -274,9 +315,50 @@ export async function getAccessibleTasks(userId: string, projectId?: string) {
       completedSubtaskCount: task.subtasks.filter(st => st.isCompleted).length
     })))
   }
-  
-  // For invited members, only show tasks they are assigned to or created, 
-  // and tasks from projects they are explicitly part of
+
+  // For PROJECT_MANAGER and PROJECT_OFFICER roles, show tasks from projects they have access to
+  if (systemRole === 'PROJECT_MANAGER' || systemRole === 'PROJECT_OFFICER') {
+    return db.task.findMany({
+      where: {
+        ...baseWhere,
+        OR: [
+          // Tasks assigned to the user (legacy single assignee)
+          { assigneeId: userId },
+          // Tasks assigned to the user (new multi-assignee)
+          { assignees: { some: { userId } } },
+          // Tasks created by the user
+          { creatorId: userId },
+          // Tasks from projects they own
+          { project: { ownerId: userId } },
+          // Tasks from projects they are explicitly members of
+          { project: { members: { some: { userId } } } },
+          // Tasks from projects in workspaces where they are owners/admins
+          {
+            project: {
+              workspace: {
+                members: {
+                  some: {
+                    userId,
+                    role: { in: ['OWNER', 'ADMIN'] }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      include: includeOptions,
+      orderBy: { updatedAt: 'desc' }
+    }).then(tasks => tasks.map(task => ({
+      ...task,
+      commentCount: task._count.comments,
+      attachmentCount: 0, // Add when attachments are implemented
+      subtaskCount: task._count.subtasks,
+      completedSubtaskCount: task.subtasks.filter(st => st.isCompleted).length
+    })))
+  }
+
+  // For invited members (MEMBER, GUEST), only show tasks they are directly involved with
   return db.task.findMany({
     where: {
       ...baseWhere,
@@ -287,23 +369,8 @@ export async function getAccessibleTasks(userId: string, projectId?: string) {
         { assignees: { some: { userId } } },
         // Tasks created by the user
         { creatorId: userId },
-        // Tasks from projects they own
-        { project: { ownerId: userId } },
-        // Tasks from projects they are explicitly members of
-        { project: { members: { some: { userId } } } },
-        // Tasks from projects in workspaces where they are owners/admins
-        {
-          project: {
-            workspace: {
-              members: {
-                some: {
-                  userId,
-                  role: { in: ['OWNER', 'ADMIN'] }
-                }
-              }
-            }
-          }
-        }
+        // Tasks from projects they own (in case they own a project but have MEMBER role)
+        { project: { ownerId: userId } }
       ]
     },
     include: includeOptions,

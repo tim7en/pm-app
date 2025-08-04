@@ -6,10 +6,11 @@ import { getAuthSession } from '@/lib/auth'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getAuthSession(request)
+    const { id } = await params
     
     if (!session) {
       return NextResponse.json(
@@ -18,7 +19,7 @@ export async function POST(
       )
     }
 
-    const taskId = params.id
+    const taskId = id
     
     // Check if task exists and user has access
     const task = await db.task.findFirst({
@@ -112,10 +113,11 @@ export async function POST(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getAuthSession(request)
+    const { id } = await params
     
     if (!session) {
       return NextResponse.json(
@@ -124,7 +126,7 @@ export async function GET(
       )
     }
 
-    const taskId = params.id
+    const taskId = id
 
     // Get task attachments
     const attachments = await db.taskAttachment.findMany({

@@ -52,6 +52,13 @@ interface TaskListProps {
       name: string
       avatar?: string
     }
+    assignees?: Array<{
+      user: {
+        id: string
+        name: string
+        avatar?: string
+      }
+    }>
     creator: {
       id: string
       name: string
@@ -243,7 +250,11 @@ export function TaskList({
         <CardContent>
           <div className="space-y-2">
             {sortedTasks.map((task) => {
-              const isAssignedToMe = currentUserId && task.assigneeId === currentUserId
+              // Check both legacy single assignee and new multi-assignee system
+              const isAssignedToMe = currentUserId && (
+                task.assigneeId === currentUserId || 
+                task.assignees?.some(assignee => assignee.user.id === currentUserId)
+              )
               const isCreatedByMe = currentUserId && task.creatorId === currentUserId
               
               return (
@@ -291,13 +302,19 @@ export function TaskList({
                       </span>
                       
                       {/* Task type indicator - dynamically check assignment */}
-                      {currentUserId && task.assigneeId === currentUserId && (
+                      {currentUserId && (
+                        task.assigneeId === currentUserId || 
+                        task.assignees?.some(assignee => assignee.user.id === currentUserId)
+                      ) && (
                         <Badge variant="outline" className="text-xs text-blue-600 border-blue-200">
                           <UserCheck className="h-3 w-3 mr-1" />
                           {t("tasks.assignedToYou")}
                         </Badge>
                       )}
-                      {currentUserId && task.creatorId === currentUserId && task.assigneeId !== currentUserId && (
+                      {currentUserId && task.creatorId === currentUserId && (
+                        task.assigneeId !== currentUserId && 
+                        !task.assignees?.some(assignee => assignee.user.id === currentUserId)
+                      ) && (
                         <Badge variant="outline" className="text-xs text-purple-600 border-purple-200">
                           <User className="h-3 w-3 mr-1" />
                           {t("tasks.createdByYou")}
@@ -357,23 +374,70 @@ export function TaskList({
                       )}
                       
                       {/* Show creator/assignee info */}
-                      {taskType === 'created' && task.assignee && (
+                      {taskType === 'created' && (task.assignee || (task.assignees && task.assignees.length > 0)) && (
                         <div className="flex items-center gap-1">
                           <span className="text-xs">{t("tasks.assignedTo")}</span>
-                          <Avatar 
-                            className="h-4 w-4 cursor-pointer hover:ring-2 hover:ring-blue-200 hover:ring-offset-1 transition-all" 
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onTaskReassign?.(task.id, task.assigneeId)
-                            }}
-                            title="Click to reassign task"
-                          >
-                            <AvatarImage src={task.assignee.avatar} alt={task.assignee.name} />
-                            <AvatarFallback className="text-xs">
-                              {task.assignee.name ? task.assignee.name.split(' ').map(n => n[0]).join('') : 'U'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-xs">{task.assignee.name}</span>
+                          {(() => {
+                            // Check if we have multi-assignees or single assignee
+                            const hasMultiAssignees = task.assignees && task.assignees.length > 0
+                            const hasSingleAssignee = task.assignee && !hasMultiAssignees
+                            
+                            if (hasMultiAssignees) {
+                              // Show multiple assignee avatars
+                              return (
+                                <div className="flex items-center gap-1">
+                                  <div className="flex items-center -space-x-1">
+                                    {task.assignees!.slice(0, 2).map((assigneeData) => (
+                                      <Avatar 
+                                        key={assigneeData.user.id}
+                                        className="h-4 w-4 border border-white cursor-pointer hover:ring-2 hover:ring-blue-200 hover:ring-offset-1 transition-all" 
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          onTaskReassign?.(task.id, task.assigneeId)
+                                        }}
+                                        title="Click to reassign task"
+                                      >
+                                        <AvatarImage src={assigneeData.user.avatar} alt={assigneeData.user.name} />
+                                        <AvatarFallback className="text-xs">
+                                          {assigneeData.user.name ? assigneeData.user.name.split(' ').map(n => n[0]).join('') : 'U'}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                    ))}
+                                    {task.assignees!.length > 2 && (
+                                      <div className="flex items-center justify-center h-4 w-4 bg-gray-200 text-gray-600 text-xs rounded-full border border-white">
+                                        +{task.assignees!.length - 2}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="text-xs">
+                                    {task.assignees!.length === 1 
+                                      ? task.assignees![0].user.name 
+                                      : `${task.assignees!.length} members`}
+                                  </span>
+                                </div>
+                              )
+                            } else if (hasSingleAssignee) {
+                              // Show single assignee (legacy support)
+                              return (
+                                <>
+                                  <Avatar 
+                                    className="h-4 w-4 cursor-pointer hover:ring-2 hover:ring-blue-200 hover:ring-offset-1 transition-all" 
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      onTaskReassign?.(task.id, task.assigneeId)
+                                    }}
+                                    title="Click to reassign task"
+                                  >
+                                    <AvatarImage src={task.assignee!.avatar} alt={task.assignee!.name} />
+                                    <AvatarFallback className="text-xs">
+                                      {task.assignee!.name ? task.assignee!.name.split(' ').map(n => n[0]).join('') : 'U'}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="text-xs">{task.assignee!.name}</span>
+                                </>
+                              )
+                            }
+                          })()}
                         </div>
                       )}
                       
@@ -409,49 +473,133 @@ export function TaskList({
                     )}
                     
                     {taskType === 'assigned' ? (
-                      // For assigned tasks, show the current user as assignee (clickable for reassignment)
-                      <Avatar 
-                        className="h-6 w-6 cursor-pointer hover:ring-2 hover:ring-blue-200 hover:ring-offset-1 transition-all" 
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onTaskReassign?.(task.id, task.assigneeId)
-                        }}
-                        title="Click to reassign task"
-                      >
-                        <AvatarImage src={task.assignee?.avatar} alt={task.assignee?.name} />
-                        <AvatarFallback className="text-xs bg-blue-100 text-blue-600">
-                          {task.assignee?.name ? task.assignee.name.split(' ').map(n => n[0]).join('') : 'ME'}
-                        </AvatarFallback>
-                      </Avatar>
+                      // For assigned tasks, show multi-assignee or single assignee (clickable for reassignment)
+                      (() => {
+                        const hasMultiAssignees = task.assignees && task.assignees.length > 0
+                        const hasSingleAssignee = task.assignee && !hasMultiAssignees
+                        
+                        if (hasMultiAssignees) {
+                          return (
+                            <div className="flex items-center -space-x-1">
+                              {task.assignees!.slice(0, 2).map((assigneeData) => (
+                                <Avatar 
+                                  key={assigneeData.user.id}
+                                  className="h-6 w-6 border-2 border-white cursor-pointer hover:ring-2 hover:ring-blue-200 hover:ring-offset-1 transition-all" 
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    onTaskReassign?.(task.id, task.assigneeId)
+                                  }}
+                                  title="Click to reassign task"
+                                >
+                                  <AvatarImage src={assigneeData.user.avatar} alt={assigneeData.user.name} />
+                                  <AvatarFallback className="text-xs bg-blue-100 text-blue-600">
+                                    {assigneeData.user.name ? assigneeData.user.name.split(' ').map(n => n[0]).join('') : 'U'}
+                                  </AvatarFallback>
+                                </Avatar>
+                              ))}
+                              {task.assignees!.length > 2 && (
+                                <div className="flex items-center justify-center h-6 w-6 bg-blue-100 text-blue-600 text-xs rounded-full border-2 border-white">
+                                  +{task.assignees!.length - 2}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        } else if (hasSingleAssignee) {
+                          return (
+                            <Avatar 
+                              className="h-6 w-6 cursor-pointer hover:ring-2 hover:ring-blue-200 hover:ring-offset-1 transition-all" 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onTaskReassign?.(task.id, task.assigneeId)
+                              }}
+                              title="Click to reassign task"
+                            >
+                              <AvatarImage src={task.assignee!.avatar} alt={task.assignee!.name} />
+                              <AvatarFallback className="text-xs bg-blue-100 text-blue-600">
+                                {task.assignee!.name ? task.assignee!.name.split(' ').map(n => n[0]).join('') : 'ME'}
+                              </AvatarFallback>
+                            </Avatar>
+                          )
+                        } else {
+                          return (
+                            <div 
+                              className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer hover:text-blue-600 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onTaskReassign?.(task.id, undefined)
+                              }}
+                              title="Click to assign task"
+                            >
+                              <User className="h-3 w-3" />
+                              <span>{t("tasks.unassigned")}</span>
+                            </div>
+                          )
+                        }
+                      })()
                     ) : (
                       // For created tasks, show the assignee or unassigned (clickable for assignment/reassignment)
-                      task.assignee ? (
-                        <Avatar 
-                          className="h-6 w-6 cursor-pointer hover:ring-2 hover:ring-blue-200 hover:ring-offset-1 transition-all" 
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onTaskReassign?.(task.id, task.assigneeId)
-                          }}
-                          title="Click to reassign task"
-                        >
-                          <AvatarImage src={task.assignee.avatar} alt={task.assignee.name} />
-                          <AvatarFallback className="text-xs">
-                            {task.assignee.name ? task.assignee.name.split(' ').map(n => n[0]).join('') : 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                      ) : (
-                        <div 
-                          className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer hover:text-blue-600 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onTaskReassign?.(task.id, undefined)
-                          }}
-                          title="Click to assign task"
-                        >
-                          <User className="h-3 w-3" />
-                          <span>{t("tasks.unassigned")}</span>
-                        </div>
-                      )
+                      (() => {
+                        const hasMultiAssignees = task.assignees && task.assignees.length > 0
+                        const hasSingleAssignee = task.assignee && !hasMultiAssignees
+                        
+                        if (hasMultiAssignees) {
+                          return (
+                            <div className="flex items-center -space-x-1">
+                              {task.assignees!.slice(0, 2).map((assigneeData) => (
+                                <Avatar 
+                                  key={assigneeData.user.id}
+                                  className="h-6 w-6 border-2 border-white cursor-pointer hover:ring-2 hover:ring-blue-200 hover:ring-offset-1 transition-all" 
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    onTaskReassign?.(task.id, task.assigneeId)
+                                  }}
+                                  title="Click to reassign task"
+                                >
+                                  <AvatarImage src={assigneeData.user.avatar} alt={assigneeData.user.name} />
+                                  <AvatarFallback className="text-xs">
+                                    {assigneeData.user.name ? assigneeData.user.name.split(' ').map(n => n[0]).join('') : 'U'}
+                                  </AvatarFallback>
+                                </Avatar>
+                              ))}
+                              {task.assignees!.length > 2 && (
+                                <div className="flex items-center justify-center h-6 w-6 bg-gray-200 text-gray-600 text-xs rounded-full border-2 border-white">
+                                  +{task.assignees!.length - 2}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        } else if (hasSingleAssignee) {
+                          return (
+                            <Avatar 
+                              className="h-6 w-6 cursor-pointer hover:ring-2 hover:ring-blue-200 hover:ring-offset-1 transition-all" 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onTaskReassign?.(task.id, task.assigneeId)
+                              }}
+                              title="Click to reassign task"
+                            >
+                              <AvatarImage src={task.assignee!.avatar} alt={task.assignee!.name} />
+                              <AvatarFallback className="text-xs">
+                                {task.assignee!.name ? task.assignee!.name.split(' ').map(n => n[0]).join('') : 'U'}
+                              </AvatarFallback>
+                            </Avatar>
+                          )
+                        } else {
+                          return (
+                            <div 
+                              className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer hover:text-blue-600 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onTaskReassign?.(task.id, undefined)
+                              }}
+                              title="Click to assign task"
+                            >
+                              <User className="h-3 w-3" />
+                              <span>{t("tasks.unassigned")}</span>
+                            </div>
+                          )
+                        }
+                      })()
                     )}
                     
                     <DropdownMenu>
