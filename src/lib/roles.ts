@@ -71,7 +71,7 @@ export async function getUserProjectRole(userId: string, projectId: string): Pro
 }
 
 /**
- * Get all projects accessible to a user
+ * Get all projects accessible to a user (filtered for invited members)
  */
 export async function getAccessibleProjects(userId: string) {
   const systemRole = await getUserSystemRole(userId)
@@ -105,7 +105,7 @@ export async function getAccessibleProjects(userId: string) {
     })
   }
   
-  // Get user's accessible workspaces
+  // Get user's workspace memberships
   const userWorkspaces = await db.workspaceMember.findMany({
     where: { userId },
     select: { workspaceId: true }
@@ -113,13 +113,30 @@ export async function getAccessibleProjects(userId: string) {
   
   const workspaceIds = userWorkspaces.map(w => w.workspaceId)
   
-  // Regular users can see projects they own, are members of, or are in their accessible workspaces
+  // For invited members, only show projects they are explicitly part of
   return db.project.findMany({
     where: {
       OR: [
+        // Projects they own
         { ownerId: userId },
+        // Projects they are explicitly members of
         { members: { some: { userId } } },
-        { workspaceId: { in: workspaceIds } }
+        // For workspace owners/admins, show all workspace projects
+        { 
+          AND: [
+            { workspaceId: { in: workspaceIds } },
+            {
+              workspace: {
+                members: {
+                  some: {
+                    userId,
+                    role: { in: ['OWNER', 'ADMIN'] }
+                  }
+                }
+              }
+            }
+          ]
+        }
       ]
     },
     include: {
@@ -149,7 +166,7 @@ export async function getAccessibleProjects(userId: string) {
 }
 
 /**
- * Get all tasks accessible to a user
+ * Get all tasks accessible to a user (filtered for invited members)
  */
 export async function getAccessibleTasks(userId: string, projectId?: string) {
   const systemRole = await getUserSystemRole(userId)
@@ -169,6 +186,25 @@ export async function getAccessibleTasks(userId: string, projectId?: string) {
         name: true,
         email: true,
         avatar: true
+      }
+    },
+    assignees: {
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatar: true
+          }
+        },
+        assignedByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
       }
     },
     creator: {
@@ -239,22 +275,33 @@ export async function getAccessibleTasks(userId: string, projectId?: string) {
     })))
   }
   
-  // Regular users can see tasks from projects they own, are members of, or are assigned to
+  // For invited members, only show tasks they are assigned to or created, 
+  // and tasks from projects they are explicitly part of
   return db.task.findMany({
     where: {
       ...baseWhere,
       OR: [
-        // Tasks assigned to the user
+        // Tasks assigned to the user (legacy single assignee)
         { assigneeId: userId },
+        // Tasks assigned to the user (new multi-assignee)
+        { assignees: { some: { userId } } },
         // Tasks created by the user
         { creatorId: userId },
-        // Tasks from projects they own or are members of
+        // Tasks from projects they own
+        { project: { ownerId: userId } },
+        // Tasks from projects they are explicitly members of
+        { project: { members: { some: { userId } } } },
+        // Tasks from projects in workspaces where they are owners/admins
         {
           project: {
-            OR: [
-              { ownerId: userId },
-              { members: { some: { userId } } }
-            ]
+            workspace: {
+              members: {
+                some: {
+                  userId,
+                  role: { in: ['OWNER', 'ADMIN'] }
+                }
+              }
+            }
           }
         }
       ]
@@ -284,6 +331,9 @@ export async function canUserPerformTaskAction(
     include: {
       project: {
         select: { id: true, ownerId: true, workspaceId: true }
+      },
+      assignees: {
+        select: { userId: true }
       }
     }
   })
@@ -297,13 +347,15 @@ export async function canUserPerformTaskAction(
     return true
   }
 
-  // If user is assigned to the task, they can edit it (but not delete it unless they created it)
-  if (task.assigneeId === userId) {
-    return action === 'canEditTask'
+  // If user is assigned to the task (legacy or new), they can edit it (but not delete it unless they created it)
+  const isAssigned = task.assigneeId === userId || task.assignees.some(a => a.userId === userId)
+  if (action === 'canEditTask' && isAssigned) {
+    return true
   }
 
-  // Otherwise, use project-level permissions
-  return canUserPerformAction(userId, task.project.id, action)
+  // Check project-level permissions
+  const projectPermission = await canUserPerformAction(userId, task.project.id, action)
+  return projectPermission
 }
 
 /**

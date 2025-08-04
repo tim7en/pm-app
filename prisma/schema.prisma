@@ -52,6 +52,8 @@ model User {
   projectMembers        ProjectMember[]
   workspaceMembers      WorkspaceMember[]
   assignedTasks         Task[]                        @relation("TaskAssignee")
+  taskAssignees         TaskAssignee[]                @relation("TaskMultiAssignee")
+  assignedTasksBy       TaskAssignee[]                @relation("TaskAssignedBy")
   createdTasks          Task[]                        @relation("TaskCreator")
   verifiedTasks         Task[]                        @relation("TaskVerifier")
   comments              Comment[]
@@ -175,7 +177,7 @@ model Task {
   status             TaskStatus             @default(TODO)
   priority           Priority               @default(MEDIUM)
   dueDate            DateTime?
-  assigneeId         String?
+  assigneeId         String?                // Deprecated: kept for backwards compatibility
   creatorId          String
   projectId          String
   sectionId          String?
@@ -192,6 +194,7 @@ model Task {
 
   // Relations
   assignee     User?            @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  assignees    TaskAssignee[]   // New: support for multiple assignees
   creator      User             @relation("TaskCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   verifiedBy   User?            @relation("TaskVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
   project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -204,6 +207,22 @@ model Task {
   attachments  TaskAttachment[]
 
   @@map("tasks")
+}
+
+model TaskAssignee {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  assignedAt DateTime @default(now())
+  assignedBy String?
+
+  // Relations
+  task       Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user       User  @relation("TaskMultiAssignee", fields: [userId], references: [id], onDelete: Cascade)
+  assignedByUser User? @relation("TaskAssignedBy", fields: [assignedBy], references: [id], onDelete: SetNull)
+
+  @@unique([taskId, userId])
+  @@map("task_assignees")
 }
 
 model SubTask {

@@ -49,7 +49,8 @@ const taskSchema = z.object({
   title: z.string().min(1, "Task title is required"),
   description: z.string().optional(),
   projectId: z.string().min(1, "Project is required"),
-  assigneeId: z.string().optional(),
+  assigneeId: z.string().optional(), // Legacy field for backwards compatibility
+  assigneeIds: z.array(z.string()).optional(), // New field for multiple assignees
   priority: z.nativeEnum(Priority),
   dueDate: z.date().optional(),
   status: z.nativeEnum(TaskStatus),
@@ -83,6 +84,15 @@ interface TaskDialogProps {
     description?: string
     projectId: string
     assigneeId?: string
+    assigneeIds?: string[] // New field for multiple assignees
+    assignees?: Array<{ // Assignee details for display
+      user: {
+        id: string
+        name: string
+        email: string
+        avatar?: string
+      }
+    }>
     priority: Priority
     dueDate?: Date
     status: TaskStatus
@@ -148,11 +158,17 @@ export function TaskDialog({
   // Update form values when task prop changes
   useEffect(() => {
     if (task) {
+      // Extract assignee IDs from task
+      const assigneeIds = task.assignees?.map(a => a.user.id) || 
+                         (task.assigneeId ? [task.assigneeId] : []) ||
+                         (task.assigneeIds || [])
+      
       form.reset({
         title: task.title || "",
         description: task.description || "",
         projectId: task.projectId || "",
         assigneeId: task.assigneeId || "unassigned",
+        assigneeIds: assigneeIds,
         priority: task.priority || Priority.MEDIUM,
         dueDate: task.dueDate || undefined,
         status: task.status || TaskStatus.TODO,
@@ -166,6 +182,7 @@ export function TaskDialog({
         description: "",
         projectId: projects[0]?.id || "",
         assigneeId: "unassigned",
+        assigneeIds: [],
         priority: Priority.MEDIUM,
         dueDate: undefined,
         status: initialStatus || TaskStatus.TODO,
@@ -252,11 +269,17 @@ export function TaskDialog({
       return
     }
 
-    // Convert "unassigned" to undefined for the API
+    // Process assignee data
+    const assigneeIds = data.assigneeIds || []
+    const firstAssigneeId = assigneeIds.length > 0 ? assigneeIds[0] : undefined
+    
+    // Convert "unassigned" to undefined for the API and prepare assignee data
     const processedData = {
       ...data,
-      assigneeId: data.assigneeId === "unassigned" ? undefined : data.assigneeId
+      assigneeId: data.assigneeId === "unassigned" ? firstAssigneeId : data.assigneeId,
+      assigneeIds: assigneeIds.length > 0 ? assigneeIds : undefined
     }
+    
     await onSubmit(processedData)
     form.reset()
     onOpenChange(false)
@@ -371,44 +394,99 @@ export function TaskDialog({
 
               <FormField
                 control={form.control}
-                name="assigneeId"
+                name="assigneeIds"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("tasks.assignee")}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={loadingMembers ? t("common.loading") : t("tasks.selectAssignee")} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="unassigned">{t("tasks.unassigned")}</SelectItem>
-                        {form.watch("projectId") ? (
-                          availableAssignees.length > 0 ? (
-                            availableAssignees.map((member) => (
-                              <SelectItem key={member.id} value={member.id}>
-                                <div className="flex items-center gap-2">
-                                  <span>{member.name || member.email}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    ({member.role})
-                                  </span>
-                                </div>
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value="__no_members__" disabled>
-                              {userRole === 'MEMBER' && !selectedProjectOwnership 
-                                ? "You can only assign tasks to yourself" 
-                                : "No members available"}
-                            </SelectItem>
-                          )
-                        ) : (
-                          <SelectItem value="__select_project__" disabled>
-                            Select a project first
+                    <FormLabel>{t("tasks.assignees")}</FormLabel>
+                    <div className="space-y-2">
+                      {/* Display selected assignees */}
+                      {field.value && field.value.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {field.value.map((assigneeId) => {
+                            const assignee = availableAssignees.find(m => m.id === assigneeId)
+                            if (!assignee) return null
+                            
+                            return (
+                              <Badge key={assigneeId} variant="secondary" className="flex items-center gap-1">
+                                {assignee.name || assignee.email}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newValue = field.value?.filter(id => id !== assigneeId) || []
+                                    field.onChange(newValue)
+                                  }}
+                                  className="ml-1 hover:bg-destructive/20 rounded-full w-4 h-4 flex items-center justify-center"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </Badge>
+                            )
+                          })}
+                        </div>
+                      )}
+                      
+                      {/* Assignee selection */}
+                      <Select 
+                        onValueChange={(assigneeId) => {
+                          if (assigneeId && assigneeId !== "unassigned" && assigneeId !== "__no_members__" && assigneeId !== "__select_project__") {
+                            const currentValue = field.value || []
+                            if (!currentValue.includes(assigneeId)) {
+                              field.onChange([...currentValue, assigneeId])
+                            }
+                          }
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={
+                              loadingMembers 
+                                ? t("common.loading") 
+                                : (field.value && field.value.length > 0 
+                                    ? `${field.value.length} assignee(s) selected` 
+                                    : t("tasks.selectAssignees"))
+                            } />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="unassigned" disabled>
+                            {t("tasks.selectAssignees")}
                           </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
+                          {form.watch("projectId") ? (
+                            availableAssignees.length > 0 ? (
+                              availableAssignees
+                                .filter(member => !(field.value || []).includes(member.id))
+                                .map((member) => (
+                                  <SelectItem key={member.id} value={member.id}>
+                                    <div className="flex items-center gap-2">
+                                      <span>{member.name || member.email}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        ({member.role})
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                ))
+                            ) : (
+                              <SelectItem value="__no_members__" disabled>
+                                {userRole === 'MEMBER' && !selectedProjectOwnership 
+                                  ? "You can only assign tasks to yourself" 
+                                  : "No members available"}
+                              </SelectItem>
+                            )
+                          ) : (
+                            <SelectItem value="__select_project__" disabled>
+                              Select a project first
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      
+                      {/* Legacy assigneeId field for backwards compatibility */}
+                      <input
+                        type="hidden"
+                        {...form.register("assigneeId")}
+                        value={field.value && field.value.length > 0 ? field.value[0] : "unassigned"}
+                      />
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

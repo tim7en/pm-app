@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
       description,
       projectId,
       assigneeId,
+      assigneeIds,
       priority = 'MEDIUM',
       dueDate,
       tags = []
@@ -114,62 +115,72 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // If assignee is specified and not empty, verify they have access to the project's workspace
-    if (assigneeId && assigneeId.trim() !== '') {
-      // First get the project's workspace
-      const projectWithWorkspace = await db.project.findUnique({
-        where: { id: projectId },
-        select: { workspaceId: true, ownerId: true }
-      })
+    // Get workspace and project information for permission checking
+    const projectWithWorkspace = await db.project.findUnique({
+      where: { id: projectId },
+      select: { workspaceId: true, ownerId: true }
+    })
 
-      if (!projectWithWorkspace) {
-        return NextResponse.json(
-          { error: 'Project not found' },
-          { status: 404 }
-        )
-      }
+    if (!projectWithWorkspace) {
+      return NextResponse.json(
+        { error: 'Project not found' },
+        { status: 404 }
+      )
+    }
 
-      // Check user's role in workspace to determine assignment permissions
-      const userWorkspaceMember = await db.workspaceMember.findUnique({
-        where: {
-          userId_workspaceId: {
-            userId: session.user.id,
-            workspaceId: projectWithWorkspace.workspaceId
-          }
+    // Check user's role in workspace to determine assignment permissions
+    const userWorkspaceMember = await db.workspaceMember.findUnique({
+      where: {
+        userId_workspaceId: {
+          userId: session.user.id,
+          workspaceId: projectWithWorkspace.workspaceId
         }
-      })
+      }
+    })
 
-      const isProjectOwner = projectWithWorkspace.ownerId === session.user.id
-      const isWorkspaceOwnerOrAdmin = userWorkspaceMember?.role === 'OWNER' || userWorkspaceMember?.role === 'ADMIN'
+    const isProjectOwner = projectWithWorkspace.ownerId === session.user.id
+    const isWorkspaceOwnerOrAdmin = userWorkspaceMember?.role === 'OWNER' || userWorkspaceMember?.role === 'ADMIN'
 
+    // Determine which assignee IDs to use (new multi-assignee or legacy single assignee)
+    const targetAssigneeIds = assigneeIds && assigneeIds.length > 0 
+      ? assigneeIds 
+      : (assigneeId && assigneeId.trim() !== '' ? [assigneeId] : [])
+
+    // Validate assignee permissions and workspace membership
+    if (targetAssigneeIds.length > 0) {
       // If user is a regular member and not project owner, they can only assign to themselves
-      if (!isWorkspaceOwnerOrAdmin && !isProjectOwner && assigneeId !== session.user.id) {
-        return NextResponse.json(
-          { error: 'Members can only assign tasks to themselves unless they are project owners' },
-          { status: 403 }
-        )
+      if (!isWorkspaceOwnerOrAdmin && !isProjectOwner) {
+        const hasNonSelfAssignment = targetAssigneeIds.some(id => id !== session.user.id)
+        if (hasNonSelfAssignment) {
+          return NextResponse.json(
+            { error: 'Members can only assign tasks to themselves unless they are project owners' },
+            { status: 403 }
+          )
+        }
       }
 
-      // Check if assignee is a member of the project's workspace
-      const assigneeWorkspaceMember = await db.workspaceMember.findUnique({
+      // Check if all assignees are members of the project's workspace
+      const assigneeWorkspaceMembers = await db.workspaceMember.findMany({
         where: {
-          userId_workspaceId: {
-            userId: assigneeId,
-            workspaceId: projectWithWorkspace.workspaceId
-          }
-        }
+          userId: { in: targetAssigneeIds },
+          workspaceId: projectWithWorkspace.workspaceId
+        },
+        select: { userId: true }
       })
 
-      if (!assigneeWorkspaceMember) {
+      const validAssigneeIds = assigneeWorkspaceMembers.map(m => m.userId)
+      const invalidAssigneeIds = targetAssigneeIds.filter(id => !validAssigneeIds.includes(id))
+
+      if (invalidAssigneeIds.length > 0) {
         return NextResponse.json(
-          { error: 'Assignee is not a member of the project workspace' },
+          { error: `Some assignees are not members of the project workspace: ${invalidAssigneeIds.join(', ')}` },
           { status: 400 }
         )
       }
     }
 
-    // Use assigneeId if provided and not empty, otherwise leave unassigned (null)
-    const finalAssigneeId = (assigneeId && assigneeId.trim() !== '') ? assigneeId : null
+    // Use first assignee for legacy assigneeId field
+    const finalAssigneeId = targetAssigneeIds.length > 0 ? targetAssigneeIds[0] : null
 
     // Create the task
     const task = await db.task.create({
@@ -192,6 +203,18 @@ export async function POST(request: NextRequest) {
             avatar: true
           }
         },
+        assignees: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatar: true
+              }
+            }
+          }
+        },
         creator: {
           select: {
             id: true,
@@ -210,19 +233,39 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Create notification for assignee if different from creator
-    if (finalAssigneeId && finalAssigneeId !== session.user.id) {
-      try {
-        await NotificationService.createTaskNotification(
-          NotificationType.TASK_ASSIGNED,
-          finalAssigneeId,
-          title,
-          task.id,
-          session.user.name || 'Someone'
+    // Create multiple assignee records if we have multiple assignees
+    if (targetAssigneeIds.length > 0) {
+      await Promise.all(
+        targetAssigneeIds.map(assigneeUserId =>
+          db.taskAssignee.create({
+            data: {
+              taskId: task.id,
+              userId: assigneeUserId,
+              assignedBy: session.user.id
+            }
+          })
         )
-        console.log(`Task assignment notification sent to user ${finalAssigneeId}`)
+      )
+    }
+
+    // Create notifications for all assignees (except creator)
+    const nonCreatorAssignees = targetAssigneeIds.filter(id => id !== session.user.id)
+    if (nonCreatorAssignees.length > 0) {
+      try {
+        await Promise.all(
+          nonCreatorAssignees.map(assigneeUserId =>
+            NotificationService.createTaskNotification(
+              NotificationType.TASK_ASSIGNED,
+              assigneeUserId,
+              title,
+              task.id,
+              session.user.name || 'Someone'
+            )
+          )
+        )
+        console.log(`Task assignment notifications sent to ${nonCreatorAssignees.length} assignees`)
       } catch (error) {
-        console.error('Failed to create task assignment notification:', error)
+        console.error('Failed to create task assignment notifications:', error)
         // Don't fail the task creation if notification fails
       }
     }
