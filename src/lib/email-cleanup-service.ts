@@ -140,15 +140,15 @@ export class EmailCleanupService {
   async categorizeEmail(email: EmailData): Promise<EmailCategorization> {
     try {
       // Analyze email content using GPT-4
-      const analysis = await this.analyzeEmailWithAI(email)
+      const analysis = await this.analyzeEmailWithAI(email.subject, email.body, email.from)
       
       // Match with prospect stages
-      const prospectStage = this.matchProspectStage(email, analysis)
+      const prospectStage = this.matchProspectStage(email.subject, email.body)
       
       // Generate insights
       const categorization: EmailCategorization = {
         emailId: email.id,
-        prospectStage,
+        prospectStage: prospectStage || DEFAULT_PROSPECT_STAGES[0],
         confidence: analysis.confidence,
         followUpOpportunity: analysis.needsFollowUp,
         followUpSuggestion: analysis.followUpSuggestion,
@@ -158,8 +158,8 @@ export class EmailCleanupService {
         urgencyLevel: this.determineUrgencyLevel(email, analysis)
       }
       
-      // Store in database
-      await this.storeCategorization(categorization)
+      // Store in database (mock for demo)
+      // await this.storeCategorization(categorization)
       
       return categorization
     } catch (error) {
@@ -171,23 +171,22 @@ export class EmailCleanupService {
   /**
    * Analyze email content using AI
    */
-  private async analyzeEmailWithAI(email: EmailData) {
+  public async analyzeEmailWithAI(subject: string, body: string, from: string) {
     const prompt = `
 Analyze this email for sales prospect categorization:
 
-Subject: ${email.subject}
-From: ${email.from}
-Body: ${email.body}
-Snippet: ${email.snippet}
+Subject: ${subject}
+From: ${from}
+Body: ${body}
 
 Analyze and provide:
 1. Prospect stage based on content
 2. Sentiment score (-1 to 1)
 3. Whether follow-up is needed
-4. Suggested follow-up message
-5. Response template suggestion
-6. Confidence level (0-1)
-7. Key indicators found
+4. Priority level (low, medium, high)
+5. Key entities mentioned
+6. Suggested actions
+7. Confidence level (0-1)
 
 Respond in JSON format.
 `
@@ -197,26 +196,47 @@ Respond in JSON format.
       const response = await fetch('/api/ai/analyze-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, email })
+        body: JSON.stringify({ prompt, subject, body, from })
       })
       
-      return await response.json()
+      const result = await response.json()
+      return {
+        priority: result.priority || 'medium',
+        sentiment: result.sentiment || 0,
+        keyEntities: result.keyEntities || [],
+        suggestedActions: result.suggestedActions || [],
+        confidence: result.confidence || 0.5,
+        needsFollowUp: result.needsFollowUp || false,
+        followUpSuggestion: result.followUpSuggestion,
+        suggestedResponse: result.suggestedResponse,
+        suggestedStage: result.suggestedStage
+      }
     } catch (error) {
       console.error('AI analysis failed:', error)
-      return this.fallbackAnalysis(email)
+      return this.fallbackAnalysis(subject, body, from)
     }
   }
 
   /**
    * Match email to prospect stage
    */
-  private matchProspectStage(email: EmailData, analysis: any): ProspectStage {
-    let bestMatch = DEFAULT_PROSPECT_STAGES[0]
+  public matchProspectStage(subject: string, body: string): ProspectStage | null {
+    let bestMatch: ProspectStage | null = null
     let highestScore = 0
 
+    const content = `${subject} ${body}`.toLowerCase()
+
     for (const stage of DEFAULT_PROSPECT_STAGES) {
-      const score = this.calculateStageScore(email, stage, analysis)
-      if (score > highestScore) {
+      let score = 0
+      
+      // Keyword matching
+      for (const keyword of stage.keywords) {
+        if (content.includes(keyword.toLowerCase())) {
+          score += 1
+        }
+      }
+
+      if (score > highestScore && score > 0) {
         highestScore = score
         bestMatch = stage
       }
@@ -328,11 +348,14 @@ Respond in JSON format.
   /**
    * Fallback analysis when AI fails
    */
-  private fallbackAnalysis(email: EmailData) {
+  private fallbackAnalysis(subject: string, body: string, from: string) {
     return {
-      confidence: 0.3,
+      priority: 'medium' as const,
       sentiment: 0,
-      needsFollowUp: !email.isRead,
+      keyEntities: [],
+      suggestedActions: [],
+      confidence: 0.3,
+      needsFollowUp: true,
       followUpSuggestion: "Follow up on this email",
       suggestedResponse: "Thank you for your email. I'll review and get back to you soon.",
       suggestedStage: 'cold-outreach'
