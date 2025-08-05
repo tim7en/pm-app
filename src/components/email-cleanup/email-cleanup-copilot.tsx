@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { BulkEmailAnalyzer } from './bulk-email-analyzer'
 import {
   Mail,
   Brain,
@@ -98,26 +99,12 @@ export function EmailCleanupCoPilot() {
       const data = await response.json()
       
       if (data.success) {
-        // Open OAuth URL in new window
-        window.open(data.authUrl, 'gmail-oauth', 'width=600,height=700')
-        
-        // Listen for the OAuth callback
-        const checkForCode = setInterval(() => {
-          const urlParams = new URLSearchParams(window.location.search)
-          const code = urlParams.get('code')
-          
-          if (code) {
-            clearInterval(checkForCode)
-            exchangeCodeForTokens(code)
-          }
-        }, 1000)
-        
-        setTimeout(() => clearInterval(checkForCode), 300000) // 5 min timeout
+        // Redirect to OAuth URL in the same window
+        window.location.href = data.authUrl
       }
     } catch (error) {
       console.error('Error connecting Gmail:', error)
       alert('Failed to connect to Gmail. Please try again.')
-    } finally {
       setIsConnecting(false)
     }
   }
@@ -207,7 +194,28 @@ export function EmailCleanupCoPilot() {
 
   useEffect(() => {
     loadDashboardData()
+    checkOAuthCallback()
   }, [])
+
+  const checkOAuthCallback = () => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const code = urlParams.get('code')
+    const error = urlParams.get('error')
+    
+    if (error) {
+      alert(`Gmail connection failed: ${error}`)
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname)
+      return
+    }
+    
+    if (code) {
+      // Clean up URL first to prevent re-processing
+      window.history.replaceState({}, document.title, window.location.pathname)
+      // Exchange code for tokens
+      exchangeCodeForTokens(code)
+    }
+  }
 
   const loadDashboardData = async () => {
     try {
@@ -344,9 +352,10 @@ export function EmailCleanupCoPilot() {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="gmail">Gmail Test</TabsTrigger>
+          <TabsTrigger value="bulk">Bulk Analyzer</TabsTrigger>
           <TabsTrigger value="emails">Email List</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
           <TabsTrigger value="templates">Templates</TabsTrigger>
@@ -695,6 +704,11 @@ export function EmailCleanupCoPilot() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Bulk Email Analyzer Tab */}
+        <TabsContent value="bulk" className="space-y-6">
+          <BulkEmailAnalyzer authTokens={authTokens} />
         </TabsContent>
 
         {/* Email List Tab */}

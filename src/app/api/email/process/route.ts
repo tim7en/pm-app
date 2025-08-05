@@ -83,7 +83,7 @@ async function processEmailsWithAI(emails: any[]) {
 }
 
 function getRandomProspectStage() {
-  const stages = ['cold-outreach', 'interested', 'qualified', 'proposal', 'negotiation', 'closed-won', 'closed-lost', 'follow-up']
+  const stages = ['prospect-lead', 'active-client', 'vendor-supplier', 'partnership-collaboration', 'recruitment-hr', 'media-pr', 'legal-compliance', 'administrative']
   return stages[Math.floor(Math.random() * stages.length)]
 }
 

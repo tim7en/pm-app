@@ -65,71 +65,79 @@ export interface EmailInsights {
   }>
 }
 
-// Default prospect stages
-export const DEFAULT_PROSPECT_STAGES: ProspectStage[] = [
+// Default business classification stages (Updated for Timur Sabitov's professional context)
+export const DEFAULT_BUSINESS_STAGES: ProspectStage[] = [
   {
-    id: 'cold-outreach',
-    name: 'Cold Outreach',
-    description: 'Initial contact attempts',
-    keywords: ['introduction', 'cold', 'reaching out', 'connect', 'introduce'],
+    id: 'high-priority-personal',
+    name: 'High Priority Personal',
+    description: 'Personal emails from family, close friends, and urgent personal matters',
+    keywords: ['family', 'personal', 'urgent', 'health', 'emergency', 'important personal'],
     priority: 1,
-    color: '#3B82F6'
+    color: '#DC2626'
   },
   {
-    id: 'interested',
-    name: 'Interested',
-    description: 'Showing interest or asking questions',
-    keywords: ['interested', 'tell me more', 'questions', 'curious', 'learn more'],
+    id: 'climate-finance-work',
+    name: 'Climate Finance & Work',
+    description: 'Climate finance, GCF, Adaptation Fund, UNDP, UNESCO, and official work communications',
+    keywords: ['GCF', 'Green Climate Fund', 'Adaptation Fund', 'UNDP', 'UNESCO', 'climate finance', 'UNFCCC', 'NDC', 'ministry', 'official', 'work', 'project', 'climate', 'environmental'],
+    priority: 1,
+    color: '#059669'
+  },
+  {
+    id: 'academic-research',
+    name: 'Academic & Research',
+    description: 'University work, research collaboration, publications, and academic opportunities',
+    keywords: ['university', 'research', 'publication', 'academic', 'lecture', 'teaching', 'peer review', 'conference', 'paper', 'journal', 'collaboration', 'fulbright', 'scholarship'],
+    priority: 1,
+    color: '#7C3AED'
+  },
+  {
+    id: 'international-organizations',
+    name: 'International Organizations',
+    description: 'Communications from World Bank, ADB, AFD, EU, and other international bodies',
+    keywords: ['World Bank', 'ADB', 'Asian Development Bank', 'AFD', 'European Union', 'EU', 'international', 'development', 'funding', 'grant', 'bilateral', 'multilateral'],
+    priority: 1,
+    color: '#0EA5E9'
+  },
+  {
+    id: 'consulting-opportunities',
+    name: 'Consulting & Opportunities',
+    description: 'Consulting work, career opportunities, and professional development',
+    keywords: ['consulting', 'consultant', 'opportunity', 'career', 'job', 'position', 'contract', 'freelance', 'expert', 'specialist'],
     priority: 2,
     color: '#10B981'
   },
   {
-    id: 'qualified',
-    name: 'Qualified',
-    description: 'Qualified leads ready for next steps',
-    keywords: ['budget', 'timeline', 'decision maker', 'qualified', 'next steps'],
-    priority: 3,
+    id: 'personal-finance',
+    name: 'Personal Finance',
+    description: 'Banking, investments, financial management, and personal finance matters',
+    keywords: ['bank', 'banking', 'investment', 'finance', 'financial', 'payment', 'invoice', 'money', 'salary', 'tax', 'insurance'],
+    priority: 2,
     color: '#F59E0B'
   },
   {
-    id: 'proposal',
-    name: 'Proposal Stage',
-    description: 'Proposal sent or being discussed',
-    keywords: ['proposal', 'quote', 'pricing', 'contract', 'terms'],
-    priority: 4,
+    id: 'professional-network',
+    name: 'Professional Network',
+    description: 'Professional networking, industry contacts, and business relationships',
+    keywords: ['networking', 'professional', 'business', 'industry', 'contact', 'colleague', 'partnership', 'collaboration'],
+    priority: 2,
     color: '#8B5CF6'
   },
   {
-    id: 'negotiation',
-    name: 'Negotiation',
-    description: 'Negotiating terms and details',
-    keywords: ['negotiate', 'revisions', 'changes', 'terms', 'conditions'],
-    priority: 5,
-    color: '#EF4444'
+    id: 'media-outreach',
+    name: 'Media & Outreach',
+    description: 'Media interviews, public relations, and outreach opportunities',
+    keywords: ['interview', 'media', 'press', 'journalist', 'article', 'blog', 'content', 'public relations', 'outreach'],
+    priority: 3,
+    color: '#14B8A6'
   },
   {
-    id: 'closed-won',
-    name: 'Closed Won',
-    description: 'Successfully closed deals',
-    keywords: ['accept', 'signed', 'approved', 'go ahead', 'confirmed'],
-    priority: 6,
-    color: '#059669'
-  },
-  {
-    id: 'closed-lost',
-    name: 'Closed Lost',
-    description: 'Lost opportunities',
-    keywords: ['not interested', 'declined', 'reject', 'pass', 'no thank you'],
-    priority: 7,
+    id: 'administrative',
+    name: 'Administrative',
+    description: 'General administration, newsletters, and low-priority notifications',
+    keywords: ['newsletter', 'notification', 'admin', 'system', 'update', 'maintenance', 'subscription', 'marketing'],
+    priority: 3,
     color: '#6B7280'
-  },
-  {
-    id: 'follow-up',
-    name: 'Follow-up Required',
-    description: 'Needs follow-up action',
-    keywords: ['follow up', 'check in', 'touch base', 'remind', 'circle back'],
-    priority: 8,
-    color: '#F97316'
   }
 ]
 
@@ -148,7 +156,7 @@ export class EmailCleanupService {
       // Generate insights
       const categorization: EmailCategorization = {
         emailId: email.id,
-        prospectStage: prospectStage || DEFAULT_PROSPECT_STAGES[0],
+        prospectStage: prospectStage || DEFAULT_BUSINESS_STAGES[0],
         confidence: analysis.confidence,
         followUpOpportunity: analysis.needsFollowUp,
         followUpSuggestion: analysis.followUpSuggestion,
@@ -173,22 +181,64 @@ export class EmailCleanupService {
    */
   public async analyzeEmailWithAI(subject: string, body: string, from: string) {
     const prompt = `
-Analyze this email for sales prospect categorization:
+You are analyzing emails for Timur Sabitov, an Environmental Scientist and Project Manager with expertise in climate change, international development, and project management.
 
+RECIPIENT CONTEXT:
+- Name: Timur Sabitov
+- Email: sabitov.ty@gmail.com, Phone: +998 99 893 24 33
+- Role: Head of Project Management Unit, National Center for Climate Change
+- Expertise: Climate finance (GCF, Adaptation Fund), environmental engineering, project management
+- Affiliations: UNFCCC IPCC focal point, UNESCO, UNDP, World Bank, ADB, AFD projects
+- Education: Fulbright Scholar (SUNY-ESF), Environmental Engineering MS, Duke Financial Management
+- Languages: Russian (native), Uzbek (native), English (fluent)
+- Location: Tashkent, Uzbekistan
+
+EMAIL TO ANALYZE:
 Subject: ${subject}
 From: ${from}
 Body: ${body}
 
+CLASSIFICATION PRIORITIES (1=highest, 3=lowest):
+Priority 1 - IMMEDIATE ATTENTION:
+- high-priority-personal: Family, health, urgent personal matters
+- climate-finance-work: GCF, Adaptation Fund, UNDP, UNESCO, ministry work, climate projects
+- academic-research: University work, research, publications, teaching duties
+- international-organizations: World Bank, ADB, AFD, EU, international development
+
+Priority 2 - IMPORTANT:
+- consulting-opportunities: Consulting work, expert positions, career opportunities
+- personal-finance: Banking, investments, financial management
+- professional-network: Professional networking, industry contacts
+
+Priority 3 - LOW PRIORITY:
+- media-outreach: Media interviews, PR opportunities
+- administrative: Newsletters, notifications, marketing
+
+ANALYSIS INSTRUCTIONS:
+1. Identify if email is DIRECTLY addressed to Timur Sabitov (check To: field, subject mentions)
+2. Look for keywords related to Timur's work areas: climate change, environmental, GCF, adaptation, UNDP, UNESCO, project management, research
+3. Assess sender authority/importance (government, international orgs, universities vs marketing)
+4. Determine urgency based on content and sender
+5. Check for personal connections (colleagues, academic networks, project partners)
+
 Analyze and provide:
-1. Prospect stage based on content
+1. Business classification stage (from the 9 categories above)
 2. Sentiment score (-1 to 1)
 3. Whether follow-up is needed
-4. Priority level (low, medium, high)
-5. Key entities mentioned
+4. Priority level (high, medium, low) - bias toward HIGH for direct work/personal emails
+5. Key entities mentioned (organizations, people, projects)
 6. Suggested actions
 7. Confidence level (0-1)
+8. Personal relevance score (0-1) - how directly this relates to Timur personally
 
-Respond in JSON format.
+PRIORITY BOOST FACTORS:
+- Direct mention of "Timur" or "Sabitov" (+0.3 confidence)
+- Climate/environmental keywords (+0.2 confidence)
+- International organization senders (+0.2 confidence)
+- Project/work related content (+0.2 confidence)
+- Personal/urgent language (+0.3 confidence)
+
+Respond in JSON format with all requested fields.
 `
 
     try {
@@ -209,7 +259,8 @@ Respond in JSON format.
         needsFollowUp: result.needsFollowUp || false,
         followUpSuggestion: result.followUpSuggestion,
         suggestedResponse: result.suggestedResponse,
-        suggestedStage: result.suggestedStage
+        suggestedStage: result.suggestedStage,
+        personalRelevance: result.personalRelevance || 0.5
       }
     } catch (error) {
       console.error('AI analysis failed:', error)
@@ -226,7 +277,7 @@ Respond in JSON format.
 
     const content = `${subject} ${body}`.toLowerCase()
 
-    for (const stage of DEFAULT_PROSPECT_STAGES) {
+    for (const stage of DEFAULT_BUSINESS_STAGES) {
       let score = 0
       
       // Keyword matching
@@ -349,6 +400,42 @@ Respond in JSON format.
    * Fallback analysis when AI fails
    */
   private fallbackAnalysis(subject: string, body: string, from: string) {
+    const content = `${subject} ${body} ${from}`.toLowerCase()
+    
+    // Check for high-priority personal indicators
+    if (content.includes('urgent') || content.includes('emergency') || content.includes('family')) {
+      return {
+        priority: 'high' as const,
+        sentiment: 0,
+        keyEntities: [],
+        suggestedActions: ['Immediate review required'],
+        confidence: 0.4,
+        needsFollowUp: true,
+        followUpSuggestion: "Urgent attention required - review immediately",
+        suggestedResponse: "Thank you for your urgent message. I will review and respond as soon as possible.",
+        suggestedStage: 'high-priority-personal',
+        personalRelevance: 0.8
+      }
+    }
+    
+    // Check for work-related indicators
+    if (content.includes('gcf') || content.includes('climate') || content.includes('project') || 
+        content.includes('ministry') || content.includes('undp') || content.includes('unesco')) {
+      return {
+        priority: 'high' as const,
+        sentiment: 0,
+        keyEntities: [],
+        suggestedActions: ['Review work-related content'],
+        confidence: 0.4,
+        needsFollowUp: true,
+        followUpSuggestion: "Work-related email - review and respond appropriately",
+        suggestedResponse: "Thank you for your email. I'll review the details and get back to you soon.",
+        suggestedStage: 'climate-finance-work',
+        personalRelevance: 0.7
+      }
+    }
+    
+    // Default fallback
     return {
       priority: 'medium' as const,
       sentiment: 0,
@@ -358,7 +445,8 @@ Respond in JSON format.
       needsFollowUp: true,
       followUpSuggestion: "Follow up on this email",
       suggestedResponse: "Thank you for your email. I'll review and get back to you soon.",
-      suggestedStage: 'cold-outreach'
+      suggestedStage: 'administrative',
+      personalRelevance: 0.3
     }
   }
 
