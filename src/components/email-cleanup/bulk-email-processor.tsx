@@ -33,12 +33,12 @@ import {
   Calendar,
   Download,
   Upload,
+  Loader2,
   Play,
   Pause,
   SkipForward,
   Tag,
-  Search,
-  Loader2
+  Search
 } from 'lucide-react'
 
 // Available AI models for classification
@@ -56,6 +56,15 @@ interface BulkProcessingStats {
   labelsApplied: number
   errors: number
   progress: number
+  // New real-time indicators
+  currentBatch: number
+  totalBatches: number
+  currentChunk: number
+  totalChunks: number
+  currentEmail: string
+  aiRequestsInProgress: number
+  processingSpeed: number // emails per second
+  estimatedTimeRemaining: number // seconds
 }
 
 interface EmailResult {
@@ -94,7 +103,15 @@ export default function BulkEmailProcessor() {
     prospects: 0,
     labelsApplied: 0,
     errors: 0,
-    progress: 0
+    progress: 0,
+    currentBatch: 0,
+    totalBatches: 0,
+    currentChunk: 0,
+    totalChunks: 0,
+    currentEmail: '',
+    aiRequestsInProgress: 0,
+    processingSpeed: 0,
+    estimatedTimeRemaining: 0
   })
 
   // Configuration
@@ -107,6 +124,46 @@ export default function BulkEmailProcessor() {
     // Results
   const [results, setResults] = useState<EmailResult[]>([])
   const [nextPageToken, setNextPageToken] = useState<string | null>(null)
+
+  // Gmail Statistics
+  const [gmailStats, setGmailStats] = useState<any>(null)
+  const [isLoadingStats, setIsLoadingStats] = useState(false)
+
+  // Fetch Gmail statistics
+  const fetchGmailStats = async () => {
+    if (!authTokens) return
+    
+    setIsLoadingStats(true)
+    try {
+      const response = await fetch('/api/email/gmail/stats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accessToken: authTokens.accessToken,
+          refreshToken: authTokens.refreshToken
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setGmailStats(data.stats)
+        console.log('📊 Gmail statistics loaded:', data.stats)
+      } else {
+        console.error('Failed to fetch Gmail statistics:', response.statusText)
+      }
+    } catch (error) {
+      console.error('Error fetching Gmail statistics:', error)
+    } finally {
+      setIsLoadingStats(false)
+    }
+  }
+
+  // Load stats when auth tokens change
+  useEffect(() => {
+    if (authTokens) {
+      fetchGmailStats()
+    }
+  }, [authTokens])
 
   // Gmail OAuth Flow
   const connectGmail = async () => {
@@ -176,15 +233,51 @@ export default function BulkEmailProcessor() {
     setIsProcessing(true)
     setIsPaused(false)
     setResults([])
-    setProcessingStats({
+    
+    // Generate session ID for progress tracking
+    const sessionId = `session-${Date.now()}-${Math.random().toString(36).substring(7)}`
+    
+    // Initialize progress stats
+    const initialStats = {
       totalEmails: 0,
       processed: 0,
       classified: 0,
       prospects: 0,
       labelsApplied: 0,
       errors: 0,
-      progress: 0
-    })
+      progress: 0,
+      currentBatch: 0,
+      totalBatches: 0,
+      currentChunk: 0,
+      totalChunks: 0,
+      currentEmail: '',
+      aiRequestsInProgress: 0,
+      processingSpeed: 0,
+      estimatedTimeRemaining: 0
+    }
+    setProcessingStats(initialStats)
+
+    // Start progress polling
+    const progressInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/email/gmail/progress?sessionId=${sessionId}`)
+        const data = await response.json()
+        
+        if (data.success && data.progress) {
+          setProcessingStats(prev => ({
+            ...prev,
+            ...data.progress
+          }))
+          
+          // Stop polling when complete
+          if (data.progress.isComplete) {
+            clearInterval(progressInterval)
+          }
+        }
+      } catch (error) {
+        console.error('Error polling progress:', error)
+      }
+    }, 1000) // Poll every second
 
     try {
       // Build query based on filters
@@ -203,15 +296,21 @@ export default function BulkEmailProcessor() {
           applyLabels,
           query,
           pageToken: null,
-          aiModel
+          aiModel,
+          sessionId // Pass session ID for progress tracking
         })
       })
       
       const data = await response.json()
       
+      // Stop progress polling
+      clearInterval(progressInterval)
+      
       if (data.success) {
         setResults(data.result.results)
         setNextPageToken(data.nextPageToken)
+        
+        // Final progress update
         setProcessingStats({
           totalEmails: data.summary.processed,
           processed: data.summary.processed,
@@ -219,14 +318,28 @@ export default function BulkEmailProcessor() {
           prospects: data.summary.prospects,
           labelsApplied: data.summary.labelsApplied,
           errors: data.summary.errors,
-          progress: 100
+          progress: 100,
+          currentBatch: 0,
+          totalBatches: 0,
+          currentChunk: 0,
+          totalChunks: 0,
+          currentEmail: '',
+          aiRequestsInProgress: 0,
+          processingSpeed: 0,
+          estimatedTimeRemaining: 0
         })
+        
+        // Auto-refresh Gmail stats after processing to show updated counts
+        console.log('🔄 Refreshing Gmail statistics after processing...')
+        await fetchGmailStats()
+        
       } else {
         alert('Failed to process emails: ' + data.error)
       }
     } catch (error) {
+      clearInterval(progressInterval)
       console.error('Error processing emails:', error)
-      alert('Failed to process emails.')
+      alert('An error occurred while processing emails.')
     } finally {
       setIsProcessing(false)
     }
@@ -763,6 +876,147 @@ ${(classificationSuccess === classificationResults.length && labelSuccess && pip
           </Card>
         )}
 
+        {/* Gmail Statistics */}
+        {gmailConnected && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <BarChart3 className="h-5 w-5" />
+                  <span>Gmail Account Overview</span>
+                  {isLoadingStats && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchGmailStats}
+                  disabled={isLoadingStats}
+                  className="flex items-center space-x-1"
+                >
+                  <RefreshCw className={`h-3 w-3 ${isLoadingStats ? 'animate-spin' : ''}`} />
+                  <span>Refresh All</span>
+                </Button>
+              </CardTitle>
+              <CardDescription>
+                Your Gmail account statistics and available labels
+                {gmailStats?.lastUpdated && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    Last updated: {new Date(gmailStats.lastUpdated).toLocaleString()}
+                  </div>
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {gmailStats ? (
+                <div className="space-y-4">
+                  {/* Email Counts */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-3 bg-blue-50 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">{gmailStats.emailCounts.total.toLocaleString()}</div>
+                      <div className="text-sm text-blue-800">Total Emails</div>
+                    </div>
+                    <div className="text-center p-3 bg-green-50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">{gmailStats.emailCounts.unread.toLocaleString()}</div>
+                      <div className="text-sm text-green-800">Unread</div>
+                    </div>
+                    <div className="text-center p-3 bg-purple-50 rounded-lg">
+                      <div className="text-2xl font-bold text-purple-600">{gmailStats.emailCounts.inbox.toLocaleString()}</div>
+                      <div className="text-sm text-purple-800">Inbox</div>
+                    </div>
+                    <div className="text-center p-3 bg-orange-50 rounded-lg">
+                      <div className="text-2xl font-bold text-orange-600">{gmailStats.emailCounts.starred.toLocaleString()}</div>
+                      <div className="text-sm text-orange-800">Starred</div>
+                    </div>
+                  </div>
+
+                  {/* Classification Status */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="text-center p-3 bg-indigo-50 rounded-lg">
+                      <div className="text-2xl font-bold text-indigo-600">{gmailStats.emailCounts.alreadyClassified?.toLocaleString() || 0}</div>
+                      <div className="text-sm text-indigo-800">Already Classified</div>
+                    </div>
+                    <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                      <div className="text-2xl font-bold text-yellow-600">{gmailStats.emailCounts.unlabeled?.toLocaleString() || 0}</div>
+                      <div className="text-sm text-yellow-800">Ready for Processing</div>
+                    </div>
+                    <div className="text-center p-3 bg-teal-50 rounded-lg">
+                      <div className="text-2xl font-bold text-teal-600">{gmailStats.aiClassification.classificationCoverage || 0}%</div>
+                      <div className="text-sm text-teal-800">Classification Coverage</div>
+                    </div>
+                  </div>
+
+                  {/* AI Classification Stats */}
+                  {gmailStats.aiClassification.totalAiLabels > 0 && (
+                    <div className="border-t pt-4">
+                      <h4 className="text-sm font-semibold mb-2 flex items-center">
+                        <Brain className="h-4 w-4 mr-2" />
+                        AI Classification Statistics
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <div className="text-center p-2 bg-indigo-50 rounded">
+                          <div className="text-lg font-bold text-indigo-600">{gmailStats.aiClassification.totalAiLabels}</div>
+                          <div className="text-xs text-indigo-800">AI Labels</div>
+                        </div>
+                        <div className="text-center p-2 bg-indigo-50 rounded">
+                          <div className="text-lg font-bold text-indigo-600">{gmailStats.aiClassification.totalClassifiedEmails.toLocaleString()}</div>
+                          <div className="text-xs text-indigo-800">Classified</div>
+                        </div>
+                        <div className="text-center p-2 bg-indigo-50 rounded">
+                          <div className="text-lg font-bold text-indigo-600">
+                            {Math.round((gmailStats.aiClassification.totalClassifiedEmails / gmailStats.emailCounts.total) * 100)}%
+                          </div>
+                          <div className="text-xs text-indigo-800">Coverage</div>
+                        </div>
+                      </div>
+                      
+                      {/* Category Breakdown */}
+                      {Object.keys(gmailStats.aiClassification.categoryBreakdown).length > 0 && (
+                        <div className="mt-3">
+                          <h5 className="text-xs font-medium mb-2">Category Breakdown:</h5>
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 text-xs">
+                            {Object.entries(gmailStats.aiClassification.categoryBreakdown).map(([category, count]) => (
+                              <div key={category} className="flex justify-between bg-gray-50 px-2 py-1 rounded">
+                                <span className="truncate">{category}</span>
+                                <span className="font-medium">{count as number}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Labels Overview */}
+                  <div className="border-t pt-4">
+                    <h4 className="text-sm font-semibold flex items-center mb-2">
+                      <Tag className="h-4 w-4 mr-2" />
+                      Labels Overview
+                    </h4>
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div className="bg-gray-50 p-2 rounded">
+                        <div className="font-bold">{gmailStats.labels.total}</div>
+                        <div className="text-xs text-gray-600">Total Labels</div>
+                      </div>
+                      <div className="bg-blue-50 p-2 rounded">
+                        <div className="font-bold text-blue-600">{gmailStats.labels.user}</div>
+                        <div className="text-xs text-blue-800">User Labels</div>
+                      </div>
+                      <div className="bg-green-50 p-2 rounded">
+                        <div className="font-bold text-green-600">{gmailStats.labels.ai}</div>
+                        <div className="text-xs text-green-800">AI Labels</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-gray-500">Loading Gmail statistics...</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Bulk Processing Configuration */}
         {gmailConnected && (
           <Card>
@@ -900,6 +1154,51 @@ ${(classificationSuccess === classificationResults.length && labelSuccess && pip
             </CardHeader>
             <CardContent className="space-y-4">
               <Progress value={processingStats.progress} className="w-full" />
+              
+              {/* Real-time Processing Status */}
+              <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-blue-900">Current Processing Status</span>
+                  {processingStats.aiRequestsInProgress > 0 && (
+                    <div className="flex items-center text-sm text-blue-700">
+                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                      {processingStats.aiRequestsInProgress} AI requests in progress
+                    </div>
+                  )}
+                </div>
+                
+                {processingStats.currentEmail && (
+                  <div className="text-sm text-blue-800 mb-1">
+                    📧 Processing: {processingStats.currentEmail}
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                  <div className="bg-white rounded px-2 py-1">
+                    <span className="text-gray-600">Batch:</span>{' '}
+                    <span className="font-medium">{processingStats.currentBatch}/{processingStats.totalBatches}</span>
+                  </div>
+                  <div className="bg-white rounded px-2 py-1">
+                    <span className="text-gray-600">Chunk:</span>{' '}
+                    <span className="font-medium">{processingStats.currentChunk}/{processingStats.totalChunks}</span>
+                  </div>
+                  <div className="bg-white rounded px-2 py-1">
+                    <span className="text-gray-600">Speed:</span>{' '}
+                    <span className="font-medium">{processingStats.processingSpeed.toFixed(1)}/sec</span>
+                  </div>
+                  <div className="bg-white rounded px-2 py-1">
+                    <span className="text-gray-600">ETA:</span>{' '}
+                    <span className="font-medium">
+                      {processingStats.estimatedTimeRemaining > 0 
+                        ? `${Math.round(processingStats.estimatedTimeRemaining)}s`
+                        : '--'
+                      }
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Processing Statistics */}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold">{processingStats.processed}</div>

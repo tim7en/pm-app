@@ -130,6 +130,14 @@ export const DEFAULT_CLASSIFICATION_LABELS: ProspectStage[] = [
     keywords: ['urgent', 'important', 'deadline', 'action required', 'follow up', 'asap', 'critical'],
     priority: 1,
     color: '#DC2626'
+  },
+  {
+    id: 'Other',
+    name: 'Other',
+    description: 'Unclassifiable or error cases',
+    keywords: [],
+    priority: 3,
+    color: '#6B7280'
   }
 ]
 
@@ -238,6 +246,13 @@ PRIORITY 3 - LOW PRIORITY:
    • Newsletter subscriptions and campaigns
    • Spam and unwanted promotional content
    • Keywords: sale, offer, promotion, discount, marketing, unsubscribe, deal
+
+9. "Other" - Unclassifiable or Error Cases
+   • Emails that don't fit into other categories
+   • Corrupted or unclear content
+   • Mixed category content
+   • Classification errors or edge cases
+   • Keywords: none specific, fallback category
 ANALYSIS REQUIREMENTS:
 1. Read the email content carefully
 2. Identify key indicators and context clues
@@ -250,7 +265,7 @@ ANALYSIS REQUIREMENTS:
 
 RESPONSE FORMAT (JSON):
 {
-  "category": "one of the 8 categories above",
+  "category": "one of the 9 categories above",
   "confidence": 0.85,
   "sentiment": 0.3,
   "needsFollowUp": true,
@@ -266,7 +281,7 @@ RESPONSE FORMAT (JSON):
 PRIORITY ASSIGNMENT RULES:
 • HIGH Priority: Work, Finance, Important/Follow Up
 • MEDIUM Priority: Personal, Job Opportunities  
-• LOW Priority: Social, Notifications/Updates, Spam/Promotions
+• LOW Priority: Social, Notifications/Updates, Spam/Promotions, Other
 
 Return valid JSON with all requested fields.
 `

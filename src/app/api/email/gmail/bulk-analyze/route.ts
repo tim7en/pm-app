@@ -96,7 +96,7 @@ ANALYSIS REQUIREMENTS:
 
 RESPONSE FORMAT (JSON ONLY):
 {
-  "category": "one of the 8 categories above",
+  "category": "one of the 9 categories above",
   "confidence": 0.85,
   "sentiment": 0.3,
   "needsFollowUp": true,
@@ -108,8 +108,8 @@ RESPONSE FORMAT (JSON ONLY):
 
 PRIORITY RULES:
 • High Priority: Important/Follow Up, Finance (urgent), Work (urgent)
-• Medium Priority: Job Opportunities, Work (normal), Personal (urgent)
-• Low Priority: Social, Notifications/Updates, Spam/Promotions
+• Medium Priority: Personal, Job Opportunities, Work (normal)
+• Low Priority: Social, Notifications/Updates, Spam/Promotions, Other
 
 Return ONLY valid JSON, no additional text or formatting.`
 
@@ -266,7 +266,8 @@ export async function POST(request: NextRequest) {
       pageToken,
       batchSize = 10,
       aiModel = 'auto',
-      emailsToProcess // For applying labels to already processed emails
+      emailsToProcess, // For applying labels to already processed emails
+      sessionId // For progress tracking
     } = await request.json()
     
     console.log('🔍 Bulk analyze request received with parameters:')
@@ -279,7 +280,30 @@ export async function POST(request: NextRequest) {
     console.log('  • pageToken:', pageToken)
     console.log('  • batchSize:', batchSize)
     console.log('  • aiModel:', aiModel)
+    console.log('  • sessionId:', sessionId)
     console.log('  • emailsToProcess:', emailsToProcess ? `${emailsToProcess.length} emails` : 'NOT PROVIDED')
+
+    // Generate session ID if not provided
+    const currentSessionId = sessionId || `session-${Date.now()}-${Math.random().toString(36).substring(7)}`
+    
+    // Helper function to update progress
+    async function updateProgress(progressData: any) {
+      if (!currentSessionId) return
+      
+      try {
+        await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/email/gmail/progress`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: currentSessionId,
+            action: 'update',
+            progressData
+          })
+        })
+      } catch (error) {
+        console.error('Failed to update progress:', error)
+      }
+    }
     
     if (!accessToken) {
       return NextResponse.json(
@@ -310,14 +334,49 @@ export async function POST(request: NextRequest) {
       console.log(`Processing ${emailsToProcess.length} pre-classified emails for label application...`)
       emails = emailsToProcess
     } else {
-      // Fetch emails with pagination
-      const result = await gmailService.getAllEmails({
-        maxResults: Math.min(maxEmails, 50), // Limit per batch
-        pageToken,
-        query
-      })
-      emails = result.emails
-      nextPageToken = result.nextPageToken
+      // Fetch emails with pagination - process in batches of 50 but continue until maxEmails
+      const batchSize = 50 // Gmail API optimal batch size
+      let currentPageToken = pageToken
+      
+      // Build query to exclude already classified emails if skipClassified is enabled
+      let effectiveQuery = query
+      if (skipClassified) {
+        // Add filter to exclude emails that already have AI/ labels
+        effectiveQuery += effectiveQuery ? ' AND ' : ''
+        effectiveQuery += '-label:AI/*'
+        console.log(`🔍 Skip classified enabled - using query: "${effectiveQuery}"`)
+      }
+      
+      while (emails.length < maxEmails && (currentPageToken !== undefined || emails.length === 0)) {
+        const remainingEmails = maxEmails - emails.length
+        const currentBatchSize = Math.min(batchSize, remainingEmails)
+        
+        console.log(`📧 Fetching batch: ${emails.length + 1}-${emails.length + currentBatchSize} (target: ${maxEmails})`)
+        
+        const result = await gmailService.getAllEmails({
+          maxResults: currentBatchSize,
+          pageToken: currentPageToken,
+          query: effectiveQuery
+        })
+        
+        if (result.emails.length === 0) {
+          console.log('📭 No more emails available')
+          break
+        }
+        
+        emails.push(...result.emails)
+        currentPageToken = result.nextPageToken
+        
+        console.log(`✅ Fetched ${result.emails.length} emails. Total: ${emails.length}/${maxEmails}`)
+        
+        // Break if no more pages
+        if (!currentPageToken) {
+          console.log('📄 Reached last page')
+          break
+        }
+      }
+      
+      nextPageToken = currentPageToken
     }
 
     if (emails.length === 0) {
@@ -355,20 +414,83 @@ export async function POST(request: NextRequest) {
       console.log('ℹ️ Label application disabled - skipping label creation')
     }
 
-    // Process emails in batches
+    // Process emails in batches with AI rate limiting
     const processingBatchSize = batchSize || 10
+    const aiConcurrencyLimit = 2 // Limit concurrent AI requests to 2-3 max
     const results: any[] = []
     let totalClassified = 0
     let labelsApplied = 0
     let errors = 0
     let skippedAlreadyClassified = 0
+    const startTime = Date.now()
+
+    console.log(`🚀 Starting email processing: ${emails.length} emails in batches of ${processingBatchSize}`)
+    console.log(`🤖 AI concurrency limit: ${aiConcurrencyLimit} requests at once`)
+
+    // Initialize progress tracking
+    const totalBatches = Math.ceil(emails.length / processingBatchSize)
+    await updateProgress({
+      totalEmails: emails.length,
+      processed: 0,
+      classified: 0,
+      prospects: 0,
+      labelsApplied: 0,
+      errors: 0,
+      progress: 0,
+      currentBatch: 0,
+      totalBatches,
+      currentChunk: 0,
+      totalChunks: 0,
+      currentEmail: '',
+      aiRequestsInProgress: 0,
+      processingSpeed: 0,
+      estimatedTimeRemaining: 0,
+      isComplete: false
+    })
 
     for (let i = 0; i < emails.length; i += processingBatchSize) {
       const batch = emails.slice(i, i + processingBatchSize)
+      const currentBatch = Math.floor(i / processingBatchSize) + 1
       
-      // Analyze batch
-      const batchPromises = batch.map(async (email) => {
-        try {
+      console.log(`📦 Processing batch ${currentBatch}/${totalBatches}: emails ${i + 1}-${Math.min(i + batch.length, emails.length)}`)
+      
+      // Process emails in the batch with AI rate limiting
+      const batchResults: any[] = []
+      
+      // Split batch into smaller chunks for AI processing (rate limiting)
+      const totalChunks = Math.ceil(batch.length / aiConcurrencyLimit)
+      for (let j = 0; j < batch.length; j += aiConcurrencyLimit) {
+        const aiChunk = batch.slice(j, j + aiConcurrencyLimit)
+        const chunkIndex = Math.floor(j / aiConcurrencyLimit) + 1
+        
+        console.log(`🤖 AI processing chunk ${chunkIndex}/${totalChunks} in batch ${currentBatch}: ${aiChunk.length} emails`)
+        
+        // Update progress before processing chunk
+        await updateProgress({
+          totalEmails: emails.length,
+          processed: i + j,
+          classified: totalClassified,
+          prospects: results.filter(r => r.classification?.isProspect).length,
+          labelsApplied,
+          errors,
+          progress: Math.round(((i + j) / emails.length) * 100),
+          currentBatch,
+          totalBatches,
+          currentChunk: chunkIndex,
+          totalChunks,
+          currentEmail: aiChunk[0]?.subject?.substring(0, 50) || '',
+          aiRequestsInProgress: aiChunk.length,
+          processingSpeed: (i + j) / ((Date.now() - startTime) / 1000) || 0,
+          estimatedTimeRemaining: ((emails.length - (i + j)) / ((i + j) / ((Date.now() - startTime) / 1000))) || 0,
+          isComplete: false
+        })
+        
+        // Process AI chunk with limited concurrency
+        const aiChunkPromises = aiChunk.map(async (email, emailIndex) => {
+          const globalIndex = i + j + emailIndex + 1
+          console.log(`📧 [${globalIndex}/${emails.length}] Processing: "${email.subject?.substring(0, 50)}..."`)
+          
+          try {
           let analysis: any
           let alreadyClassified = false
           
@@ -574,16 +696,22 @@ export async function POST(request: NextRequest) {
             errorDetails: error instanceof Error ? error.message : 'Unknown error'
           }
         }
-      })
+        })
 
-      const batchResults = await Promise.all(batchPromises)
+        const aiChunkResults = await Promise.all(aiChunkPromises)
+        batchResults.push(...aiChunkResults)
+        
+        // Add small delay between AI chunks to respect rate limits
+        if (j + aiConcurrencyLimit < batch.length) {
+          await new Promise(resolve => setTimeout(resolve, 100)) // 100ms delay between chunks
+        }
+      }
+      
       results.push(...batchResults)
 
       // Report progress with batch information
       const progress = Math.round(((i + batch.length) / emails.length) * 100)
-      const currentBatch = Math.floor(i / processingBatchSize) + 1
-      const totalBatches = Math.ceil(emails.length / processingBatchSize)
-      console.log(`Processed batch ${currentBatch}/${totalBatches}: ${i + batch.length}/${emails.length} emails (${progress}%)`)
+      console.log(`✅ Completed batch ${currentBatch}/${totalBatches}: ${i + batch.length}/${emails.length} emails (${progress}%)`)
     }
 
     const analysisResult: BulkAnalysisResult = {
@@ -620,12 +748,33 @@ export async function POST(request: NextRequest) {
       console.log(`   • Labels available: ${Object.keys(labelMapping).join(', ')}`)
     }
 
+    // Final progress update
+    await updateProgress({
+      totalEmails: emails.length,
+      processed: emails.length,
+      classified: totalClassified,
+      prospects: results.filter(r => r.classification?.isProspect).length,
+      labelsApplied,
+      errors,
+      progress: 100,
+      currentBatch: totalBatches,
+      totalBatches,
+      currentChunk: 0,
+      totalChunks: 0,
+      currentEmail: '',
+      aiRequestsInProgress: 0,
+      processingSpeed: emails.length / ((Date.now() - startTime) / 1000) || 0,
+      estimatedTimeRemaining: 0,
+      isComplete: true
+    })
+
     return NextResponse.json({
       success: true,
       message: `Processed ${emails.length} emails successfully${applyLabels ? ` and applied ${labelsApplied} labels to Gmail` : ''}`,
       result: analysisResult,
       nextPageToken,
       verification: verificationSummary,
+      sessionId: currentSessionId,
       summary: {
         totalProcessed: emails.length,
         processed: emails.length,

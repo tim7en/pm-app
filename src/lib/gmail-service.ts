@@ -638,4 +638,22 @@ export class GmailService {
       throw error
     }
   }
+
+  /**
+   * Get email count for a specific query
+   */
+  async getEmailCount(query: string = ''): Promise<number> {
+    try {
+      const response = await this.gmail.users.messages.list({
+        userId: 'me',
+        q: query,
+        maxResults: 1 // We only need the count, not the emails
+      })
+      
+      return response.data.resultSizeEstimate || 0
+    } catch (error) {
+      console.error(`Error getting email count for query "${query}":`, error)
+      return 0
+    }
+  }
 }
