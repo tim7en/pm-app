@@ -29,6 +29,8 @@ import {
   Zap
 } from "lucide-react"
 import { useTranslation } from "@/hooks/use-translation"
+import { useProjectPermissions } from "@/hooks/use-permissions"
+import { ProjectEditGate, ProjectDeleteGate } from "@/components/auth/permission-gate"
 
 // Define ProjectStatus enum locally to avoid import issues
 enum ProjectStatus {
@@ -88,12 +90,21 @@ export function ProjectCard({
 }: ProjectCardProps) {
   const { t } = useTranslation()
   
+  // Get project permissions
+  const { 
+    canEdit: canEditProject,
+    canDelete: canDeleteProject,
+    canManageMembers,
+    loading: permissionsLoading
+  } = useProjectPermissions(project.id)
+  
   // Debug logging to check project data
   console.log('ProjectCard project data:', {
     id: project.id,
     name: project.name,
     taskCount: project.taskCount,
-    completedTaskCount: project.completedTaskCount
+    completedTaskCount: project.completedTaskCount,
+    permissions: { canEditProject, canDeleteProject, canManageMembers }
   })
   
   const statusLabels = {
@@ -363,19 +374,26 @@ export function ProjectCard({
                 onClick={(e) => {
                   e.stopPropagation()
                 }}
+                disabled={permissionsLoading}
               >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem 
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onEdit?.(project)
-                }}
+              <ProjectEditGate 
+                projectId={project.id}
+                fallback={null}
               >
-                {t("projects.editProject")}
-              </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onEdit?.(project)
+                  }}
+                >
+                  {t("projects.editProject")}
+                </DropdownMenuItem>
+              </ProjectEditGate>
+              
               <DropdownMenuItem 
                 onClick={(e) => {
                   e.stopPropagation()
@@ -384,16 +402,22 @@ export function ProjectCard({
               >
                 {project.isStarred ? t("projects.removeFromFavorites") : t("projects.addToFavorites")}
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDelete?.(project.id)
-                }}
-                className="text-red-600"
+              
+              <ProjectDeleteGate 
+                projectId={project.id}
+                fallback={null}
               >
-                {t("projects.deleteProject")}
-              </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDelete?.(project.id)
+                  }}
+                  className="text-red-600"
+                >
+                  {t("projects.deleteProject")}
+                </DropdownMenuItem>
+              </ProjectDeleteGate>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
