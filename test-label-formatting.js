@@ -31,14 +31,15 @@ function testLabelFormatting() {
   
   console.log('')
   console.log('📋 Expected Gmail Label Names:')
-  console.log('   • AI/Prospect-Lead (New Business Opportunities)')
-  console.log('   • AI/Active-Client (Existing Client Communications)') 
-  console.log('   • AI/Vendor-Supplier (Business Operations & Vendors)')
-  console.log('   • AI/Partnership-Collaboration (Strategic Partnerships)')
-  console.log('   • AI/Recruitment-Hr (Human Resources & Talent)')
-  console.log('   • AI/Media-Pr (Marketing & Public Relations)')
-  console.log('   • AI/Legal-Compliance (Legal & Compliance)')
-  console.log('   • AI/Administrative (General Administration)')
+  console.log('   • AI/Personal (Personal Communications)')
+  console.log('   • AI/Work (Work-Related Communications)') 
+  console.log('   • AI/Spam-Promotions (Marketing & Promotional Content)')
+  console.log('   • AI/Social (Social Media & Social Communications)')
+  console.log('   • AI/Notifications-Updates (System & Service Notifications)')
+  console.log('   • AI/Finance (Financial & Banking Communications)')
+  console.log('   • AI/Job-Opportunities (Career & Employment Related)')
+  console.log('   • AI/Important-Follow-Up (High Priority Items Requiring Action)')
+  console.log('   • AI/Other (Unclassifiable or Error Cases)')
 }
 
 testLabelFormatting()

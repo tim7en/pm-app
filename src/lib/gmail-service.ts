@@ -481,15 +481,17 @@ export class GmailService {
       
       const labelMap: Record<string, string> = {}
       
+      // Updated to match the 9 classification categories from AI analysis (including Other for errors)
       const prospectStages = [
-        { name: 'AI/Prospect-Lead', color: '#3B82F6' },      // Blue - New Business
-        { name: 'AI/Active-Client', color: '#10B981' },      // Green - Existing Clients  
-        { name: 'AI/Vendor-Supplier', color: '#F59E0B' },    // Yellow - Operations
-        { name: 'AI/Partnership-Collaboration', color: '#8B5CF6' }, // Purple - Strategic
-        { name: 'AI/Recruitment-Hr', color: '#EF4444' },     // Red - HR/Talent
-        { name: 'AI/Media-Pr', color: '#059669' },           // Dark Green - Marketing/PR
-        { name: 'AI/Legal-Compliance', color: '#6B7280' },   // Gray - Legal/Compliance
-        { name: 'AI/Administrative', color: '#F97316' }      // Orange - Admin/General
+        { name: 'AI/Personal', color: '#3B82F6' },           // Blue - Personal Communications
+        { name: 'AI/Work', color: '#10B981' },               // Green - Work-Related  
+        { name: 'AI/Spam-Promotions', color: '#F59E0B' },    // Orange - Marketing/Spam
+        { name: 'AI/Social', color: '#8B5CF6' },             // Purple - Social Media
+        { name: 'AI/Notifications-Updates', color: '#6B7280' }, // Gray - System Notifications
+        { name: 'AI/Finance', color: '#059669' },            // Dark Green - Financial
+        { name: 'AI/Job-Opportunities', color: '#EF4444' },  // Red - Career/Jobs
+        { name: 'AI/Important-Follow-Up', color: '#F97316' }, // Orange - High Priority
+        { name: 'AI/Other', color: '#9CA3AF' }               // Light Gray - Unclassified/Errors
       ]
 
       console.log(`🏗️ Processing ${prospectStages.length} prospect stages...`)

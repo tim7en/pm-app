@@ -41,6 +41,13 @@ import {
   Loader2
 } from 'lucide-react'
 
+// Available AI models for classification
+const AI_MODELS = [
+  { value: "openai", label: "OpenAI GPT-4" },
+  { value: "zai", label: "Z.AI GLM-4-32B" },
+  { value: "auto", label: "Auto (OpenAI → Z.AI fallback)" }
+]
+
 interface BulkProcessingStats {
   totalEmails: number
   processed: number
@@ -95,13 +102,11 @@ export default function BulkEmailProcessor() {
   const [applyLabels, setApplyLabels] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [emailFilter, setEmailFilter] = useState('all') // all, unread, sent, etc.
+  const [aiModel, setAiModel] = useState('auto') // AI model selection
 
-  // Results
+    // Results
   const [results, setResults] = useState<EmailResult[]>([])
   const [nextPageToken, setNextPageToken] = useState<string | null>(null)
-  
-  // Testing state
-  const [testingInProgress, setTestingInProgress] = useState(false)
 
   // Gmail OAuth Flow
   const connectGmail = async () => {
@@ -197,7 +202,8 @@ export default function BulkEmailProcessor() {
           maxEmails,
           applyLabels,
           query,
-          pageToken: null
+          pageToken: null,
+          aiModel
         })
       })
       
@@ -559,7 +565,8 @@ Check the browser console for more details.`)
       return
     }
 
-    setTestingInProgress(true)
+    // Test functions removed - setTestingInProgress no longer exists
+    // setTestingInProgress(true)
     try {
       console.log('🧪 Testing complete AI classification and labeling pipeline...')
       
@@ -694,7 +701,8 @@ ${(classificationSuccess === classificationResults.length && labelSuccess && pip
       console.error('Error testing complete AI pipeline:', error)
       alert('Failed to test complete pipeline. Check console for details.')
     } finally {
-      setTestingInProgress(false)
+      // Test functions removed - setTestingInProgress no longer exists
+      // setTestingInProgress(false)
     }
   }
 
@@ -765,7 +773,7 @@ ${(classificationSuccess === classificationResults.length && labelSuccess && pip
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Max Emails</label>
                   <Input
@@ -776,6 +784,30 @@ ${(classificationSuccess === classificationResults.length && labelSuccess && pip
                     max={1000}
                   />
                 </div>
+                
+                {/* AI Model Selection */}
+                <div className="space-y-2 border border-blue-200 rounded-lg p-3 bg-blue-50">
+                  <label className="text-sm font-semibold text-blue-900 flex items-center gap-2">
+                    <Brain className="h-4 w-4" />
+                    AI Model
+                  </label>
+                  <Select value={aiModel} onValueChange={setAiModel}>
+                    <SelectTrigger className="bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AI_MODELS.map((model) => (
+                        <SelectItem key={model.value} value={model.value}>
+                          {model.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-blue-700">
+                    Choose your AI provider
+                  </p>
+                </div>
+                
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Email Filter</label>
                   <Select value={emailFilter} onValueChange={setEmailFilter}>
@@ -837,60 +869,6 @@ ${(classificationSuccess === classificationResults.length && labelSuccess && pip
                   )}
                 </Button>
 
-                <Button
-                  onClick={testGmailIntegration}
-                  variant="outline"
-                  className="w-full"
-                  size="lg"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Test Gmail Connection
-                </Button>
-
-                <Button
-                  onClick={testLabelApplication}
-                  variant="secondary"
-                  className="w-full"
-                  size="lg"
-                >
-                  <Tag className="h-4 w-4 mr-2" />
-                  Test Label Application
-                </Button>
-
-                <Button
-                  onClick={debugGmailIntegration}
-                  variant="destructive"
-                  className="w-full"
-                  size="sm"
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Debug Gmail Integration
-                </Button>
-
-                <Button
-                  onClick={testSimpleLabelCreation}
-                  variant="outline"
-                  className="w-full"
-                  size="sm"
-                >
-                  <Tag className="h-4 w-4 mr-2" />
-                  Test Label Creation
-                </Button>
-                
-                <Button
-                  onClick={testCompleteAIPipeline}
-                  variant="outline"
-                  className="w-full"
-                  size="sm"
-                  disabled={testingInProgress}
-                >
-                  {testingInProgress ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Brain className="h-4 w-4 mr-2" />
-                  )}
-                  Test Complete AI Pipeline
-                </Button>
               </div>
             </CardContent>
           </Card>

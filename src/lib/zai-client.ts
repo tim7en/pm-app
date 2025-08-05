@@ -39,29 +39,74 @@ interface ZaiChatResponse {
 
 export class ZaiClient {
   private apiKey: string
-  private baseUrl: string
 
   constructor(apiKey: string) {
     this.apiKey = apiKey
-    this.baseUrl = 'https://api.zai.ai' // Assuming this is the correct endpoint
   }
 
-  async chatCompletion(request: ZaiChatRequest): Promise<ZaiChatResponse> {
-    const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(request)
-    })
+  // Chat completions interface similar to OpenAI
+  get chat() {
+    return {
+      completions: {
+        create: async (request: ZaiChatRequest): Promise<ZaiChatResponse> => {
+          // Try multiple possible Z.AI endpoints with shorter timeout
+          const endpoints = [
+            'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+            'https://api.bigmodel.cn/api/paas/v4/chat/completions'
+          ]
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`Z.AI API Error: ${response.status} - ${errorText}`)
+          let lastError: Error | null = null
+
+          for (const endpoint of endpoints) {
+            try {
+              console.log(`🔄 Trying Z.AI endpoint: ${endpoint}`)
+              
+              // Add shorter timeout and retry logic
+              const controller = new AbortController()
+              const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 second timeout
+              
+              const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${this.apiKey}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(request),
+                signal: controller.signal
+              })
+
+              clearTimeout(timeoutId)
+
+              if (!response.ok) {
+                const errorText = await response.text()
+                console.error(`❌ Z.AI API Error Details:`, {
+                  endpoint,
+                  status: response.status,
+                  statusText: response.statusText,
+                  error: errorText
+                })
+                lastError = new Error(`Z.AI API Error: ${response.status} - ${errorText}`)
+                continue
+              }
+
+              console.log(`✅ Z.AI endpoint working: ${endpoint}`)
+              return await response.json()
+              
+            } catch (error) {
+              console.error(`❌ Network error with endpoint ${endpoint}:`, error)
+              lastError = error as Error
+              
+              // Add a small delay before trying next endpoint
+              await new Promise(resolve => setTimeout(resolve, 1000))
+              continue
+            }
+          }
+
+          // If all endpoints failed, throw the last error
+          throw lastError || new Error('All Z.AI endpoints failed - connection timeout')
+        }
+      }
     }
-
-    return await response.json()
   }
 
   /**
@@ -87,7 +132,7 @@ export class ZaiClient {
         max_tokens: 500
       }
 
-      const response = await this.chatCompletion(request)
+            const response = await this.chat.completions.create(request)
       const aiResponse = response.choices[0]?.message?.content
 
       if (aiResponse) {

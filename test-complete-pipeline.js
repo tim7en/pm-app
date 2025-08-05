@@ -146,14 +146,15 @@ async function testCompletePipeline(useRealEmails = false) {
   console.log('-' * 40)
   
   const expectedLabels = [
-    'AI/Prospect-Lead',
-    'AI/Active-Client', 
-    'AI/Vendor-Supplier',
-    'AI/Partnership-Collaboration',
-    'AI/Recruitment-Hr',
-    'AI/Media-Pr',
-    'AI/Legal-Compliance', 
-    'AI/Administrative'
+    'AI/Personal',
+    'AI/Work', 
+    'AI/Spam-Promotions',
+    'AI/Social',
+    'AI/Notifications-Updates',
+    'AI/Finance',
+    'AI/Job-Opportunities', 
+    'AI/Important-Follow-Up',
+    'AI/Other'
   ]
   
   expectedLabels.forEach(label => {

@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { AlertCircle, CheckCircle, Mail, Settings, RefreshCw, Eye, Zap, Filter, BarChart3 } from 'lucide-react'
+import { AlertCircle, CheckCircle, Mail, Settings, RefreshCw, Eye, Zap, Filter, BarChart3, Brain } from 'lucide-react'
+import { DEFAULT_CLASSIFICATION_LABELS } from '@/lib/email-cleanup-service'
 
 interface BulkAnalysisParams {
   maxEmails: number
@@ -16,6 +17,7 @@ interface BulkAnalysisParams {
   skipClassified: boolean
   query: string
   batchSize: number
+  aiModel: string
 }
 
 interface AnalysisProgress {
@@ -28,6 +30,13 @@ interface AnalysisProgress {
   emailsPerSecond: number
   timeRemaining: number
 }
+
+// Available AI models for classification
+const AI_MODELS = [
+  { value: "openai", label: "OpenAI GPT-4" },
+  { value: "zai", label: "Z.AI GLM-4-32B" },
+  { value: "auto", label: "Auto (OpenAI → Z.AI fallback)" }
+]
 
 interface ClassifiedEmail {
   id: string
@@ -74,7 +83,8 @@ export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
     applyLabels: true,
     skipClassified: true,
     query: 'is:unread',
-    batchSize: 10
+    batchSize: 10,
+    aiModel: 'auto'
   })
   
   const [progress, setProgress] = useState<AnalysisProgress>({
@@ -158,7 +168,8 @@ export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
         query: params.query,
         pageToken: nextPageToken,
         skipClassified: params.skipClassified,
-        batchSize: params.batchSize
+        batchSize: params.batchSize,
+        aiModel: params.aiModel
       }
 
       console.log('🚀 Starting bulk analysis with params:', requestBody)
@@ -222,7 +233,8 @@ export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
           applyLabels: params.applyLabels,
           query: params.query,
           pageToken: nextPageToken,
-          skipClassified: params.skipClassified
+          skipClassified: params.skipClassified,
+          aiModel: params.aiModel
         })
       })
 
@@ -283,15 +295,14 @@ export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
   // Get classification color
   const getClassificationColor = (category: string) => {
     const colors: Record<string, string> = {
-      'high-priority-personal': 'bg-red-100 text-red-800',
-      'climate-finance-work': 'bg-green-100 text-green-800',
-      'academic-research': 'bg-purple-100 text-purple-800',
-      'international-organizations': 'bg-blue-100 text-blue-800',
-      'consulting-opportunities': 'bg-emerald-100 text-emerald-800',
-      'personal-finance': 'bg-yellow-100 text-yellow-800',
-      'professional-network': 'bg-indigo-100 text-indigo-800',
-      'media-outreach': 'bg-teal-100 text-teal-800',
-      'administrative': 'bg-gray-100 text-gray-800'
+      'Personal': 'bg-blue-100 text-blue-800',
+      'Work': 'bg-green-100 text-green-800',
+      'Spam/Promotions': 'bg-red-100 text-red-800',
+      'Social': 'bg-purple-100 text-purple-800',
+      'Notifications/Updates': 'bg-yellow-100 text-yellow-800',
+      'Finance': 'bg-emerald-100 text-emerald-800',
+      'Job Opportunities': 'bg-indigo-100 text-indigo-800',
+      'Important/Follow Up': 'bg-orange-100 text-orange-800'
     }
     return colors[category] || 'bg-gray-100 text-gray-800'
   }
@@ -306,11 +317,12 @@ export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
             Bulk Email Analysis Configuration
           </CardTitle>
           <CardDescription>
-            Configure parameters for bulk email processing and AI classification
+            Configure parameters for bulk email processing and AI classification. 
+            <strong>Select your preferred AI model</strong> for email analysis below.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Max Emails */}
             <div className="space-y-2">
               <Label htmlFor="maxEmails">Max Emails to Process</Label>
@@ -323,6 +335,33 @@ export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
                 onChange={(e) => updateParam('maxEmails', parseInt(e.target.value) || 50)}
                 disabled={isAnalyzing}
               />
+            </div>
+
+            {/* AI Model Selection */}
+            <div className="space-y-2 border border-blue-200 rounded-lg p-3 bg-blue-50">
+              <Label htmlFor="aiModel" className="flex items-center gap-2 font-semibold text-blue-900">
+                <Brain className="h-4 w-4" />
+                AI Model Selection
+              </Label>
+              <Select 
+                value={params.aiModel} 
+                onValueChange={(value) => updateParam('aiModel', value)}
+                disabled={isAnalyzing}
+              >
+                <SelectTrigger className="bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {AI_MODELS.map((model) => (
+                    <SelectItem key={model.value} value={model.value}>
+                      {model.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-blue-700">
+                Choose between OpenAI GPT-4, Z.AI GLM-4-32B, or Auto fallback
+              </p>
             </div>
 
             {/* Batch Size */}
@@ -416,6 +455,46 @@ export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
                 Load More Emails
               </Button>
             )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Classification Labels Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Classification Labels
+          </CardTitle>
+          <CardDescription>
+            Current email classification categories used by the AI model
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {DEFAULT_CLASSIFICATION_LABELS.map((label, index) => (
+              <div 
+                key={label.id}
+                className={`p-3 rounded-lg border text-center text-sm font-medium ${getClassificationColor(label.name)}`}
+              >
+                {label.name}
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Classification with Priorities:</strong> Each category has an assigned priority level:
+            </p>
+            <div className="mt-2 space-y-1 text-sm text-blue-700">
+              <div><strong>🔴 High Priority:</strong> Work, Finance, Important/Follow Up</div>
+              <div><strong>🟡 Medium Priority:</strong> Personal, Job Opportunities</div>
+              <div><strong>🟢 Low Priority:</strong> Social, Notifications/Updates, Spam/Promotions</div>
+            </div>
+            <p className="mt-2 text-sm text-blue-800">
+              <strong>Future Enhancements:</strong> Labels can be made dynamic to automatically 
+              sync with your Gmail labels or allow custom user input. The AI will classify emails 
+              into these categories and optionally apply corresponding Gmail labels.
+            </p>
           </div>
         </CardContent>
       </Card>

@@ -12,106 +12,225 @@ const openai = new OpenAI({
 // Initialize Z.AI for fallback classification
 const zaiClient = new ZaiClient(process.env.ZAI_API_KEY || '5bb6d9567c6a40568f61bcd8e76483a7.BLqz1y96gXl5dPBx')
 
-// Direct server-side AI classification function
-async function classifyEmailWithAI(subject: string, body: string, from: string) {
-  if (!process.env.OPENAI_API_KEY) {
-    console.log('⚠️ OpenAI API key not configured, using fallback classification')
-    return {
-      suggestedStage: 'administrative',
-      confidence: 0.3,
-      priority: 'low',
-      sentiment: 0,
-      isProspect: false,
-      personalRelevance: 0.2,
-      reasoning: 'Fallback classification - OpenAI not configured'
-    }
-  }
-
-  try {
-    const analysisPrompt = `
-You are analyzing emails for Timur Sabitov, an Environmental Scientist and Project Manager with expertise in climate change, international development, and project management.
-
-RECIPIENT CONTEXT:
-- Name: Timur Sabitov (sabitov.ty@gmail.com, +998 99 893 24 33)
-- Role: Head of Project Management Unit, National Center for Climate Change, Uzbekistan
-- Expertise: Climate finance (GCF, Adaptation Fund), environmental engineering, UNFCCC IPCC focal point
-- Affiliations: UNESCO, UNDP, World Bank, ADB, AFD projects, Duke University (Financial Management)
-- Education: Fulbright Scholar (SUNY-ESF), MS Environmental Engineering
-- Location: Tashkent, Uzbekistan
+// Direct server-side AI classification function with dual AI provider support
+async function classifyEmailWithAI(subject: string, body: string, from: string, aiModel: string = 'auto') {
+  const analysisPrompt = `
+You are an expert AI email analyst. Your task is to analyze incoming emails and classify them into exactly one of the following 9 predefined categories based on the email content, sender, and context.
 
 EMAIL TO ANALYZE:
 - Subject: ${subject}
 - From: ${from}
 - Body: ${body}
 
-CLASSIFICATION GROUPS (Choose EXACTLY ONE):
-1. "high-priority-personal" - Family, health, urgent personal matters (PRIORITY 1)
-2. "climate-finance-work" - GCF, Adaptation Fund, UNDP, UNESCO, ministry work, climate projects (PRIORITY 1)
-3. "academic-research" - University work, research, publications, teaching duties (PRIORITY 1)
-4. "international-organizations" - World Bank, ADB, AFD, EU, international development (PRIORITY 1)
-5. "consulting-opportunities" - Consulting work, expert positions, career opportunities (PRIORITY 2)
-6. "personal-finance" - Banking, investments, financial management (PRIORITY 2)
-7. "professional-network" - Professional networking, industry contacts (PRIORITY 2)
-8. "media-outreach" - Media interviews, PR opportunities (PRIORITY 3)
-9. "administrative" - Newsletters, notifications, marketing (PRIORITY 3)
+CLASSIFICATION CATEGORIES (Choose EXACTLY ONE):
 
-PRIORITY ANALYSIS:
-- Direct mention of "Timur" or "Sabitov" = Higher priority
-- Climate/environmental keywords = Higher priority
-- International organization senders = Higher priority
-- Work/project related content = Higher priority
-- Personal/urgent language = Highest priority
+1. "Personal" - Personal Communications
+   • Personal emails from friends and family
+   • Private matters and personal discussions
+   • Non-work related personal correspondence
+   • Keywords: personal, family, friends, private
+
+2. "Work" - Work-Related Communications  
+   • Business emails related to work projects
+   • Professional communications with colleagues
+   • Work meetings, reports, and updates
+   • Keywords: project, meeting, work, business, colleague
+
+3. "Spam/Promotions" - Marketing and Promotional Content
+   • Marketing emails and advertisements
+   • Promotional offers and sales
+   • Newsletter subscriptions and campaigns
+   • Spam and unwanted promotional content
+   • Keywords: sale, offer, promotion, discount, marketing, unsubscribe
+
+4. "Social" - Social Media and Social Communications
+   • Social media notifications
+   • Social network updates
+   • Community and forum communications
+   • Social events and activities
+   • Keywords: social, community, event, network, forum
+
+5. "Notifications/Updates" - System and Service Notifications
+   • System notifications and updates
+   • Service updates from platforms
+   • Account notifications
+   • Automated system messages
+   • Keywords: notification, update, system, account, automated
+
+6. "Finance" - Financial and Banking Communications
+   • Banking statements and notifications
+   • Financial services communications
+   • Investment and trading updates
+   • Payment and billing notifications
+   • Keywords: bank, payment, invoice, financial, billing, transaction
+
+7. "Job Opportunities" - Career and Employment Related
+   • Job applications and opportunities
+   • Recruitment communications
+   • Career development emails
+   • Professional networking for job purposes
+   • Keywords: job, career, recruitment, opportunity, position, hiring
+
+8. "Important/Follow Up" - High Priority Items Requiring Action
+   • Urgent emails requiring immediate attention
+   • Important deadlines and time-sensitive matters
+   • Follow-up items that need action
+   • Critical communications
+   • Keywords: urgent, important, deadline, action required, follow up
+
+9. "Other" - Unclassifiable or Error Cases
+   • Emails that don't fit into other categories
+   • Corrupted or unclear content
+   • Mixed category content
+   • Classification errors or edge cases
+   • Keywords: none specific, fallback category
+
+ANALYSIS REQUIREMENTS:
+1. Read the email content carefully
+2. Identify key indicators and context clues
+3. Consider the sender's email domain and signature
+4. Look for specific intent and purpose
+5. Classify into the MOST APPROPRIATE single category
+6. Provide confidence level (0.0 to 1.0)
+7. Include reasoning for your classification
 
 RESPONSE FORMAT (JSON ONLY):
 {
-  "suggestedStage": "one of the 9 groups above",
-  "confidence": 0.95,
+  "category": "one of the 8 categories above",
+  "confidence": 0.85,
   "sentiment": 0.3,
   "needsFollowUp": true,
-  "priority": "high/medium/low",
-  "reasoning": "Classification decision with personal relevance assessment",
-  "isProspect": true,
-  "personalRelevance": 0.8,
-  "businessContext": "How this relates to Timur's work/life"
+  "priority": "low/medium/high",
+  "reasoning": "Clear explanation of classification decision",
+  "isProspect": false,
+  "businessContext": "Brief context about email relevance"
 }
 
-Return ONLY valid JSON, no additional text.`
+PRIORITY RULES:
+• High Priority: Important/Follow Up, Finance (urgent), Work (urgent)
+• Medium Priority: Job Opportunities, Work (normal), Personal (urgent)
+• Low Priority: Social, Notifications/Updates, Spam/Promotions
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert business email analyst. Always respond with valid JSON only."
-        },
-        {
-          role: "user",
-          content: analysisPrompt
-        }
-      ],
-      temperature: 0.3,
-      max_tokens: 500
-    })
+Return ONLY valid JSON, no additional text or formatting.`
 
-    const aiResponse = completion.choices[0]?.message?.content
-    if (aiResponse) {
-      const result = JSON.parse(aiResponse)
-      console.log(`🤖 Direct AI classification: ${result.suggestedStage} (${Math.round(result.confidence * 100)}%)`)
-      return result
-    } else {
-      throw new Error('No response from OpenAI')
+  // Determine which AI provider to use based on aiModel parameter
+  let aiProvider = 'unknown'
+  
+  if (aiModel === 'openai' || (aiModel === 'auto' && process.env.OPENAI_API_KEY)) {
+    // Try OpenAI API first
+    try {
+      console.log('🤖 Calling OpenAI GPT-4 for direct classification...')
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert email analyst. Always respond with valid JSON only."
+          },
+          {
+            role: "user",
+            content: analysisPrompt
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 500
+      })
+
+      const aiResponse = completion.choices[0]?.message?.content
+      if (aiResponse) {
+        const result = JSON.parse(aiResponse)
+        aiProvider = 'OpenAI GPT-4'
+        console.log(`🤖 OpenAI classification: ${result.category} (${Math.round(result.confidence * 100)}%)`)
+        result.aiProvider = aiProvider
+        return result
+      } else {
+        throw new Error('No response from OpenAI')
+      }
+    } catch (error) {
+      console.error('❌ OpenAI classification error:', error)
+      if (aiModel === 'openai') {
+        throw error // Don't fall back if specifically requested OpenAI
+      }
+      console.log('🔄 Falling back to Z.AI GLM-4-32B...')
     }
-  } catch (error) {
-    console.error('❌ Direct AI classification error:', error)
+  }
+  
+  if (aiModel === 'zai' || (aiModel === 'auto' && aiProvider === 'unknown')) {
+    // Try Z.AI as primary or fallback
+    try {
+      console.log('🤖 Calling Z.AI GLM-4-32B for direct classification...')
+      const result = await zaiClient.analyzeEmail(subject, body, from, analysisPrompt)
+      aiProvider = 'Z.AI GLM-4-32B'
+      console.log(`🤖 Z.AI classification: ${result.category} (${Math.round(result.confidence * 100)}%)`)
+      result.aiProvider = aiProvider
+      return result
+    } catch (error) {
+      console.error('❌ Z.AI classification error:', error)
+      if (aiModel === 'zai') {
+        throw error // Don't fall back if specifically requested Z.AI
+      }
+      console.log('🔄 Falling back to rule-based classification...')
+    }
+  }
+  
+  // Fallback to rule-based classification
+  console.log('🔄 Using rule-based classification as fallback...')
+  const result = getRuleBasedClassification(subject, body, from)
+  return { ...result, aiProvider: 'Rule-based fallback' }
+}
+
+// Simple rule-based classification for fallback
+function getRuleBasedClassification(subject: string, body: string, from: string) {
+  const content = `${subject} ${body}`.toLowerCase()
+  
+  if (content.includes('urgent') || content.includes('important') || content.includes('asap')) {
     return {
-      suggestedStage: 'administrative',
-      confidence: 0.3,
+      category: 'Important/Follow Up',
+      confidence: 0.7,
+      priority: 'high',
+      sentiment: 0,
+      needsFollowUp: true,
+      reasoning: 'Rule-based: Contains urgent/important keywords',
+      isProspect: false,
+      businessContext: 'High priority communication'
+    }
+  }
+  
+  if (content.includes('work') || content.includes('project') || content.includes('meeting')) {
+    return {
+      category: 'Work',
+      confidence: 0.6,
+      priority: 'medium',
+      sentiment: 0,
+      needsFollowUp: true,
+      reasoning: 'Rule-based: Contains work-related keywords',
+      isProspect: false,
+      businessContext: 'Work-related communication'
+    }
+  }
+  
+  if (content.includes('promotion') || content.includes('sale') || content.includes('offer')) {
+    return {
+      category: 'Spam/Promotions',
+      confidence: 0.8,
       priority: 'low',
       sentiment: 0,
+      needsFollowUp: false,
+      reasoning: 'Rule-based: Contains promotional keywords',
       isProspect: false,
-      personalRelevance: 0.2,
-      reasoning: `Fallback classification due to error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      businessContext: 'Promotional content'
     }
+  }
+  
+  return {
+    category: 'Other',
+    confidence: 0.3,
+    priority: 'low',
+    sentiment: 0,
+    needsFollowUp: false,
+    reasoning: 'Rule-based: Default fallback classification',
+    isProspect: false,
+    businessContext: 'Unclassified email'
   }
 }
 
@@ -146,6 +265,7 @@ export async function POST(request: NextRequest) {
       query = '',
       pageToken,
       batchSize = 10,
+      aiModel = 'auto',
       emailsToProcess // For applying labels to already processed emails
     } = await request.json()
     
@@ -158,6 +278,7 @@ export async function POST(request: NextRequest) {
     console.log('  • query:', query)
     console.log('  • pageToken:', pageToken)
     console.log('  • batchSize:', batchSize)
+    console.log('  • aiModel:', aiModel)
     console.log('  • emailsToProcess:', emailsToProcess ? `${emailsToProcess.length} emails` : 'NOT PROVIDED')
     
     if (!accessToken) {
@@ -305,32 +426,29 @@ export async function POST(request: NextRequest) {
               requiresAction: false
             }
           } else {
-            // Direct server-side AI Classification using OpenAI
-            console.log(`🤖 Calling direct AI classification for email: "${email.subject}"`)
+            // Direct server-side AI Classification using selected AI model
+            console.log(`🤖 Calling direct AI classification for email: "${email.subject}" using ${aiModel}`)
             analysis = await classifyEmailWithAI(
               email.subject || '',
               email.body || email.snippet || '',
-              email.from || ''
+              email.from || '',
+              aiModel
             )
           }
           
           // Apply labels if requested
           let appliedLabel: string | null = null
           let labelApplySuccess = false
-          if (applyLabels && analysis.suggestedStage) {
-            // Convert suggested stage to proper label name format
-            // e.g., "prospect-lead" -> "AI/Prospect-Lead"
-            const stageParts = analysis.suggestedStage.split('-')
-            const formattedStage = stageParts.map(part => 
-              part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-            ).join('-')
-            const labelName = `AI/${formattedStage}`
+          if (applyLabels && analysis.category) {
+            // Use the exact category name for label creation
+            // e.g., "Work" -> "AI/Work", "Spam/Promotions" -> "AI/Spam-Promotions", "Job Opportunities" -> "AI/Job-Opportunities"
+            const labelName = `AI/${analysis.category.replace(/[\/\s]/g, '-')}`
             
             console.log(`🔍 Attempting to apply label "${labelName}" to email ${email.id}`)
             console.log(`📧 Email subject: "${email.subject}"`)
             console.log(`🏷️ Available labels:`, Object.keys(labelMapping))
             console.log(`🎯 Suggested stage: "${analysis.suggestedStage}"`)
-            console.log(`� Formatted stage: "${formattedStage}"`)
+            //console.log(`� Formatted stage: "${formattedStage}"`)
             console.log(`�🔍 Looking for label: "${labelName}"`)
             console.log(`📋 Label mapping has:`, labelMapping)
             
@@ -362,8 +480,8 @@ export async function POST(request: NextRequest) {
               // Try to find a similar label name
               const availableLabels = Object.keys(labelMapping)
               const possibleMatches = availableLabels.filter(label => 
-                label.toLowerCase().includes(analysis.suggestedStage.toLowerCase()) ||
-                analysis.suggestedStage.toLowerCase().includes(label.toLowerCase().replace('AI/', '').toLowerCase())
+                label.toLowerCase().includes(analysis.category.toLowerCase()) ||
+                analysis.category.toLowerCase().includes(label.toLowerCase().replace('AI/', '').toLowerCase())
               )
               if (possibleMatches.length > 0) {
                 console.log(`🤔 Possible matches:`, possibleMatches)
@@ -392,7 +510,7 @@ export async function POST(request: NextRequest) {
           } else {
             if (!applyLabels) {
               console.log(`ℹ️ Label application disabled for email ${email.id}`)
-            } else if (!analysis.suggestedStage) {
+            } else if (!analysis.category) {
               console.log(`⚠️ No suggested stage for email ${email.id}:`, analysis)
             }
           }
@@ -409,21 +527,49 @@ export async function POST(request: NextRequest) {
             appliedLabel,
             labelApplySuccess,
             classification: {
-              category: analysis.suggestedStage || 'unknown',
-              confidence: analysis.confidence,
-              priority: analysis.priority,
-              sentiment: analysis.sentiment,
-              prospectStage: analysis.suggestedStage || 'unknown',
+              category: analysis.category || 'Other',
+              confidence: analysis.confidence || 0.1,
+              priority: analysis.priority || 'low',
+              sentiment: analysis.sentiment || 0,
+              prospectStage: analysis.suggestedStage || 'Other',
               isProspect: !!analysis.suggestedStage,
-              requiresAction: analysis.needsFollowUp
+              requiresAction: analysis.needsFollowUp || false
             }
           }
         } catch (error) {
           errors++
           console.error(`Error processing email ${email.id}:`, error)
+          
+          // Return a proper classification for failed emails
+          totalClassified++
           return {
             id: email.id,
             subject: email.subject,
+            from: email.from,
+            snippet: email.snippet,
+            timestamp: email.timestamp,
+            analysis: {
+              category: 'Other',
+              confidence: 0.1,
+              priority: 'low',
+              sentiment: 0,
+              needsFollowUp: false,
+              reasoning: 'Classification failed - moved to Other category',
+              isProspect: false,
+              businessContext: 'Error during classification',
+              aiProvider: 'Error fallback'
+            },
+            appliedLabel: null,
+            labelApplySuccess: false,
+            classification: {
+              category: 'Other',
+              confidence: 0.1,
+              priority: 'low',
+              sentiment: 0,
+              prospectStage: 'Other',
+              isProspect: false,
+              requiresAction: false
+            },
             error: 'Classification failed',
             errorDetails: error instanceof Error ? error.message : 'Unknown error'
           }

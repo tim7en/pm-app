@@ -19,92 +19,90 @@ export async function POST(request: NextRequest) {
     //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     // }
 
-    const { prompt, subject, body, from } = await request.json()
+    const { prompt, subject, body, from, aiModel = 'auto' } = await request.json()
 
     console.log(`🤖 AI Analysis Request:`)
     console.log(`   • Subject: ${subject}`)
     console.log(`   • From: ${from}`)
     console.log(`   • Body length: ${body?.length || 0} chars`)
+    console.log(`   • AI Model: ${aiModel}`)
 
-    // Create a structured prompt for email analysis
+    // Create a structured prompt for email analysis using the new classification labels
     const analysisPrompt = `
-You are an expert AI email analyst specializing in business email classification for a professional services company. Your task is to analyze incoming emails and classify them into exactly 8 predefined business groups based on the email content, sender, and context.
+You are an expert AI email analyst. Your task is to analyze incoming emails and classify them into exactly one of the following 8 predefined categories based on the email content, sender, and context.
 
 EMAIL TO ANALYZE:
 - Subject: ${subject}
 - From: ${from}
 - Body: ${body}
 
-CLASSIFICATION GROUPS (Choose EXACTLY ONE):
+CLASSIFICATION CATEGORIES (Choose EXACTLY ONE):
 
-1. "prospect-lead" - New Business Opportunities
-   • Cold outreach from potential clients
-   • Initial inquiries about services
-   • First-time contact from prospects
-   • Requests for information or proposals
-   • Keywords: "interested", "services", "quote", "proposal", "learn more", "tell me about"
+1. "Personal" - Personal Communications
+   • Personal emails from friends and family
+   • Private matters and personal discussions
+   • Non-work related personal correspondence
+   • Keywords: personal, family, friends, private
 
-2. "active-client" - Existing Client Communications
-   • Ongoing project discussions
-   • Client updates and feedback
-   • Regular business communications with current clients
-   • Project status updates
-   • Keywords: "project", "update", "feedback", "review", "meeting", "progress"
+2. "Work" - Work-Related Communications  
+   • Business emails related to work projects
+   • Professional communications with colleagues
+   • Work meetings, reports, and updates
+   • Keywords: project, meeting, work, business, colleague
 
-3. "vendor-supplier" - Business Operations & Vendors
-   • Communications from suppliers and vendors
-   • Service provider updates
-   • Business operations related emails
-   • Equipment/software/service purchases
-   • Keywords: "invoice", "payment", "order", "delivery", "service update", "subscription"
+3. "Spam/Promotions" - Marketing and Promotional Content
+   • Marketing emails and advertisements
+   • Promotional offers and sales
+   • Newsletter subscriptions and campaigns
+   • Spam and unwanted promotional content
+   • Keywords: sale, offer, promotion, discount, marketing, unsubscribe
 
-4. "partnership-collaboration" - Strategic Partnerships
-   • Partnership opportunities
-   • Collaboration proposals
-   • Joint venture discussions
-   • Strategic alliance communications
-   • Keywords: "partnership", "collaboration", "joint", "strategic", "alliance", "work together"
+4. "Social" - Social Media and Social Communications
+   • Social media notifications
+   • Social network updates
+   • Community and forum communications
+   • Social events and activities
+   • Keywords: social, community, event, network, forum
 
-5. "recruitment-hr" - Human Resources & Talent
-   • Job applications and resumes
+5. "Notifications/Updates" - System and Service Notifications
+   • System notifications and updates
+   • Service updates from platforms
+   • Account notifications
+   • Automated system messages
+   • Keywords: notification, update, system, account, automated
+
+6. "Finance" - Financial and Banking Communications
+   • Banking statements and notifications
+   • Financial services communications
+   • Investment and trading updates
+   • Payment and billing notifications
+   • Keywords: bank, payment, invoice, financial, billing, transaction
+
+7. "Job Opportunities" - Career and Employment Related
+   • Job applications and opportunities
    • Recruitment communications
-   • HR-related matters
-   • Employee communications
-   • Keywords: "resume", "application", "job", "position", "hiring", "candidate", "interview"
+   • Career development emails
+   • Professional networking for job purposes
+   • Keywords: job, career, recruitment, opportunity, position, hiring
 
-6. "media-pr" - Marketing & Public Relations
-   • Media inquiries
-   • Press releases
-   • Marketing collaborations
-   • Content creation opportunities
-   • Keywords: "interview", "press", "media", "article", "blog", "content", "marketing"
-
-7. "legal-compliance" - Legal & Compliance
-   • Legal documents and communications
-   • Compliance requirements
-   • Contract discussions
-   • Legal inquiries
-   • Keywords: "contract", "legal", "compliance", "terms", "agreement", "liability", "regulation"
-
-8. "administrative" - General Administration
-   • General administrative matters
-   • Non-business critical communications
-   • Newsletters and subscriptions
-   • System notifications
-   • Keywords: "newsletter", "notification", "admin", "system", "update", "maintenance"
+8. "Important/Follow Up" - High Priority Items Requiring Action
+   • Urgent emails requiring immediate attention
+   • Important deadlines and time-sensitive matters
+   • Follow-up items that need action
+   • Critical communications
+   • Keywords: urgent, important, deadline, action required, follow up
 
 ANALYSIS REQUIREMENTS:
 1. Read the email content carefully
 2. Identify key indicators and context clues
 3. Consider the sender's email domain and signature
-4. Look for specific business intent and purpose
-5. Classify into the MOST APPROPRIATE single group
+4. Look for specific intent and purpose
+5. Classify into the MOST APPROPRIATE single category
 6. Provide confidence level (0.0 to 1.0)
 7. Include reasoning for your classification
-
 RESPONSE FORMAT (JSON ONLY):
 {
-  "suggestedStage": "one of the 8 groups above",
+  "category": "one of the 8 categories above",
   "confidence": 0.85,
   "sentiment": 0.3,
   "needsFollowUp": true,
@@ -113,24 +111,24 @@ RESPONSE FORMAT (JSON ONLY):
   "priority": "low/medium/high",
   "keyIndicators": ["list", "of", "key", "phrases", "found"],
   "reasoning": "Clear explanation of classification decision",
-  "isProspect": true,
-  "businessContext": "Brief context about business relevance"
+  "isProspect": false,
+  "businessContext": "Brief context about email relevance"
 }
 
 CLASSIFICATION GUIDELINES:
-• Focus on BUSINESS INTENT rather than just keywords
-• Consider the sender's role and company context
-• Prioritize prospect-lead for any potential revenue opportunity
-• Use active-client for existing business relationships
-• Be decisive - choose the BEST fit from the 8 groups
+• Focus on EMAIL CONTENT and PURPOSE rather than just keywords
+• Consider the sender's context and email signature
+• Prioritize "Important/Follow Up" for any urgent or time-sensitive content
+• Use "Work" for professional business communications
+• Be decisive - choose the BEST fit from the 8 categories
 • High confidence (0.8+) for clear classifications
 • Medium confidence (0.5-0.8) for ambiguous cases
 • Low confidence (<0.5) only for very unclear emails
 
 PRIORITY RULES:
-• High Priority: prospect-lead, legal-compliance, active-client (urgent)
-• Medium Priority: partnership-collaboration, recruitment-hr, vendor-supplier
-• Low Priority: media-pr, administrative
+• High Priority: Important/Follow Up, Finance (urgent), Work (urgent)
+• Medium Priority: Job Opportunities, Work (normal), Personal (urgent)
+• Low Priority: Social, Notifications/Updates, Spam/Promotions
 
 Return ONLY valid JSON, no additional text or formatting.
 `
@@ -138,8 +136,9 @@ Return ONLY valid JSON, no additional text or formatting.
     let analysisResult;
     let aiProvider = 'unknown';
 
-    // Try OpenAI API first
-    if (process.env.OPENAI_API_KEY && openai) {
+    // Determine which AI provider to use based on aiModel parameter
+    if (aiModel === 'openai' || (aiModel === 'auto' && process.env.OPENAI_API_KEY)) {
+      // Try OpenAI API first
       try {
         console.log(`🤖 Calling OpenAI GPT-4 for analysis...`)
         const completion = await openai.chat.completions.create({
@@ -147,7 +146,7 @@ Return ONLY valid JSON, no additional text or formatting.
           messages: [
             {
               role: "system",
-              content: "You are an expert sales email analyst. Always respond with valid JSON only."
+              content: "You are an expert email analyst. Always respond with valid JSON only."
             },
             {
               role: "user",
@@ -168,31 +167,58 @@ Return ONLY valid JSON, no additional text or formatting.
             console.log(`✅ OpenAI Analysis Success:`, analysisResult)
           } catch (parseError) {
             console.error('❌ Failed to parse OpenAI response as JSON:', parseError)
-            throw new Error('Invalid JSON from OpenAI')
+            if (aiModel === 'openai') {
+              throw new Error('Invalid JSON from OpenAI')
+            }
+            // Fall back to Z.AI if in auto mode
+            throw new Error('OpenAI parse error - falling back')
           }
         } else {
           throw new Error('No response from OpenAI')
         }
       } catch (openaiError) {
         console.error('❌ OpenAI API Error:', openaiError)
-        console.log('🔄 Falling back to Z.AI GLM-4-32B...')
+        if (aiModel === 'openai') {
+          return NextResponse.json({ 
+            error: 'OpenAI analysis failed', 
+            details: openaiError instanceof Error ? openaiError.message : 'Unknown error' 
+          }, { status: 500 })
+        }
         
-        // Try Z.AI as fallback
-        try {
-          analysisResult = await zaiClient.analyzeEmail(subject, body, from, analysisPrompt)
-          aiProvider = 'Z.AI GLM-4-32B'
-          console.log(`✅ Z.AI Analysis Success:`, analysisResult)
-        } catch (zaiError) {
-          console.error('❌ Z.AI API Error:', zaiError)
-          console.log('🔄 Falling back to rule-based analysis...')
-          analysisResult = getRuleBasedAnalysis(subject, body, from)
-          aiProvider = 'Rule-based fallback'
+        if (aiModel === 'auto') {
+          console.log('🔄 Falling back to Z.AI GLM-4-32B...')
+          
+          // Try Z.AI as fallback
+          try {
+            analysisResult = await zaiClient.analyzeEmail(subject, body, from, analysisPrompt)
+            aiProvider = 'Z.AI GLM-4-32B (fallback)'
+            console.log(`✅ Z.AI Analysis Success:`, analysisResult)
+          } catch (zaiError) {
+            console.error('❌ Z.AI API Error:', zaiError)
+            console.log('🔄 Falling back to rule-based analysis...')
+            analysisResult = getRuleBasedAnalysis(subject, body, from)
+            aiProvider = 'Rule-based fallback'
+          }
         }
       }
+    } else if (aiModel === 'zai') {
+      // Use Z.AI exclusively
+      try {
+        console.log(`🤖 Calling Z.AI GLM-4-32B for analysis...`)
+        analysisResult = await zaiClient.analyzeEmail(subject, body, from, analysisPrompt)
+        aiProvider = 'Z.AI GLM-4-32B'
+        console.log(`✅ Z.AI Analysis Success:`, analysisResult)
+      } catch (zaiError) {
+        console.error('❌ Z.AI API Error:', zaiError)
+        return NextResponse.json({ 
+          error: 'Z.AI analysis failed', 
+          details: zaiError instanceof Error ? zaiError.message : 'Unknown error' 
+        }, { status: 500 })
+      }
     } else {
+      // Auto mode but no OpenAI, try Z.AI first
       console.log('ℹ️ OpenAI not configured, trying Z.AI GLM-4-32B...')
       
-      // Try Z.AI first when OpenAI is not available
       try {
         analysisResult = await zaiClient.analyzeEmail(subject, body, from, analysisPrompt)
         aiProvider = 'Z.AI GLM-4-32B'
@@ -230,110 +256,111 @@ function getRuleBasedAnalysis(subject: string, body: string, from: string) {
   const domain = from.split('@')[1]?.toLowerCase() || ''
   
   // Stage classification based on content analysis
-  let suggestedStage = 'administrative' // default
+  let category = 'Notifications/Updates' // default
   let confidence = 0.6 // default confidence for rule-based
   let priority = 'medium'
-  let businessContext = 'General business communication'
+  let businessContext = 'General communication'
   
-  // 1. Prospect Lead - New Business Opportunities
-  if (content.includes('interested') || content.includes('quote') || 
-      content.includes('proposal') || content.includes('services') ||
-      content.includes('tell me more') || content.includes('learn more') ||
-      content.includes('pricing') || content.includes('cost') ||
-      content.includes('hire') || content.includes('outsource')) {
-    suggestedStage = 'prospect-lead'
+  // 1. Personal - Personal Communications
+  if (content.includes('family') || content.includes('friend') || 
+      content.includes('personal') || content.includes('private') ||
+      domain.includes('gmail.com') && !content.includes('business') && !content.includes('work')) {
+    category = 'Personal'
+    confidence = 0.7
+    priority = 'medium'
+    businessContext = 'Personal communication from friends or family'
+  }
+  
+  // 2. Work - Work-Related Communications
+  else if (content.includes('project') || content.includes('meeting') || 
+           content.includes('work') || content.includes('business') ||
+           content.includes('colleague') || content.includes('office') ||
+           content.includes('report') || content.includes('deadline')) {
+    category = 'Work'
+    confidence = 0.8
+    priority = 'high'
+    businessContext = 'Work-related professional communication'
+  }
+  
+  // 3. Spam/Promotions - Marketing and Promotional Content
+  else if (content.includes('sale') || content.includes('offer') || 
+           content.includes('promotion') || content.includes('discount') ||
+           content.includes('marketing') || content.includes('unsubscribe') ||
+           content.includes('deal') || content.includes('limited time') ||
+           content.includes('exclusive') || content.includes('free')) {
+    category = 'Spam/Promotions'
+    confidence = 0.85
+    priority = 'low'
+    businessContext = 'Marketing or promotional content'
+  }
+  
+  // 4. Social - Social Media and Social Communications
+  else if (content.includes('social') || content.includes('community') || 
+           content.includes('event') || content.includes('network') ||
+           content.includes('forum') || content.includes('group') ||
+           domain.includes('facebook') || domain.includes('linkedin') ||
+           domain.includes('twitter') || domain.includes('instagram')) {
+    category = 'Social'
+    confidence = 0.75
+    priority = 'low'
+    businessContext = 'Social media or community communication'
+  }
+  
+  // 5. Notifications/Updates - System and Service Notifications
+  else if (content.includes('notification') || content.includes('update') || 
+           content.includes('system') || content.includes('account') ||
+           content.includes('automated') || content.includes('no-reply') ||
+           content.includes('service') || content.includes('maintenance') ||
+           from.includes('noreply') || from.includes('no-reply')) {
+    category = 'Notifications/Updates'
+    confidence = 0.8
+    priority = 'low'
+    businessContext = 'System or service notification'
+  }
+  
+  // 6. Finance - Financial and Banking Communications
+  else if (content.includes('bank') || content.includes('payment') || 
+           content.includes('invoice') || content.includes('financial') ||
+           content.includes('billing') || content.includes('transaction') ||
+           content.includes('statement') || content.includes('credit') ||
+           content.includes('debit') || content.includes('investment')) {
+    category = 'Finance'
     confidence = 0.85
     priority = 'high'
-    businessContext = 'Potential new business opportunity requiring immediate attention'
+    businessContext = 'Financial or banking communication'
   }
   
-  // 2. Active Client - Existing Client Communications
-  else if (content.includes('project') || content.includes('update') || 
-           content.includes('feedback') || content.includes('review') ||
-           content.includes('meeting') || content.includes('progress') ||
-           content.includes('milestone') || content.includes('deliverable')) {
-    suggestedStage = 'active-client'
-    confidence = 0.8
-    priority = 'high'
-    businessContext = 'Communication from existing client about ongoing work'
-  }
-  
-  // 3. Vendor Supplier - Business Operations
-  else if (content.includes('invoice') || content.includes('payment') || 
-           content.includes('order') || content.includes('delivery') ||
-           content.includes('subscription') || content.includes('renewal') ||
-           content.includes('service update') || content.includes('billing')) {
-    suggestedStage = 'vendor-supplier'
-    confidence = 0.75
-    priority = 'medium'
-    businessContext = 'Vendor or supplier communication regarding business operations'
-  }
-  
-  // 4. Partnership Collaboration - Strategic Partnerships
-  else if (content.includes('partnership') || content.includes('collaboration') || 
-           content.includes('joint venture') || content.includes('strategic') ||
-           content.includes('alliance') || content.includes('work together') ||
-           content.includes('mutual') || content.includes('cooperate')) {
-    suggestedStage = 'partnership-collaboration'
+  // 7. Job Opportunities - Career and Employment Related
+  else if (content.includes('job') || content.includes('career') || 
+           content.includes('recruitment') || content.includes('opportunity') ||
+           content.includes('position') || content.includes('hiring') ||
+           content.includes('resume') || content.includes('application') ||
+           content.includes('interview') || content.includes('employment')) {
+    category = 'Job Opportunities'
     confidence = 0.8
     priority = 'medium'
-    businessContext = 'Strategic partnership or collaboration opportunity'
+    businessContext = 'Career or employment related communication'
   }
   
-  // 5. Recruitment HR - Human Resources & Talent
-  else if (content.includes('resume') || content.includes('application') || 
-           content.includes('job') || content.includes('position') ||
-           content.includes('hiring') || content.includes('candidate') ||
-           content.includes('interview') || content.includes('cv') ||
-           content.includes('employment') || content.includes('career')) {
-    suggestedStage = 'recruitment-hr'
-    confidence = 0.8
-    priority = 'medium'
-    businessContext = 'Human resources communication regarding talent acquisition'
-  }
-  
-  // 6. Media PR - Marketing & Public Relations
-  else if (content.includes('interview') || content.includes('press') || 
-           content.includes('media') || content.includes('article') ||
-           content.includes('blog') || content.includes('content') ||
-           content.includes('marketing') || content.includes('publicity') ||
-           content.includes('journalist') || content.includes('feature')) {
-    suggestedStage = 'media-pr'
-    confidence = 0.75
-    priority = 'low'
-    businessContext = 'Media or public relations opportunity'
-  }
-  
-  // 7. Legal Compliance - Legal & Compliance
-  else if (content.includes('contract') || content.includes('legal') || 
-           content.includes('compliance') || content.includes('terms') ||
-           content.includes('agreement') || content.includes('liability') ||
-           content.includes('regulation') || content.includes('law') ||
-           content.includes('attorney') || content.includes('lawyer')) {
-    suggestedStage = 'legal-compliance'
+  // 8. Important/Follow Up - High Priority Items Requiring Action
+  else if (content.includes('urgent') || content.includes('important') || 
+           content.includes('deadline') || content.includes('action required') ||
+           content.includes('follow up') || content.includes('asap') ||
+           content.includes('critical') || content.includes('immediate') ||
+           content.includes('priority')) {
+    category = 'Important/Follow Up'
     confidence = 0.9
     priority = 'high'
-    businessContext = 'Legal or compliance matter requiring attention'
-  }
-  
-  // 8. Administrative - General Administration (default)
-  else if (content.includes('newsletter') || content.includes('notification') || 
-           content.includes('admin') || content.includes('system') ||
-           content.includes('maintenance') || content.includes('unsubscribe') ||
-           content.includes('automated') || content.includes('no-reply')) {
-    suggestedStage = 'administrative'
-    confidence = 0.7
-    priority = 'low'
-    businessContext = 'Administrative or system-generated communication'
+    businessContext = 'High priority item requiring immediate attention'
   }
   
   // Domain-based adjustments
   if (domain.includes('gmail.com') || domain.includes('yahoo.com') || domain.includes('hotmail.com')) {
-    // Personal email domains - likely prospects or personal communications
-    if (suggestedStage === 'administrative') {
-      suggestedStage = 'prospect-lead'
+    // Personal email domains - adjust if needed
+    if (category === 'Notifications/Updates' && !content.includes('system') && !content.includes('automated')) {
+      category = 'Personal'
       confidence = 0.6
-      businessContext = 'Personal email domain suggesting potential prospect'
+      businessContext = 'Personal email from common email provider'
     }
   }
   
@@ -351,9 +378,9 @@ function getRuleBasedAnalysis(subject: string, body: string, from: string) {
   sentiment = Math.max(-1, Math.min(1, sentiment))
   
   // Determine if follow-up is needed
-  const needsFollowUp = suggestedStage === 'prospect-lead' || 
-                       suggestedStage === 'active-client' || 
-                       suggestedStage === 'partnership-collaboration' ||
+  const needsFollowUp = category === 'Important/Follow Up' || 
+                       category === 'Work' || 
+                       category === 'Finance' ||
                        content.includes('question') ||
                        content.includes('when') ||
                        content.includes('how') ||
@@ -363,16 +390,16 @@ function getRuleBasedAnalysis(subject: string, body: string, from: string) {
   const keyIndicators = extractKeywords(subject, body)
   
   const result = {
-    suggestedStage,
+    category,
     confidence,
     sentiment,
     needsFollowUp,
-    followUpSuggestion: generateFollowUpSuggestion(subject, from, suggestedStage),
-    suggestedResponse: generateResponseTemplate(from, subject, suggestedStage),
+    followUpSuggestion: generateFollowUpSuggestion(subject, from, category),
+    suggestedResponse: generateResponseTemplate(from, subject, category),
     priority,
     keyIndicators,
-    reasoning: `Rule-based analysis detected "${suggestedStage}" stage with ${Math.round(confidence * 100)}% confidence. ${businessContext}`,
-    isProspect: suggestedStage === 'prospect-lead' || suggestedStage === 'partnership-collaboration',
+    reasoning: `Rule-based analysis detected "${category}" category with ${Math.round(confidence * 100)}% confidence. ${businessContext}`,
+    isProspect: category === 'Job Opportunities' || category === 'Work',
     businessContext
   }
   
@@ -380,41 +407,41 @@ function getRuleBasedAnalysis(subject: string, body: string, from: string) {
   return result
 }
 
-function generateFollowUpSuggestion(subject: string, from: string, stage: string): string {
+function generateFollowUpSuggestion(subject: string, from: string, category: string): string {
   const firstName = extractFirstName(from)
   
   const suggestions = {
-    'prospect-lead': `Follow up with ${firstName} within 24 hours to discuss their service requirements and schedule a discovery call`,
-    'active-client': `Respond to ${firstName} about "${subject}" within 4 hours and provide requested updates or schedule a status meeting`,
-    'vendor-supplier': `Review and process ${firstName}'s vendor communication within 2-3 business days`,
-    'partnership-collaboration': `Schedule a partnership discussion call with ${firstName} within 1 week to explore collaboration opportunities`,
-    'recruitment-hr': `Acknowledge ${firstName}'s application within 2 business days and coordinate with HR for next steps`,
-    'media-pr': `Respond to ${firstName}'s media request within 24 hours and coordinate with marketing team if needed`,
-    'legal-compliance': `Forward to legal team immediately and respond to ${firstName} within 1 business day with timeline`,
-    'administrative': `Process ${firstName}'s administrative request within 3-5 business days as per standard procedures`
+    'Personal': `Follow up with ${firstName} about "${subject}" when convenient`,
+    'Work': `Respond to ${firstName} about "${subject}" within 4 hours and provide requested updates or schedule a meeting`,
+    'Spam/Promotions': `No follow-up needed - consider unsubscribing or marking as spam`,
+    'Social': `Engage with ${firstName}'s social post or event invitation as appropriate`,
+    'Notifications/Updates': `Review notification and take any required action`,
+    'Finance': `Review ${firstName}'s financial communication within 2 business days and take appropriate action`,
+    'Job Opportunities': `Respond to ${firstName}'s job-related message within 2 business days`,
+    'Important/Follow Up': `Take immediate action on ${firstName}'s urgent request - respond within 24 hours`
   }
   
-  return suggestions[stage as keyof typeof suggestions] || `Follow up with ${firstName} about "${subject}" as appropriate for the communication type`
+  return suggestions[category as keyof typeof suggestions] || `Follow up with ${firstName} about "${subject}" as appropriate for the communication type`
 }
 
-function generateResponseTemplate(from: string, subject: string, stage?: string): string {
+function generateResponseTemplate(from: string, subject: string, category?: string): string {
   const firstName = extractFirstName(from)
   
-  // Stage-specific templates
-  const stageTemplates = {
-    'prospect-lead': `Hi ${firstName},\n\nThank you for your inquiry about our services. I'd be happy to discuss how we can help with your project.\n\nWould you be available for a brief call this week to explore your requirements in detail?\n\nBest regards`,
-    'active-client': `Hi ${firstName},\n\nThank you for your update regarding "${subject}". I'll review this and get back to you with feedback shortly.\n\nPlease let me know if you have any immediate questions.\n\nBest regards`,
-    'vendor-supplier': `Hi ${firstName},\n\nThank you for the information. I'll review the details and coordinate with our team as needed.\n\nI'll get back to you if we need any clarification.\n\nBest regards`,
-    'partnership-collaboration': `Hi ${firstName},\n\nThank you for reaching out about potential collaboration opportunities. This sounds interesting and aligns with our strategic direction.\n\nI'd love to schedule a call to discuss this further. When would be a good time for you?\n\nBest regards`,
-    'recruitment-hr': `Hi ${firstName},\n\nThank you for your interest in opportunities with our company. We'll review your application and get back to you within the next few business days.\n\nBest regards`,
-    'media-pr': `Hi ${firstName},\n\nThank you for reaching out. I'd be happy to help with your article/interview request.\n\nLet me know what information you need and your timeline.\n\nBest regards`,
-    'legal-compliance': `Hi ${firstName},\n\nThank you for bringing this to our attention. I'll review the legal/compliance matter and coordinate with our legal team.\n\nI'll get back to you within 1-2 business days.\n\nBest regards`,
-    'administrative': `Hi ${firstName},\n\nThank you for your message. I've noted the information and will take appropriate action as needed.\n\nBest regards`
+  // Category-specific templates
+  const categoryTemplates = {
+    'Personal': `Hi ${firstName},\n\nThanks for reaching out! I'll get back to you soon.\n\nBest regards`,
+    'Work': `Hi ${firstName},\n\nThank you for your email regarding "${subject}". I'll review this and get back to you with feedback shortly.\n\nPlease let me know if you have any immediate questions.\n\nBest regards`,
+    'Spam/Promotions': `[Auto-response not recommended for promotional emails]`,
+    'Social': `Hi ${firstName},\n\nThanks for connecting! I appreciate the invitation/update.\n\nBest regards`,
+    'Notifications/Updates': `[No response typically needed for automated notifications]`,
+    'Finance': `Hi ${firstName},\n\nThank you for the financial information. I'll review the details and get back to you if any action is needed.\n\nBest regards`,
+    'Job Opportunities': `Hi ${firstName},\n\nThank you for your interest in opportunities. I'll review your message and get back to you within the next few business days.\n\nBest regards`,
+    'Important/Follow Up': `Hi ${firstName},\n\nI've received your urgent message about "${subject}" and will prioritize this matter.\n\nI'll get back to you within 24 hours.\n\nBest regards`
   }
   
-  // Return stage-specific template if available, otherwise use default
-  if (stage && stageTemplates[stage as keyof typeof stageTemplates]) {
-    return stageTemplates[stage as keyof typeof stageTemplates]
+  // Return category-specific template if available, otherwise use default
+  if (category && categoryTemplates[category as keyof typeof categoryTemplates]) {
+    return categoryTemplates[category as keyof typeof categoryTemplates]
   }
   
   // Default templates
