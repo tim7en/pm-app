@@ -1,8 +1,6 @@
 'use client'
 
 import { useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { AlertTriangle, Home, RefreshCw } from 'lucide-react'
 
 export default function GlobalError({
   error,
@@ -19,43 +17,95 @@ export default function GlobalError({
   return (
     <html>
       <body>
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <div className="max-w-md w-full mx-auto text-center px-4">
-            <div className="mb-8">
-              <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-              <h1 className="text-3xl font-bold text-foreground mb-2">
+        <div style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#ffffff',
+          fontFamily: 'system-ui, -apple-system, sans-serif'
+        }}>
+          <div style={{
+            maxWidth: '28rem',
+            width: '100%',
+            margin: '0 auto',
+            textAlign: 'center',
+            padding: '0 1rem'
+          }}>
+            <div style={{ marginBottom: '2rem' }}>
+              <div style={{
+                width: '4rem',
+                height: '4rem',
+                margin: '0 auto 1rem',
+                backgroundColor: '#ef4444',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '1.5rem'
+              }}>⚠</div>
+              <h1 style={{
+                fontSize: '1.875rem',
+                fontWeight: 'bold',
+                color: '#000000',
+                marginBottom: '0.5rem'
+              }}>
                 Critical Error
               </h1>
-              <p className="text-muted-foreground mb-6">
+              <p style={{
+                color: '#6b7280',
+                marginBottom: '1.5rem'
+              }}>
                 A critical error occurred that prevented the application from loading properly.
               </p>
             </div>
 
-            <div className="space-y-4">
-              <Button 
+            <div style={{ marginBottom: '1rem' }}>
+              <button 
                 onClick={reset}
-                className="w-full bg-red-600 hover:bg-red-700"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#dc2626',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  marginBottom: '0.75rem'
+                }}
               >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Restart Application
-              </Button>
+                🔄 Restart Application
+              </button>
               
-              <Button 
+              <button 
                 onClick={() => window.location.href = '/'}
-                variant="outline"
-                className="w-full"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  backgroundColor: 'transparent',
+                  color: '#374151',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.375rem',
+                  fontSize: '1rem',
+                  cursor: 'pointer'
+                }}
               >
-                <Home className="h-4 w-4 mr-2" />
-                Go Home
-              </Button>
+                🏠 Go Home
+              </button>
             </div>
 
-            <div className="mt-8 text-sm text-muted-foreground">
+            <div style={{
+              marginTop: '2rem',
+              fontSize: '0.875rem',
+              color: '#6b7280'
+            }}>
               <p>
                 This is a critical system error. Please contact support immediately.
               </p>
               {error.digest && (
-                <p className="mt-2">Error ID: {error.digest}</p>
+                <p style={{ marginTop: '0.5rem' }}>Error ID: {error.digest}</p>
               )}
             </div>
           </div>

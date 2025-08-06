@@ -11,9 +11,15 @@ const nextConfig: NextConfig = {
   // Output configuration for better deployment
   output: 'standalone',
   
-  // Skip static generation for all routes
-  trailingSlash: true,
+  // Skip static generation for all routes to prevent build errors
+  trailingSlash: false,
   skipTrailingSlashRedirect: true,
+  
+  // Disable static page generation to prevent build-time errors
+  experimental: {
+    // Force all pages to be rendered at runtime
+    forceSwcTransforms: true,
+  },
   
   // 禁用 Next.js 热重载，由 nodemon 处理重编译
   reactStrictMode: false,

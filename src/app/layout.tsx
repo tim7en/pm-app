@@ -7,6 +7,10 @@ import { UIScaleProvider } from "@/contexts/UIScaleContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { SocketProvider } from "@/contexts/SocketContext";
 
+// Force dynamic rendering for the entire app
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
