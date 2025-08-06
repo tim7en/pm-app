@@ -12,7 +12,7 @@ interface EmailConfig {
 
 class EmailService {
   private transporter: nodemailer.Transporter | null = null
-  private isConfigured: boolean = false
+  private isConfigured: boolean | null = null // null = not yet initialized
 
   // Helper function to safely get environment variables
   private getEnvVar(key: string, defaultValue: string = ''): string {
@@ -29,11 +29,24 @@ class EmailService {
   }
 
   constructor() {
-    this.setupTransporter()
+    // Don't initialize transporter in constructor to avoid build-time issues
+  }
+
+  private ensureInitialized() {
+    if (this.isConfigured === null) {
+      this.setupTransporter()
+    }
   }
 
   private setupTransporter() {
     try {
+      // Check if we're on the client side or if process.env is not available
+      if (typeof window !== 'undefined' || typeof process === 'undefined' || !process.env) {
+        console.warn('⚠️ Environment variables not available. Email service disabled.')
+        this.isConfigured = false
+        return
+      }
+
       // For development, we'll use a simple configuration
       // In production, you should use environment variables
       const config: EmailConfig = {
@@ -63,6 +76,8 @@ class EmailService {
 
   async sendPasswordResetEmail(to: string, resetToken: string, userName?: string): Promise<boolean> {
     try {
+      this.ensureInitialized()
+      
       if (!this.isConfigured || !this.transporter) {
         console.log('📧 Email service not configured. Would send password reset email to:', to)
         console.log('Reset token:', resetToken)
@@ -183,6 +198,8 @@ class EmailService {
 
   async sendWelcomeEmail(to: string, userName: string): Promise<boolean> {
     try {
+      this.ensureInitialized()
+      
       if (!this.isConfigured || !this.transporter) {
         console.log('📧 Email service not configured. Would send welcome email to:', to)
         return true
@@ -289,6 +306,8 @@ class EmailService {
 
   async testConnection(): Promise<boolean> {
     try {
+      this.ensureInitialized()
+      
       if (!this.isConfigured || !this.transporter) {
         console.log('📧 Email service not configured for testing')
         return false

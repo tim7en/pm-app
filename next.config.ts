@@ -18,6 +18,17 @@ const nextConfig: NextConfig = {
   // 禁用 Next.js 热重载，由 nodemon 处理重编译
   reactStrictMode: false,
   
+  // Environment variables configuration to prevent build-time errors
+  env: {
+    SMTP_HOST: process.env.SMTP_HOST || '',
+    SMTP_PORT: process.env.SMTP_PORT || '587',
+    SMTP_SECURE: process.env.SMTP_SECURE || 'false',
+    SMTP_USER: process.env.SMTP_USER || '',
+    SMTP_PASS: process.env.SMTP_PASS || '',
+    SMTP_FROM: process.env.SMTP_FROM || '',
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+  },
+  
   // Security headers
   async headers() {
     return [
