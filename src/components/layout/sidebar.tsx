@@ -55,7 +55,7 @@ export function Sidebar() {
     { name: t('navigation.team'), href: "/team", icon: Users },
     { name: t('navigation.calendar'), href: "/calendar", icon: Calendar },
     { name: t('navigation.messages'), href: "/messages", icon: MessageSquare },
-    { name: "Email Co-Pilot", href: "/email-cleanup", icon: Mail },
+    // { name: "Email Co-Pilot", href: "/email-cleanup", icon: Mail }, // Temporarily disabled
     { name: t('navigation.analytics'), href: "/analytics", icon: BarChart3 },
     { name: t('ui.settings'), href: "/settings", icon: Settings },
   ]
