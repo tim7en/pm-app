@@ -1,12 +1,32 @@
 import OpenAI from 'openai'
 
-if (!process.env.OPENAI_API_KEY_2 && !process.env.OPENAI_API_KEY) {
-  console.warn('Neither OPENAI_API_KEY_2 nor OPENAI_API_KEY is set. AI features will be limited.')
+// Helper function to safely get environment variables
+function getOpenAIKey(): string {
+  if (typeof window !== 'undefined') {
+    // Client-side - return dummy key since API keys shouldn't be exposed
+    return 'dummy-key'
+  }
+  
+  const key = process.env.OPENAI_API_KEY_2 || process.env.OPENAI_API_KEY
+  if (!key) {
+    console.warn('Neither OPENAI_API_KEY_2 nor OPENAI_API_KEY is set. AI features will be limited.')
+    return 'dummy-key'
+  }
+  return key
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY_2 || process.env.OPENAI_API_KEY || 'dummy-key',
-})
+// Initialize OpenAI with safe key retrieval
+let openai: OpenAI
+try {
+  openai = new OpenAI({
+    apiKey: getOpenAIKey(),
+  })
+} catch (error) {
+  console.warn('Failed to initialize OpenAI client:', error)
+  openai = new OpenAI({
+    apiKey: 'dummy-key',
+  })
+}
 
 export interface TaskGenerationRequest {
   description: string
