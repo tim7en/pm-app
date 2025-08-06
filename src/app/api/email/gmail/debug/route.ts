@@ -13,7 +13,8 @@ const GMAIL_CONFIG = {
 
 export async function POST(request: NextRequest) {
   try {
-    const { accessToken, refreshToken, action = 'test-connection' } = await request.json()
+    const requestBody = await request.json()
+    const { accessToken, refreshToken, action = 'test-connection', sampleSize = 20 } = requestBody
     
     if (!accessToken) {
       return NextResponse.json(
@@ -149,6 +150,97 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({
             success: false,
             error: `List labels failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+          })
+        }
+
+      case 'list-labels':
+        try {
+          const labels = await gmailService.getLabels()
+          
+          console.log(`📋 Retrieved ${labels.length} Gmail labels`)
+          
+          return NextResponse.json({
+            success: true,
+            result: {
+              labels: labels.map(l => ({ 
+                id: l.id, 
+                name: l.name, 
+                type: l.type,
+                messagesTotal: l.messagesTotal || 0,
+                messagesUnread: l.messagesUnread || 0,
+                threadsTotal: l.threadsTotal || 0,
+                threadsUnread: l.threadsUnread || 0
+              }))
+            }
+          })
+        } catch (error) {
+          console.error('❌ List labels failed:', error)
+          return NextResponse.json({
+            success: false,
+            error: `List labels failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+          })
+        }
+
+      case 'sample-emails':
+        try {
+          const result = await gmailService.getAllEmails({ 
+            maxResults: sampleSize,
+            query: '',
+            includeSpamTrash: false
+          })
+          
+          const emails = result.emails || []
+          console.log(`📧 Retrieved ${emails.length} sample emails`)
+          
+          return NextResponse.json({
+            success: true,
+            result: {
+              emails: emails.map(email => ({
+                id: email.id,
+                threadId: email.threadId,
+                subject: email.subject,
+                from: email.from,
+                to: email.to,
+                snippet: email.snippet,
+                internalDate: email.internalDate,
+                labelIds: email.labelIds,
+                body: email.body
+              }))
+            }
+          })
+        } catch (error) {
+          console.error('❌ Sample emails failed:', error)
+          return NextResponse.json({
+            success: false,
+            error: `Sample emails failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+          })
+        }
+
+      case 'get-email':
+        try {
+          const { messageId } = requestBody
+          if (!messageId) {
+            return NextResponse.json({
+              success: false,
+              error: 'messageId is required for get-email action'
+            }, { status: 400 })
+          }
+
+          // Get the full email content using the new method
+          const parsedEmail = await gmailService.getEmailById(messageId)
+          console.log(`✅ Retrieved email: ${parsedEmail.subject}`)
+
+          return NextResponse.json({
+            success: true,
+            result: {
+              email: parsedEmail
+            }
+          })
+        } catch (error) {
+          console.error('❌ Get email failed:', error)
+          return NextResponse.json({
+            success: false,
+            error: `Get email failed: ${error instanceof Error ? error.message : 'Unknown error'}`
           })
         }
 

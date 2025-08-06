@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GmailService } from '@/lib/gmail-service'
 import { EmailCleanupService } from '@/lib/email-cleanup-service'
+import { emailOperationHistory } from '@/lib/email-operation-history'
 import OpenAI from 'openai'
 import { ZaiClient } from '@/lib/zai-client'
 
@@ -267,7 +268,8 @@ export async function POST(request: NextRequest) {
       batchSize = 10,
       aiModel = 'auto',
       emailsToProcess, // For applying labels to already processed emails
-      sessionId // For progress tracking
+      sessionId, // For progress tracking
+      userId = 'anonymous' // Add user ID for operation tracking
     } = await request.json()
     
     console.log('🔍 Bulk analyze request received with parameters:')
@@ -397,12 +399,34 @@ export async function POST(request: NextRequest) {
 
     // Create prospect labels if applying labels
     let labelMapping: Record<string, string> = {}
+    let labelOperationId: string | null = null
+    
     if (applyLabels) {
       try {
         console.log('🏷️ Creating prospect labels...')
         labelMapping = await gmailService.createProspectLabels()
         console.log('✅ Created prospect labels:', Object.keys(labelMapping))
         console.log('📋 Label mapping details:', labelMapping)
+        
+        // Record label creation operation for rollback
+        labelOperationId = await emailOperationHistory.recordOperation({
+          type: 'label_create',
+          sessionId: currentSessionId,
+          userId,
+          description: `Created ${Object.keys(labelMapping).length} AI classification labels`,
+          emailsAffected: [],
+          originalState: {},
+          newState: { labelMapping },
+          canRollback: true,
+          isRolledBack: false,
+          metadata: {
+            gmailLabels: Object.keys(labelMapping),
+            labelCount: Object.keys(labelMapping).length
+          }
+        })
+        
+        console.log(`📝 Recorded label creation operation: ${labelOperationId}`)
+        
       } catch (error) {
         console.error('❌ Error creating labels:', error)
         return NextResponse.json({
@@ -423,9 +447,30 @@ export async function POST(request: NextRequest) {
     let errors = 0
     let skippedAlreadyClassified = 0
     const startTime = Date.now()
+    let classificationOperationId: string | null = null
+    let labelApplicationOperationId: string | null = null
 
     console.log(`🚀 Starting email processing: ${emails.length} emails in batches of ${processingBatchSize}`)
     console.log(`🤖 AI concurrency limit: ${aiConcurrencyLimit} requests at once`)
+
+    // Record the bulk classification operation
+    classificationOperationId = await emailOperationHistory.recordOperation({
+      type: 'classify',
+      sessionId: currentSessionId,
+      userId,
+      description: `Bulk email classification: ${emails.length} emails using ${aiModel}`,
+      emailsAffected: emails.map(e => e.id),
+      originalState: { emails: emails.map(e => ({ id: e.id, labels: e.labels || [] })) },
+      newState: {},
+      canRollback: false, // Classification doesn't modify Gmail, so no rollback needed
+      isRolledBack: false,
+      metadata: {
+        aiModel,
+        batchSize: processingBatchSize,
+        emailCount: emails.length,
+        skipClassified
+      }
+    })
 
     // Initialize progress tracking
     const totalBatches = Math.ceil(emails.length / processingBatchSize)
@@ -724,6 +769,43 @@ export async function POST(request: NextRequest) {
       labelMapping
     }
 
+    // Record label application operation for rollback if labels were applied
+    if (applyLabels && labelsApplied > 0) {
+      const emailsWithLabels = results.filter(r => r.appliedLabel && r.labelApplySuccess)
+      
+      labelApplicationOperationId = await emailOperationHistory.recordOperation({
+        type: 'label_apply',
+        sessionId: currentSessionId,
+        userId,
+        description: `Applied labels to ${labelsApplied} emails during bulk analysis`,
+        emailsAffected: emailsWithLabels.map(r => r.id),
+        originalState: {
+          emails: emailsWithLabels.map(r => ({
+            id: r.id,
+            labels: [] // Emails had no AI labels before this operation
+          }))
+        },
+        newState: {
+          emails: emailsWithLabels.map(r => ({
+            id: r.id,
+            labels: [r.appliedLabel],
+            gmailLabelId: labelMapping[r.appliedLabel]
+          }))
+        },
+        canRollback: true,
+        isRolledBack: false,
+        metadata: {
+          gmailLabels: Array.from(new Set(emailsWithLabels.map(r => r.appliedLabel))),
+          labelMapping,
+          totalLabelsApplied: labelsApplied,
+          aiModel,
+          sessionId: currentSessionId
+        }
+      })
+      
+      console.log(`📝 Recorded label application operation: ${labelApplicationOperationId}`)
+    }
+
     // If labels were applied, add verification summary
     let verificationSummary: {
       totalAttempted: number
@@ -775,6 +857,11 @@ export async function POST(request: NextRequest) {
       nextPageToken,
       verification: verificationSummary,
       sessionId: currentSessionId,
+      operations: {
+        classificationId: classificationOperationId,
+        labelCreationId: labelOperationId,
+        labelApplicationId: labelApplicationOperationId
+      },
       summary: {
         totalProcessed: emails.length,
         processed: emails.length,

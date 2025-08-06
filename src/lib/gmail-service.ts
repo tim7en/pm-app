@@ -656,4 +656,22 @@ export class GmailService {
       return 0
     }
   }
+
+  /**
+   * Get a single email by message ID
+   */
+  async getEmailById(messageId: string): Promise<any> {
+    try {
+      const response = await this.gmail.users.messages.get({
+        userId: 'me',
+        id: messageId,
+        format: 'full'
+      })
+      
+      return this.parseGmailMessage(response.data)
+    } catch (error) {
+      console.error(`Error getting email ${messageId}:`, error)
+      throw error
+    }
+  }
 }

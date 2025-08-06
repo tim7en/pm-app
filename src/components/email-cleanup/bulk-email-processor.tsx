@@ -38,7 +38,10 @@ import {
   Pause,
   SkipForward,
   Tag,
-  Search
+  Search,
+  History,
+  Palette,
+  Wrench
 } from 'lucide-react'
 
 // Available AI models for classification

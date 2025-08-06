@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { AlertCircle, CheckCircle, Mail, Settings, RefreshCw, Eye, Zap, Filter, BarChart3, Brain } from 'lucide-react'
 import { DEFAULT_CLASSIFICATION_LABELS } from '@/lib/email-cleanup-service'
+import { useEmailCleanup, useGmailConnection } from '@/contexts/email-cleanup-context'
 
 interface BulkAnalysisParams {
   maxEmails: number
@@ -77,7 +78,10 @@ interface BulkAnalysisResult {
   }
 }
 
-export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
+export function BulkEmailAnalyzer() {
+  // Use global email cleanup context
+  const { isConnected, tokens: authTokens, profile } = useGmailConnection()
+  const { connectGmail } = useEmailCleanup()
   const [params, setParams] = useState<BulkAnalysisParams>({
     maxEmails: 50,
     applyLabels: true,
@@ -97,6 +101,8 @@ export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
     emailsPerSecond: 0,
     timeRemaining: 0
   })
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
+  const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null)
   
   const [results, setResults] = useState<ClassifiedEmail[]>([])
   const [analysisResult, setAnalysisResult] = useState<BulkAnalysisResult | null>(null)
@@ -108,6 +114,18 @@ export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const startTimeRef = useRef<number>(0)
+
+  // Cleanup intervals on unmount
+  useEffect(() => {
+    return () => {
+      if (progressInterval) {
+        clearInterval(progressInterval)
+      }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
+    }
+  }, [progressInterval])
 
   // Update parameters handler
   const updateParam = <K extends keyof BulkAnalysisParams>(
@@ -135,12 +153,78 @@ export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
     }))
   }
 
+  // Poll for real-time progress updates
+  const pollProgress = async (sessionId: string) => {
+    try {
+      const response = await fetch('/api/email/gmail/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          action: 'get'
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.progress) {
+          const progressData = data.progress
+          
+          setProgress(prev => ({
+            ...prev,
+            current: progressData.processed || 0,
+            total: progressData.totalEmails || prev.total,
+            percentage: Math.round(((progressData.processed || 0) / (progressData.totalEmails || 1)) * 100),
+            currentBatch: progressData.currentBatch || 0,
+            totalBatches: progressData.totalBatches || 0,
+            emailsPerSecond: progressData.processingSpeed || 0,
+            timeRemaining: progressData.estimatedTimeRemaining || 0,
+            isRunning: !progressData.isComplete
+          }))
+
+          // Stop polling if complete
+          if (progressData.isComplete && progressInterval) {
+            clearInterval(progressInterval)
+            setProgressInterval(null)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Progress polling error:', error)
+    }
+  }
+
+  // Start progress polling
+  const startProgressPolling = (sessionId: string) => {
+    if (progressInterval) {
+      clearInterval(progressInterval)
+    }
+    
+    const interval = setInterval(() => {
+      pollProgress(sessionId)
+    }, 1000) // Poll every second
+    
+    setProgressInterval(interval)
+  }
+
+  // Stop progress polling
+  const stopProgressPolling = () => {
+    if (progressInterval) {
+      clearInterval(progressInterval)
+      setProgressInterval(null)
+    }
+  }
+
   // Start bulk analysis
   const startAnalysis = async () => {
-    if (!authTokens) {
+    if (!authTokens || !authTokens.accessToken || !authTokens.refreshToken) {
       setError('Gmail connection required')
       return
     }
+
+    // Generate session ID for progress tracking
+    const sessionId = `session-${Date.now()}-${Math.random().toString(36).substring(7)}`
+    setCurrentSessionId(sessionId)
 
     setIsAnalyzing(true)
     setError(null)
@@ -159,17 +243,21 @@ export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
       timeRemaining: 0
     })
 
+    // Start polling for progress updates
+    startProgressPolling(sessionId)
+
     try {
       const requestBody = {
         accessToken: authTokens.accessToken,
         refreshToken: authTokens.refreshToken,
         maxEmails: params.maxEmails,
         applyLabels: params.applyLabels,
-        query: params.query,
+        query: params.query === 'all' ? '' : params.query,
         pageToken: nextPageToken,
         skipClassified: params.skipClassified,
         batchSize: params.batchSize,
-        aiModel: params.aiModel
+        aiModel: params.aiModel,
+        sessionId // Include session ID for progress tracking
       }
 
       console.log('🚀 Starting bulk analysis with params:', requestBody)
@@ -187,7 +275,12 @@ export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
       const data = await response.json()
 
       if (data.success) {
-        setAnalysisResult(data.result)
+        // Merge the result with the summary from the top level
+        const resultWithSummary = {
+          ...data.result,
+          summary: data.summary
+        }
+        setAnalysisResult(resultWithSummary)
         setResults(data.result.results || [])
         setNextPageToken(data.nextPageToken)
         setHasMoreEmails(!!data.nextPageToken)
@@ -208,13 +301,14 @@ export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred')
     } finally {
       setIsAnalyzing(false)
+      stopProgressPolling()
       setProgress(prev => ({ ...prev, isRunning: false }))
     }
   }
 
   // Continue analysis (load more emails)
   const continueAnalysis = async () => {
-    if (!nextPageToken || !hasMoreEmails) return
+    if (!nextPageToken || !hasMoreEmails || !authTokens || !authTokens.accessToken || !authTokens.refreshToken) return
     
     const remainingEmails = params.maxEmails - results.length
     if (remainingEmails <= 0) return
@@ -231,7 +325,7 @@ export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
           refreshToken: authTokens.refreshToken,
           maxEmails: Math.min(remainingEmails, params.batchSize),
           applyLabels: params.applyLabels,
-          query: params.query,
+          query: params.query === 'all' ? '' : params.query,
           pageToken: nextPageToken,
           skipClassified: params.skipClassified,
           aiModel: params.aiModel
@@ -398,7 +492,7 @@ export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
                 <SelectContent>
                   <SelectItem value="is:unread">Unread emails only</SelectItem>
                   <SelectItem value="is:inbox">Inbox emails</SelectItem>
-                  <SelectItem value="">All emails</SelectItem>
+                  <SelectItem value="all">All emails</SelectItem>
                   <SelectItem value="has:attachment">With attachments</SelectItem>
                   <SelectItem value="from:@gmail.com">From Gmail addresses</SelectItem>
                 </SelectContent>
@@ -533,8 +627,31 @@ export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
                 </div>
                 <div>
                   <span className="text-gray-600">Status:</span>
-                  <div className="font-medium text-blue-600">Processing...</div>
+                  <div className="font-medium text-blue-600">
+                    {progress.current === 0 ? 'Starting...' : 
+                     progress.current < progress.total ? 'Processing...' : 'Completing...'}
+                  </div>
                 </div>
+              </div>
+            )}
+            
+            {/* Real-time progress indicators */}
+            {progress.isRunning && (
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-blue-800">
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  <span>
+                    {currentSessionId ? 
+                      `Processing emails in real-time (Session: ${currentSessionId.slice(-8)})...` :
+                      'Initializing analysis...'
+                    }
+                  </span>
+                </div>
+                {progress.current > 0 && (
+                  <div className="mt-2 text-xs text-blue-600">
+                    Latest update: {new Date().toLocaleTimeString()}
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
@@ -555,7 +672,7 @@ export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
       )}
 
       {/* Results Summary */}
-      {analysisResult && (
+      {analysisResult && analysisResult.summary && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -566,23 +683,23 @@ export function BulkEmailAnalyzer({ authTokens }: { authTokens: any }) {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{analysisResult.summary.processed}</div>
+                <div className="text-2xl font-bold text-blue-600">{analysisResult.summary.processed || 0}</div>
                 <div className="text-sm text-gray-600">Processed</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{analysisResult.summary.classified}</div>
+                <div className="text-2xl font-bold text-green-600">{analysisResult.summary.classified || 0}</div>
                 <div className="text-sm text-gray-600">Classified</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">{analysisResult.summary.prospects}</div>
+                <div className="text-2xl font-bold text-purple-600">{analysisResult.summary.prospects || 0}</div>
                 <div className="text-sm text-gray-600">Prospects</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">{analysisResult.summary.highPriority}</div>
+                <div className="text-2xl font-bold text-orange-600">{analysisResult.summary.highPriority || 0}</div>
                 <div className="text-sm text-gray-600">High Priority</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-teal-600">{analysisResult.summary.labelsApplied}</div>
+                <div className="text-2xl font-bold text-teal-600">{analysisResult.summary.labelsApplied || 0}</div>
                 <div className="text-sm text-gray-600">Labels Applied</div>
               </div>
               <div className="text-center">

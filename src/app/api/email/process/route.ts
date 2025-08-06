@@ -8,26 +8,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { accountId } = await request.json()
+    const { accountId, accessToken, refreshToken, maxEmails = 50 } = await request.json()
 
-    // Get the email account
-    // const account = await db.emailAccount.findFirst({
-    //   where: {
-    //     id: accountId,
-    //     userId: session.user.id,
-    //     isActive: true
-    //   }
-    // })
+    if (!accessToken || !refreshToken) {
+      return NextResponse.json({ error: 'Gmail tokens required' }, { status: 400 })
+    }
 
-    // if (!account) {
-    //   return NextResponse.json({ error: 'Email account not found' }, { status: 404 })
-    // }
-
-    // Fetch emails from Gmail API
-    const emails = await fetchEmailsFromGmail(accountId)
+    // Fetch emails from Gmail API using real tokens
+    const emails = await fetchEmailsFromGmail(accessToken, refreshToken, maxEmails)
     
-    // Process emails with AI
-    const processedEmails = await processEmailsWithAI(emails)
+    // Process emails with AI using real Gmail integration
+    const processedEmails = await processEmailsWithAI(emails, accessToken, refreshToken)
     
     // Store results in database
     // await storeEmailResults(processedEmails)
@@ -35,6 +26,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true,
       processed: processedEmails.length,
+      emails: processedEmails,
       message: `Successfully processed ${processedEmails.length} emails`
     })
 
@@ -47,57 +39,142 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function fetchEmailsFromGmail(accountId: string) {
-  // Mock implementation - replace with actual Gmail API calls
-  const mockEmails = Array.from({ length: 50 }, (_, i) => ({
-    id: `email-${i}`,
-    threadId: `thread-${i}`,
-    subject: `Email Subject ${i + 1}`,
-    from: `sender${i + 1}@company.com`,
-    to: ['user@company.com'],
-    body: `This is the body of email ${i + 1}. It contains various content that needs to be analyzed for prospect categorization.`,
-    snippet: `Email snippet ${i + 1}...`,
-    timestamp: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
-    isRead: Math.random() > 0.3,
-    labels: ['INBOX']
-  }))
+async function fetchEmailsFromGmail(accessToken: string, refreshToken: string, maxEmails: number = 50) {
+  try {
+    // Use the existing Gmail bulk-analyze endpoint to get real emails
+    const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/email/gmail/debug`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        accessToken,
+        refreshToken,
+        action: 'sample-emails',
+        sampleSize: maxEmails
+      })
+    })
 
-  return mockEmails
-}
-
-async function processEmailsWithAI(emails: any[]) {
-  // Mock AI processing - replace with actual AI service calls
-  return emails.map(email => ({
-    ...email,
-    categorization: {
-      prospectStage: getRandomProspectStage(),
-      confidence: Math.random() * 0.4 + 0.6, // 0.6-1.0
-      followUpOpportunity: Math.random() > 0.7,
-      followUpSuggestion: Math.random() > 0.5 ? 'Consider following up within 2-3 days' : null,
-      responseTemplate: getRandomResponseTemplate(),
-      engagementScore: Math.random(),
-      sentimentScore: (Math.random() - 0.5) * 2, // -1 to 1
-      urgencyLevel: getRandomUrgencyLevel()
+    if (response.ok) {
+      const data = await response.json()
+      if (data.success) {
+        // Convert Gmail format to expected format
+        return data.result.emails.map((email: any) => ({
+          id: email.id,
+          threadId: email.threadId,
+          subject: email.subject || 'No Subject',
+          from: email.from || 'Unknown Sender',
+          to: [email.to || 'Unknown Recipient'],
+          body: email.body || email.snippet || '',
+          snippet: email.snippet || '',
+          timestamp: new Date(email.internalDate || Date.now()),
+          isRead: !email.labelIds?.includes('UNREAD'),
+          labels: email.labelIds || ['INBOX']
+        }))
+      }
     }
-  }))
+    
+    // Fallback to empty array if API fails
+    return []
+  } catch (error) {
+    console.error('Failed to fetch emails from Gmail:', error)
+    return []
+  }
 }
 
-function getRandomProspectStage() {
-  const stages = ['Personal', 'Work', 'Spam/Promotions', 'Social', 'Notifications/Updates', 'Finance', 'Job Opportunities', 'Important/Follow Up', 'Other']
-  return stages[Math.floor(Math.random() * stages.length)]
+async function processEmailsWithAI(emails: any[], accessToken: string, refreshToken: string) {
+  try {
+    // Use the existing bulk-analyze endpoint for AI processing
+    const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/email/gmail/bulk-analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        accessToken,
+        refreshToken,
+        maxEmails: emails.length,
+        applyLabels: false, // Just analyze, don't apply labels yet
+        skipClassified: false,
+        batchSize: 10,
+        aiModel: 'auto',
+        query: ''
+      })
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      if (data.success) {
+        // Merge the AI analysis results with original emails
+        return emails.map((email, index) => {
+          const aiResult = data.result.results?.[index]
+          return {
+            ...email,
+            categorization: {
+              prospectStage: aiResult?.classification?.category || 'Other',
+              confidence: aiResult?.classification?.confidence || 0.5,
+              followUpOpportunity: aiResult?.classification?.priority === 'high',
+              followUpSuggestion: aiResult?.classification?.priority === 'high' ? 
+                'Consider following up within 2-3 days' : null,
+              responseTemplate: getResponseTemplate(aiResult?.classification?.category),
+              engagementScore: aiResult?.classification?.confidence || 0.5,
+              sentimentScore: aiResult?.classification?.sentiment || 0,
+              urgencyLevel: getPriorityBasedUrgency(aiResult?.classification?.priority)
+            }
+          }
+        })
+      }
+    }
+
+    // Fallback to basic categorization if AI fails
+    return emails.map(email => ({
+      ...email,
+      categorization: {
+        prospectStage: 'Other',
+        confidence: 0.5,
+        followUpOpportunity: false,
+        followUpSuggestion: null,
+        responseTemplate: 'Thank you for your email. I\'ll review this and get back to you soon.',
+        engagementScore: 0.5,
+        sentimentScore: 0,
+        urgencyLevel: 'medium'
+      }
+    }))
+  } catch (error) {
+    console.error('Failed to process emails with AI:', error)
+    return emails.map(email => ({
+      ...email,
+      categorization: {
+        prospectStage: 'Other',
+        confidence: 0.5,
+        followUpOpportunity: false,
+        followUpSuggestion: null,
+        responseTemplate: 'Thank you for your email. I\'ll review this and get back to you soon.',
+        engagementScore: 0.5,
+        sentimentScore: 0,
+        urgencyLevel: 'medium'
+      }
+    }))
+  }
 }
 
-function getRandomResponseTemplate() {
-  const templates = [
-    'Thank you for your email. I\'ll review this and get back to you soon.',
-    'I appreciate you reaching out. Let me discuss this with my team.',
-    'This looks interesting. Can we schedule a call to discuss further?',
-    'Thanks for the update. I\'ll follow up with next steps shortly.'
-  ]
-  return templates[Math.floor(Math.random() * templates.length)]
+function getResponseTemplate(category: string) {
+  const templates: Record<string, string> = {
+    'Cold-Outreach': 'Thank you for reaching out. I\'ll review your proposal and get back to you soon.',
+    'Job-Opportunities': 'Thank you for considering me for this opportunity. I\'ll review the details.',
+    'Finance': 'Thank you for the financial information. I\'ll review this carefully.',
+    'Important-Follow-Up': 'I appreciate you following up. Let me address your points.',
+    'Work': 'Thank you for your work-related email. I\'ll respond accordingly.',
+    'Personal': 'Thanks for your personal message. I appreciate you reaching out.',
+    'Social': 'Thanks for the social update. Great to hear from you.',
+    'Notifications-Updates': 'Thank you for the notification. I\'ve noted the update.',
+    'Spam-Promotions': 'Thank you for your message.',
+    'Other': 'Thank you for your email. I\'ll review this and get back to you soon.'
+  }
+  return templates[category] || templates['Other']
 }
 
-function getRandomUrgencyLevel() {
-  const levels = ['low', 'medium', 'high', 'urgent']
-  return levels[Math.floor(Math.random() * levels.length)]
+function getPriorityBasedUrgency(priority: string) {
+  switch (priority) {
+    case 'high': return 'urgent'
+    case 'medium': return 'high'
+    case 'low': return 'medium'
+    default: return 'low'
+  }
 }
