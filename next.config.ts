@@ -28,6 +28,8 @@ const nextConfig: NextConfig = {
     SMTP_FROM: process.env.SMTP_FROM || '',
     NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
     JWT_SECRET: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+    OPENAI_API_KEY_2: process.env.OPENAI_API_KEY_2 || '',
   },
   
   // Security headers

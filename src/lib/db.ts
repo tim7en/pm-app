@@ -10,4 +10,7 @@ export const db =
     log: ['query'],
   })
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+// Safe environment check
+if (typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = db
+}

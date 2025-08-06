@@ -15,17 +15,23 @@ function getOpenAIKey(): string {
   return key
 }
 
-// Initialize OpenAI with safe key retrieval
-let openai: OpenAI
-try {
-  openai = new OpenAI({
-    apiKey: getOpenAIKey(),
-  })
-} catch (error) {
-  console.warn('Failed to initialize OpenAI client:', error)
-  openai = new OpenAI({
-    apiKey: 'dummy-key',
-  })
+// Initialize OpenAI with lazy loading
+let openai: OpenAI | null = null
+
+function getOpenAIClient(): OpenAI {
+  if (!openai) {
+    try {
+      openai = new OpenAI({
+        apiKey: getOpenAIKey(),
+      })
+    } catch (error) {
+      console.warn('Failed to initialize OpenAI client:', error)
+      openai = new OpenAI({
+        apiKey: 'dummy-key',
+      })
+    }
+  }
+  return openai
 }
 
 export interface TaskGenerationRequest {
@@ -102,7 +108,7 @@ Respond with a JSON array of tasks in this format:
 ]
 `
 
-      const completion = await openai.chat.completions.create({
+      const completion = await getOpenAIClient().chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
