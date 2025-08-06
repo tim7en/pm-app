@@ -89,6 +89,25 @@ export const useSocket = (): UseSocketReturn => {
       }))
     })
 
+    // Comment notification handler
+    socketInstance.on('comment-added', (data) => {
+      console.log('New comment notification received:', data)
+      
+      // Show browser notification if permission granted
+      if (Notification.permission === 'granted') {
+        new Notification(`New comment on "${data.taskTitle}"`, {
+          body: `${data.commenterName}: ${data.content.substring(0, 100)}${data.content.length > 100 ? '...' : ''}`,
+          icon: data.commenterAvatar || '/icons/notification.png',
+          tag: `comment-${data.commentId}` // Prevent duplicate notifications
+        })
+      }
+      
+      // Trigger custom event for components to listen to
+      window.dispatchEvent(new CustomEvent('newComment', { 
+        detail: data 
+      }))
+    })
+
     socketInstance.on('notification-count', (data) => {
       console.log('Notification count updated via socket:', data.count)
       setNotificationCount(data.count)

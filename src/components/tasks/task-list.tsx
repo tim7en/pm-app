@@ -26,7 +26,8 @@ import {
   UserCheck,
   Flag,
   ArrowUpDown,
-  Plus
+  Plus,
+  Eye
 } from "lucide-react"
 import { useTranslation } from "@/hooks/use-translation"
 import { TaskStatus, Priority } from "@prisma/client"
@@ -82,8 +83,10 @@ interface TaskListProps {
   onTaskUpdate?: (taskId: string, updates: any) => void
   onTaskDelete?: (taskId: string) => void
   onTaskEdit?: (task: any) => void
+  onTaskView?: (taskId: string) => void
   onCreateTask?: () => void
   onTaskReassign?: (taskId: string, currentAssigneeId?: string) => void
+  onTaskEditWithComments?: (task: any) => void
   currentUserId?: string
   taskType?: 'assigned' | 'created'
 }
@@ -107,8 +110,10 @@ export function TaskList({
   onTaskUpdate, 
   onTaskDelete, 
   onTaskEdit, 
+  onTaskView,
   onCreateTask,
   onTaskReassign,
+  onTaskEditWithComments,
   currentUserId,
   taskType = 'assigned'
 }: TaskListProps) {
@@ -459,7 +464,14 @@ export function TaskList({
                   {/* Actions */}
                   <div className="flex items-center gap-2">
                     {task.commentCount > 0 && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <div 
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-blue-600 cursor-pointer transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onTaskEditWithComments?.(task)
+                        }}
+                        title="View/Add comments"
+                      >
                         <MessageSquare className="h-3 w-3" />
                         <span>{task.commentCount}</span>
                       </div>
@@ -609,6 +621,10 @@ export function TaskList({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onTaskView?.(task.id)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onTaskEdit?.(task)}>
                           {t("tasks.editTask")}
                         </DropdownMenuItem>

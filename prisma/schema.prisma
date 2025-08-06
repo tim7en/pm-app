@@ -61,6 +61,7 @@ model User {
   integrations          Integration[]
   sentInvitations       WorkspaceInvitation[]
   uploadedFiles         TaskAttachment[]
+  uploadedCommentFiles  CommentAttachment[]
   conversationParticipant ConversationParticipant[]
   sentMessages          Message[]
   
@@ -250,6 +251,7 @@ model Comment {
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  attachments CommentAttachment[]
 
   @@map("comments")
 }
@@ -296,6 +298,23 @@ model TaskAttachment {
   user User @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
 
   @@map("task_attachments")
+}
+
+model CommentAttachment {
+  id        String   @id @default(cuid())
+  fileName  String
+  filePath  String
+  fileSize  Int
+  mimeType  String
+  commentId String
+  uploadedBy String
+  createdAt DateTime @default(now())
+
+  // Relations
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  @@map("comment_attachments")
 }
 
 model ProjectTimeline {

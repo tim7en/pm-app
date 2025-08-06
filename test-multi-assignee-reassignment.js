@@ -78,8 +78,8 @@ const checkAssigneesEndpoint = () => {
       },
       {
         name: 'Multi-assignee validation',
-        pattern: /assigneeIds.*array/,
-        found: content.match(/assigneeIds.*array/)
+        pattern: /userIds.*array/,
+        found: content.match(/userIds.*array/)
       }
     ];
     

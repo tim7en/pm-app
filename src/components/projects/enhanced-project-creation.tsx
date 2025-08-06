@@ -189,112 +189,95 @@ export function EnhancedProjectCreation({
             {children}
           </DialogTrigger>
         )}
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Plus className="w-5 h-5" />
+        <DialogContent className="max-w-2xl">
+          <DialogHeader className="text-center pb-2">
+            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               {t("projects.createNew")}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-base text-muted-foreground">
               {t("projects.chooseCreationMethod")}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-6">
-            {/* AI-Powered Creation */}
+          <div className="space-y-4 py-6">
+            {/* AI-Powered Creation - Featured */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
               <Card 
-                className="relative overflow-hidden border-2 border-blue-200 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 hover:border-blue-300 hover:shadow-xl transition-all duration-500 cursor-pointer group"
+                className="relative overflow-hidden border-2 border-blue-200 bg-gradient-to-br from-blue-50/80 via-indigo-50/80 to-purple-50/80 hover:border-blue-300 hover:shadow-xl transition-all duration-500 cursor-pointer group"
                 onClick={() => {
                   setMainDialogOpen(false)
                   setAiWizardOpen(true)
                 }}
               >
-                <div className="absolute top-2 right-2 z-10">
-                  <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white animate-pulse">
+                {/* Recommended Badge */}
+                <div className="absolute top-4 right-4 z-20">
+                  <Badge className="bg-gradient-to-r from-yellow-400 to-orange-400 text-yellow-900 font-semibold shadow-md">
+                    <Star className="w-3 h-3 mr-1 fill-current" />
                     {t("ai.recommended")}
                   </Badge>
                 </div>
-
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 via-purple-400/10 to-indigo-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 
-                <CardHeader className="pb-4 relative z-10">
-                  <div className="flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 via-purple-600 to-indigo-600 rounded-full mb-4 mx-auto group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg">
-                    <Brain className="w-10 h-10 text-white" />
-                  </div>
-                  <CardTitle className="text-center text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    {t("ai.wizard.aiPoweredCreation")}
-                  </CardTitle>
-                  <CardDescription className="text-center text-sm leading-relaxed">
-                    {t("ai.wizard.aiCreationDesc")}
-                  </CardDescription>
-                </CardHeader>
+                {/* Animated background elements */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-2xl transform translate-x-8 -translate-y-8 group-hover:scale-150 transition-transform duration-700" />
                 
-                <CardContent className="space-y-4 relative z-10">
-                  <div className="space-y-3">
-                    <motion.div 
-                      className="flex items-center gap-3 text-sm"
-                      whileHover={{ x: 5 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full shadow-sm" />
-                      <span className="font-medium">{t("ai.wizard.features.smartTasks")}</span>
-                    </motion.div>
-                    <motion.div 
-                      className="flex items-center gap-3 text-sm"
-                      whileHover={{ x: 5 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <div className="w-3 h-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full shadow-sm" />
-                      <span className="font-medium">{t("ai.wizard.features.timelineOptimization")}</span>
-                    </motion.div>
-                    <motion.div 
-                      className="flex items-center gap-3 text-sm"
-                      whileHover={{ x: 5 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <div className="w-3 h-3 bg-gradient-to-r from-green-500 to-green-600 rounded-full shadow-sm" />
-                      <span className="font-medium">{t("ai.wizard.features.calendarIntegration")}</span>
-                    </motion.div>
-                    <motion.div 
-                      className="flex items-center gap-3 text-sm"
-                      whileHover={{ x: 5 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <div className="w-3 h-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full shadow-sm" />
-                      <span className="font-medium">{t("ai.wizard.features.teamAssignments")}</span>
-                    </motion.div>
-                  </div>
-
-                  <div className="pt-4 border-t border-blue-200/50">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="w-3 h-3 text-blue-500" />
-                        <span className="font-medium">{t("ai.wizard.aiPowered")}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="font-medium">{t("ai.recommended")}</span>
-                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400 animate-pulse" />
+                <CardContent className="p-8">
+                  <div className="flex items-start gap-6">
+                    {/* Icon */}
+                    <div className="flex-shrink-0">
+                      <div className="flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl group-hover:scale-110 transition-all duration-300 shadow-lg">
+                        <Brain className="w-12 h-12 text-white" />
                       </div>
                     </div>
+                    
+                    {/* Content */}
+                    <div className="flex-1 space-y-4">
+                      <div>
+                        <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                          {t("ai.wizard.aiPoweredCreation")}
+                        </h3>
+                        <p className="text-muted-foreground text-sm">
+                          {t("ai.wizard.aiCreationDesc")}
+                        </p>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                          <span>{t("ai.wizard.features.smartTasks")}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="w-2 h-2 bg-purple-500 rounded-full" />
+                          <span>{t("ai.wizard.features.timelineOptimization")}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="w-2 h-2 bg-green-500 rounded-full" />
+                          <span>{t("ai.wizard.features.calendarIntegration")}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="w-2 h-2 bg-orange-500 rounded-full" />
+                          <span>{t("ai.wizard.features.teamAssignments")}</span>
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        size="lg"
+                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300 font-semibold text-white"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setMainDialogOpen(false)
+                          setAiWizardOpen(true)
+                        }}
+                      >
+                        <Zap className="w-5 h-5 mr-2" />
+                        {t("ai.wizard.startAICreation")}
+                        <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
+                      </Button>
+                    </div>
                   </div>
-
-                  <Button 
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300 font-semibold"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setMainDialogOpen(false)
-                      setAiWizardOpen(true)
-                    }}
-                  >
-                    <Zap className="w-4 h-4 mr-2" />
-                    {t("ai.wizard.startAICreation")}
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
-                  </Button>
                 </CardContent>
               </Card>
             </motion.div>
@@ -312,70 +295,53 @@ export function EnhancedProjectCreation({
                   setStandardDialogOpen(true)
                 }}
               >
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-gray-500 to-gray-600 rounded-full mb-4 mx-auto group-hover:scale-110 transition-transform duration-300">
-                    <Target className="w-8 h-8 text-white" />
-                  </div>
-                  <CardTitle className="text-center">
-                    {t("projects.standardCreation")}
-                  </CardTitle>
-                  <CardDescription className="text-center">
-                    {t("projects.standardCreationDesc")}
-                  </CardDescription>
-                </CardHeader>
-                
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 text-sm">
-                      <div className="w-2 h-2 bg-gray-500 rounded-full" />
-                      <span>{t("projects.features.basicSetup")}</span>
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl group-hover:scale-105 transition-transform duration-300">
+                      <Target className="w-7 h-7 text-white" />
                     </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <div className="w-2 h-2 bg-gray-500 rounded-full" />
-                      <span>{t("projects.features.manualTasks")}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <div className="w-2 h-2 bg-gray-500 rounded-full" />
-                      <span>{t("projects.features.customTimeline")}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <div className="w-2 h-2 bg-gray-500 rounded-full" />
-                      <span>{t("projects.features.fullControl")}</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-gray-200">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-3 h-3" />
-                        <span>{t("projects.traditional")}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-3 h-3" />
-                        <span>{t("projects.manualSetup")}</span>
+                    
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        {t("projects.standardCreation")}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {t("projects.standardCreationDesc")}
+                      </p>
+                      
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          <span>{t("projects.traditional")}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          <span>{t("projects.manualSetup")}</span>
+                        </div>
                       </div>
                     </div>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="flex-shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setMainDialogOpen(false)
+                        setStandardDialogOpen(true)
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      {t("projects.createStandard")}
+                    </Button>
                   </div>
-
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setMainDialogOpen(false)
-                      setStandardDialogOpen(true)
-                    }}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    {t("projects.createStandard")}
-                  </Button>
                 </CardContent>
               </Card>
             </motion.div>
           </div>
 
-          <div className="flex items-center justify-center pt-4 border-t">
-            <p className="text-sm text-muted-foreground text-center">
+          <div className="text-center pt-4 border-t">
+            <p className="text-sm text-muted-foreground">
               {t("ai.wizard.chooseBestOption")}
             </p>
           </div>

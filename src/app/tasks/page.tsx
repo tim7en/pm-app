@@ -85,8 +85,10 @@ export default function TasksPage() {
     taskId: string
     taskTitle: string
     currentAssigneeId?: string
+    currentAssigneeIds?: string[]
   } | null>(null)
   const [taskView, setTaskView] = useState<"list" | "board" | "gantt">("list")
+  const [openCommentsTab, setOpenCommentsTab] = useState(false)
   const [filters, setFilters] = useState({
     search: "",
     status: "all",
@@ -122,6 +124,40 @@ export default function TasksPage() {
       fetchUsers()
     }
   }, [isAuthenticated, isLoading, currentWorkspace, router])
+
+  // Listen for global comment notifications
+  useEffect(() => {
+    const handleNewComment = (event: CustomEvent) => {
+      const data = event.detail
+      // Show toast notification for new comments on tasks
+      toast({
+        title: "New Comment",
+        description: `${data.commenterName} commented on "${data.taskTitle}"`,
+        action: (
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              const task = tasks.find(t => t.id === data.taskId)
+              if (task) {
+                handleTaskEditWithComments(task)
+              }
+            }}
+          >
+            View
+          </Button>
+        ),
+      })
+      // Refresh tasks to update comment count
+      fetchTasks()
+    }
+
+    window.addEventListener('newComment', handleNewComment as EventListener)
+    
+    return () => {
+      window.removeEventListener('newComment', handleNewComment as EventListener)
+    }
+  }, [tasks, toast])
 
   const fetchTasks = async () => {
     if (!currentWorkspace) return
@@ -312,17 +348,36 @@ export default function TasksPage() {
     const task = tasks.find(t => t.id === taskId)
     if (!task) return
     
+    // Get current assignees from the task
+    const currentAssigneeIds: string[] = []
+    
+    // Support both legacy assigneeId and new assignees array
+    // Use type assertion since the Task type might not include assignees yet
+    const taskWithAssignees = task as any
+    if (taskWithAssignees.assignees && taskWithAssignees.assignees.length > 0) {
+      currentAssigneeIds.push(...taskWithAssignees.assignees.map((a: any) => a.user.id))
+    } else if (task.assignee?.id) {
+      currentAssigneeIds.push(task.assignee.id)
+    }
+    
     setReassignTaskData({
       taskId,
       taskTitle: task.title,
-      currentAssigneeId
+      currentAssigneeId,
+      currentAssigneeIds
     })
     setReassignDialogOpen(true)
   }
 
-  const handleReassignComplete = async (taskId: string, newAssigneeId?: string) => {
+  const handleReassignComplete = async (taskId: string, newAssigneeIds?: string[]) => {
     // Refresh tasks to get updated assignee information
     await fetchTasks()
+  }
+
+  const handleTaskEditWithComments = (task: any) => {
+    setEditingTask(task)
+    setOpenCommentsTab(true)
+    setTaskDialogOpen(true)
   }
 
   const filteredTasks = tasks.filter(task => {
@@ -550,8 +605,13 @@ export default function TasksPage() {
                   onTaskDelete={handleDeleteTask}
                   onTaskEdit={(task) => {
                     setEditingTask(task)
+                    setOpenCommentsTab(false)
                     setTaskDialogOpen(true)
                   }}
+                  onTaskView={(taskId) => {
+                    router.push(`/tasks/${taskId}`)
+                  }}
+                  onTaskEditWithComments={handleTaskEditWithComments}
                   onCreateTask={() => {
                     setInitialTaskStatus(undefined)
                     setTaskDialogOpen(true)
@@ -599,12 +659,15 @@ export default function TasksPage() {
           if (!open) {
             setEditingTask(null)
             setInitialTaskStatus(undefined)
+            setOpenCommentsTab(false)
           }
         }}
         task={editingTask ? convertTaskForDialog(editingTask) : undefined}
         initialStatus={initialTaskStatus}
+        initialTab={openCommentsTab ? "comments" : "details"}
         projects={projects}
         onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
+        onTaskUpdate={handleTaskUpdate}
       />
 
       {/* Task Reassign Dialog */}
@@ -615,6 +678,7 @@ export default function TasksPage() {
           taskId={reassignTaskData.taskId}
           taskTitle={reassignTaskData.taskTitle}
           currentAssigneeId={reassignTaskData.currentAssigneeId}
+          currentAssigneeIds={reassignTaskData.currentAssigneeIds}
           onReassignComplete={handleReassignComplete}
         />
       )}

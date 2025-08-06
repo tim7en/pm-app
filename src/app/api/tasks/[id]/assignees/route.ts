@@ -215,12 +215,9 @@ export async function POST(
           title: 'Task Assigned',
           message: `You have been assigned to task: ${task.title}`,
           userId: assignment.userId,
-          data: {
-            taskId: task.id,
-            taskTitle: task.title,
-            projectId: task.projectId,
-            assignedBy: session.user.name || session.user.email
-          }
+          relatedId: task.id,
+          relatedUrl: `/tasks/${task.id}`,
+          senderName: session.user.name || session.user.email
         })
       )
     )
@@ -233,6 +230,178 @@ export async function POST(
     console.error('Error assigning users to task:', error)
     return NextResponse.json(
       { error: 'Failed to assign users to task' },
+      { status: 500 }
+    )
+  }
+}
+
+// PUT /api/tasks/[id]/assignees - Replace all assignees (for reassignment)
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getAuthSession(request)
+    const { id } = await params
+    
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
+    const body = await request.json()
+    const { userIds } = body
+
+    if (!Array.isArray(userIds)) {
+      return NextResponse.json(
+        { error: 'userIds array is required' },
+        { status: 400 }
+      )
+    }
+
+    // Get task with project info
+    const task = await db.task.findUnique({
+      where: { id },
+      include: {
+        project: {
+          include: {
+            workspace: {
+              select: { id: true, name: true }
+            }
+          }
+        },
+        assignees: {
+          select: { userId: true }
+        }
+      }
+    })
+
+    if (!task) {
+      return NextResponse.json(
+        { error: 'Task not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check if user can assign tasks
+    const canAssign = await canUserPerformAction(session.user.id, task.project.id, 'canAssignTask')
+    if (!canAssign) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to assign tasks' },
+        { status: 403 }
+      )
+    }
+
+    // If userIds is empty, remove all assignees
+    if (userIds.length === 0) {
+      // Remove all assignments
+      await db.taskAssignee.deleteMany({
+        where: { taskId: id }
+      })
+
+      // Update legacy assigneeId
+      await db.task.update({
+        where: { id },
+        data: { assigneeId: null }
+      })
+
+      return NextResponse.json({
+        message: 'All assignees removed from task',
+        assignments: []
+      })
+    }
+
+    // Validate that all users exist and are workspace members
+    const users = await db.user.findMany({
+      where: { id: { in: userIds } },
+      include: {
+        workspaceMembers: {
+          where: { workspaceId: task.project.workspaceId },
+          select: { workspaceId: true }
+        }
+      }
+    })
+
+    if (users.length !== userIds.length) {
+      return NextResponse.json(
+        { error: 'One or more users not found' },
+        { status: 400 }
+      )
+    }
+
+    // Check workspace membership
+    const nonMembers = users.filter(user => user.workspaceMembers.length === 0)
+    if (nonMembers.length > 0) {
+      return NextResponse.json(
+        { error: `Users not in workspace: ${nonMembers.map(u => u.email).join(', ')}` },
+        { status: 400 }
+      )
+    }
+
+    // Use a transaction to replace all assignees atomically
+    const result = await db.$transaction(async (tx) => {
+      // Remove all existing assignments
+      await tx.taskAssignee.deleteMany({
+        where: { taskId: id }
+      })
+
+      // Create new assignments
+      const newAssignments = await Promise.all(
+        userIds.map(userId =>
+          tx.taskAssignee.create({
+            data: {
+              taskId: id,
+              userId,
+              assignedBy: session.user.id
+            },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  avatar: true
+                }
+              }
+            }
+          })
+        )
+      )
+
+      // Update legacy assigneeId
+      await tx.task.update({
+        where: { id },
+        data: { assigneeId: userIds[0] || null }
+      })
+
+      return newAssignments
+    })
+
+    // Send notifications to newly assigned users
+    await Promise.all(
+      result.map(assignment =>
+        NotificationService.createNotification({
+          type: 'TASK_ASSIGNED',
+          title: 'Task Assigned',
+          message: `You have been assigned to task: ${task.title}`,
+          userId: assignment.userId,
+          relatedId: task.id,
+          relatedUrl: `/tasks/${task.id}`,
+          senderName: session.user.name || session.user.email
+        })
+      )
+    )
+
+    return NextResponse.json({
+      message: `Task reassigned to ${result.length} user(s)`,
+      assignments: result
+    })
+  } catch (error) {
+    console.error('Error replacing task assignees:', error)
+    return NextResponse.json(
+      { error: 'Failed to replace task assignees' },
       { status: 500 }
     )
   }

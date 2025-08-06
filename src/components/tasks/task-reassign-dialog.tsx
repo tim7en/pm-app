@@ -98,18 +98,18 @@ export function TaskReassignDialog({
   const handleReassign = async () => {
     setReassigning(true)
     try {
-      // Use the new assignees endpoint for multi-assignee support
-      if (selectedAssigneeIds.length > 0) {
-        // Replace all assignees with the selected ones
-        const response = await apiCall(`/api/tasks/${taskId}/assignees`, {
-          method: 'POST',
-          body: JSON.stringify({
-            userIds: selectedAssigneeIds
-          })
+      // Use PUT to replace all assignees (proper reassignment)
+      const response = await apiCall(`/api/tasks/${taskId}/assignees`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          userIds: selectedAssigneeIds
         })
+      })
 
-        if (response.ok) {
-          const result = await response.json()
+      if (response.ok) {
+        const result = await response.json()
+        
+        if (selectedAssigneeIds.length > 0) {
           const assigneeNames = selectedAssigneeIds
             .map(id => members.find(m => m.id === id)?.name || t("tasks.unknown"))
             .join(", ")
@@ -118,40 +118,22 @@ export function TaskReassignDialog({
             title: t("tasks.taskReassigned"),
             description: result.message || t("tasks.taskAssignedTo", { name: assigneeNames })
           })
-          
-          onReassignComplete?.(taskId, selectedAssigneeIds)
-          onOpenChange(false)
         } else {
-          const errorData = await response.json().catch(() => ({}))
-          toast({
-            title: t("error.title"),
-            description: errorData.message || t("error.reassigningTask"),
-            variant: "destructive"
-          })
-        }
-      } else {
-        // Remove all assignees by calling DELETE
-        const response = await apiCall(`/api/tasks/${taskId}/assignees`, {
-          method: 'DELETE'
-        })
-
-        if (response.ok) {
-          const result = await response.json()
           toast({
             title: t("tasks.taskReassigned"),
             description: result.message || t("tasks.taskUnassigned")
           })
-          
-          onReassignComplete?.(taskId, [])
-          onOpenChange(false)
-        } else {
-          const errorData = await response.json().catch(() => ({}))
-          toast({
-            title: t("error.title"),
-            description: errorData.message || t("error.reassigningTask"),
-            variant: "destructive"
-          })
         }
+        
+        onReassignComplete?.(taskId, selectedAssigneeIds)
+        onOpenChange(false)
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        toast({
+          title: t("error.title"),
+          description: errorData.message || t("error.reassigningTask"),
+          variant: "destructive"
+        })
       }
     } catch (error) {
       console.error('Error reassigning task:', error)

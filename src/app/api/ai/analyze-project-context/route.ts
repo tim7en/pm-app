@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthSession } from '@/lib/auth'
-import OpenAI from 'openai'
+// import OpenAI from 'openai' // Commented out - now using Z.AI
+import { ZaiClient } from '@/lib/zai-client'
 
-// Initialize OpenAI with API key
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
-})
+// Initialize OpenAI with API key (kept for fallback)
+// const openai = new OpenAI({
+//   apiKey: process.env.OPENAI_API_KEY || '',
+// })
+
+// Initialize Z.AI client
+const zai = new ZaiClient(process.env.ZAI_API_KEY || '')
 
 export async function POST(request: NextRequest) {
   try {
@@ -61,8 +65,10 @@ Provide a structured analysis including:
 `
 
     try {
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+      console.log('🤖 Using Z.AI for project context analysis...')
+      
+      const completion = await zai.chat.completions.create({
+        model: "glm-4-32b-0414-128k",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
@@ -74,17 +80,52 @@ Provide a structured analysis including:
       const analysisText = completion.choices[0]?.message?.content
 
       if (!analysisText) {
-        throw new Error('No analysis generated')
+        throw new Error('No analysis generated from Z.AI')
       }
 
       // Parse the analysis into structured data
       const analysis = parseAnalysis(analysisText, language)
 
+      console.log('✅ Z.AI analysis successful')
       return NextResponse.json({ analysis })
-    } catch (openaiError: any) {
-      console.error('OpenAI API error:', openaiError)
+    } catch (zaiError: any) {
+      console.error('Z.AI API error:', zaiError)
       
-      // Fallback to mock analysis if OpenAI fails
+      // Fallback to OpenAI if available (commented out for now)
+      /*
+      try {
+        console.log('🔄 Falling back to OpenAI...')
+        const { default: OpenAI } = await import('openai')
+        const openai = new OpenAI({
+          apiKey: process.env.OPENAI_API_KEY || '',
+        })
+        
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000,
+        })
+
+        const analysisText = completion.choices[0]?.message?.content
+
+        if (!analysisText) {
+          throw new Error('No analysis generated from OpenAI fallback')
+        }
+
+        const analysis = parseAnalysis(analysisText, language)
+        console.log('✅ OpenAI fallback successful')
+        return NextResponse.json({ analysis })
+      } catch (openaiError: any) {
+        console.error('OpenAI fallback also failed:', openaiError)
+      }
+      */
+      
+      // Fallback to mock analysis if Z.AI fails
+      console.log('🔄 Using mock analysis fallback...')
       const mockAnalysis = createMockAnalysis(projectName, category, priority, language)
       return NextResponse.json({ analysis: mockAnalysis })
     }

@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthSession } from '@/lib/auth'
-import OpenAI from 'openai'
+// import OpenAI from 'openai' // Commented out - now using Z.AI
+import { ZaiClient } from '@/lib/zai-client'
 import { addDays, addWeeks } from 'date-fns'
 
-// Initialize OpenAI with API key
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
-})
+// Initialize OpenAI with API key (kept for fallback)
+// const openai = new OpenAI({
+//   apiKey: process.env.OPENAI_API_KEY || '',
+// })
+
+// Initialize Z.AI client
+const zai = new ZaiClient(process.env.ZAI_API_KEY || '')
 
 interface GeneratedTask {
   id: string
@@ -56,8 +60,11 @@ export async function POST(request: NextRequest) {
       const systemPrompt = getSystemPrompt(language)
       const userPrompt = createUserPrompt(projectName, description, category, priority, dueDate, analysis, language)
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+      console.log('🤖 Using Z.AI for project task generation...')
+      
+      // Use Z.AI instead of OpenAI
+      const completion = await zai.chat.completions.create({
+        model: "glm-4-32b-0414-128k",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
@@ -69,18 +76,54 @@ export async function POST(request: NextRequest) {
       const tasksText = completion.choices[0]?.message?.content
 
       if (!tasksText) {
-        throw new Error('No tasks generated')
+        throw new Error('No tasks generated from Z.AI')
       }
 
       // Parse the generated tasks
       const tasks = parseGeneratedTasks(tasksText, dueDate)
       const timeline = generateTimeline(tasks, dueDate)
 
+      console.log('✅ Z.AI task generation successful')
       return NextResponse.json({ tasks, timeline })
-    } catch (openaiError: any) {
-      console.error('OpenAI API error:', openaiError)
+    } catch (zaiError: any) {
+      console.error('Z.AI API error:', zaiError)
+      
+      // Fallback to OpenAI if available (commented out for now)
+      /*
+      try {
+        console.log('🔄 Falling back to OpenAI...')
+        const openai = new (await import('openai')).default({
+          apiKey: process.env.OPENAI_API_KEY || '',
+        })
+        
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 3000,
+        })
+
+        const tasksText = completion.choices[0]?.message?.content
+
+        if (!tasksText) {
+          throw new Error('No tasks generated from OpenAI fallback')
+        }
+
+        const tasks = parseGeneratedTasks(tasksText, dueDate)
+        const timeline = generateTimeline(tasks, dueDate)
+
+        console.log('✅ OpenAI fallback successful')
+        return NextResponse.json({ tasks, timeline })
+      } catch (openaiError: any) {
+        console.error('OpenAI fallback also failed:', openaiError)
+      }
+      */
       
       // Fallback to rule-based task generation
+      console.log('🔄 Using rule-based fallback task generation...')
       const tasks = generateFallbackTasks(projectName, description, category, priority, dueDate, language)
       const timeline = generateTimeline(tasks, dueDate)
       

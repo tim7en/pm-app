@@ -37,13 +37,16 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { CalendarIcon, Plus, X } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { CalendarIcon, Plus, X, MessageSquare, AlertCircle } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { TaskStatus, Priority } from "@prisma/client"
 import { useAuth } from "@/contexts/AuthContext"
 import { useTranslation } from "@/hooks/use-translation"
+import { useAPI } from "@/hooks/use-api"
 import { TaskAttachments } from "./task-attachments"
+import { TaskComments } from "./task-comments"
 
 const taskSchema = z.object({
   title: z.string().min(1, "Task title is required"),
@@ -100,6 +103,7 @@ interface TaskDialogProps {
     subtasks: Array<{ title: string; isCompleted: boolean }>
   }
   initialStatus?: TaskStatus
+  initialTab?: "details" | "comments"
   projects: Array<{ 
     id: string
     name: string
@@ -109,6 +113,7 @@ interface TaskDialogProps {
     isOwner?: boolean
   }>
   onSubmit: (data: TaskFormData) => Promise<void>
+  onTaskUpdate?: (taskId: string, updates: any) => Promise<void>
   isSubmitting?: boolean
 }
 
@@ -128,17 +133,33 @@ export function TaskDialog({
   onOpenChange,
   task,
   initialStatus,
+  initialTab = "details",
   projects,
   onSubmit,
+  onTaskUpdate,
   isSubmitting = false,
 }: TaskDialogProps) {
   const { user, currentWorkspace } = useAuth()
   const { t } = useTranslation()
+  const { apiCall } = useAPI()
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMember[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [userRole, setUserRole] = useState<string>('MEMBER')
   const [selectedProjectOwnership, setSelectedProjectOwnership] = useState<boolean>(false)
+  const [activeTab, setActiveTab] = useState<"details" | "comments">("details")
+  const [currentTaskStatus, setCurrentTaskStatus] = useState<TaskStatus>(task?.status || TaskStatus.TODO)
+  const [comments, setComments] = useState<Array<{
+    id: string
+    content: string
+    createdAt: Date
+    user: {
+      id: string
+      name: string
+      avatar?: string
+    }
+  }>>([])
+  const [commentsLoading, setCommentsLoading] = useState(false)
 
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
@@ -171,7 +192,7 @@ export function TaskDialog({
         assigneeIds: assigneeIds,
         priority: task.priority || Priority.MEDIUM,
         dueDate: task.dueDate || undefined,
-        status: task.status || TaskStatus.TODO,
+        status: currentTaskStatus,
         tags: task.tags || [],
         subtasks: task.subtasks || [],
       })
@@ -191,6 +212,20 @@ export function TaskDialog({
       })
     }
   }, [task, projects, form, initialStatus])
+
+  // Update current task status when task prop changes
+  useEffect(() => {
+    if (task?.status) {
+      setCurrentTaskStatus(task.status)
+    }
+  }, [task?.status])
+
+  // Update form status when current task status changes
+  useEffect(() => {
+    if (task) { // Only update for existing tasks
+      form.setValue('status', currentTaskStatus)
+    }
+  }, [currentTaskStatus, form, task])
 
   // Watch project changes to fetch workspace members and check ownership
   const watchedProjectId = form.watch("projectId")
@@ -285,6 +320,40 @@ export function TaskDialog({
     onOpenChange(false)
   }
 
+  const fetchComments = async () => {
+    if (!task) return
+    
+    setCommentsLoading(true)
+    try {
+      const response = await apiCall(`/api/tasks/${task.id}/comments`)
+      if (response.ok) {
+        const data = await response.json()
+        setComments(data.map((comment: any) => ({
+          ...comment,
+          createdAt: new Date(comment.createdAt)
+        })))
+      }
+    } catch (error) {
+      console.error('Error fetching comments:', error)
+    } finally {
+      setCommentsLoading(false)
+    }
+  }
+
+  // Fetch comments when task changes or comments tab is opened
+  useEffect(() => {
+    if (task && activeTab === 'comments') {
+      fetchComments()
+    }
+  }, [task, activeTab])
+
+  // Set initial tab when dialog opens
+  useEffect(() => {
+    if (open) {
+      setActiveTab(initialTab)
+    }
+  }, [open, initialTab])
+
   // Filter projects based on user role
   const availableProjects = projects.filter(project => {
     // OWNER and ADMIN can create tasks in any project
@@ -305,6 +374,23 @@ export function TaskDialog({
     return member.id === user?.id
   })
 
+  // Determine if user can edit the task
+  // Task creators and project owners can always edit
+  // Others who complete the task cannot edit unless they are creators/project owners
+  const canEditTask = () => {
+    if (!task || !user) return true // For new tasks, allow editing
+    
+    // Find the selected project for permission checks
+    const selectedProject = projects.find(p => p.id === form.watch('projectId'))
+    const isProjectOwner = selectedProject?.owner?.id === user.id || selectedProject?.isOwner === true
+    
+    // Check if user is task creator (we'll need to add this to task interface)
+    // For now, we'll allow project owners and assume task creator info will be available
+    return isProjectOwner || userRole === 'OWNER' || userRole === 'ADMIN'
+  }
+
+  const taskEditDisabled = !canEditTask()
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
@@ -319,8 +405,40 @@ export function TaskDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "details" | "comments")}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger 
+              value="details" 
+              className={taskEditDisabled ? "opacity-60" : ""}
+            >
+              Task Details
+            </TabsTrigger>
+            <TabsTrigger 
+              value="comments" 
+              className="flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-700 font-medium"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Comments & Status
+              {task && (
+                <Badge variant="secondary" className="ml-1 text-xs bg-blue-100 text-blue-700">
+                  {comments.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="details" className="mt-4">
+            <div className={`${taskEditDisabled ? 'opacity-50 pointer-events-none' : ''} transition-opacity`}>
+              {taskEditDisabled && (
+                <div className="mb-4 p-3 bg-gray-100 border border-gray-200 rounded-lg">
+                  <p className="text-sm text-gray-600 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    Task editing is restricted to task creators and project owners. Use the Comments & Status tab to change task status.
+                  </p>
+                </div>
+              )}
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="title"
@@ -701,21 +819,63 @@ export function TaskDialog({
               </div>
             )}
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                {t("common.cancel")}
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? t("common.loading") : task ? t("common.update") : t("common.create")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                    disabled={isSubmitting}
+                  >
+                    {t("common.cancel")}
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? t("common.loading") : task ? t("common.update") : t("common.create")}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="comments" className="mt-4">
+            {task ? (
+              <div className="space-y-4">
+                {commentsLoading ? (
+                  <div className="text-center py-4">Loading comments...</div>
+                ) : (
+                  <TaskComments 
+                    taskId={task.id} 
+                    comments={comments}
+                    onUpdate={fetchComments}
+                    canComment={true}
+                    currentStatus={currentTaskStatus}
+                    canChangeStatus={true} // Allow everyone to change status as per requirements
+                    onStatusChange={async (newStatus) => {
+                      // Update local state immediately for UI responsiveness
+                      setCurrentTaskStatus(newStatus)
+                      
+                      // Notify parent component about the status change
+                      if (onTaskUpdate && task) {
+                        try {
+                          await onTaskUpdate(task.id, { status: newStatus })
+                        } catch (error) {
+                          // Revert local state if the update fails
+                          setCurrentTaskStatus(task.status)
+                          console.error('Failed to update task status:', error)
+                        }
+                      }
+                    }}
+                  />
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Comments will be available after the task is created.</p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   )

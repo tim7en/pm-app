@@ -150,6 +150,31 @@ export function AIProjectCreationWizard({
   const { t } = useTranslation()
   const { toast } = useToast()
 
+  // Simple function to generate project insights when API is used
+  const generateProjectInsights = (projectData: ProjectFormData, tasks: any[]) => {
+    const complexity = tasks.length > 10 ? 'High' : tasks.length > 5 ? 'Medium' : 'Low'
+    const totalHours = tasks.reduce((sum, task) => sum + (task.estimatedHours || 4), 0)
+    const avgHoursPerDay = 6 // Assume 6 productive hours per day
+    const estimatedDays = Math.ceil(totalHours / avgHoursPerDay)
+    
+    return {
+      complexity,
+      estimatedDuration: `${estimatedDays} days`,
+      totalTasks: tasks.length,
+      totalHours,
+      riskFactors: [
+        ...(complexity === 'High' ? ['High complexity may require additional planning'] : []),
+        ...(projectData.priority === 'URGENT' ? ['Urgent timeline may require extra resources'] : []),
+        ...(tasks.length > 15 ? ['Large number of tasks may need careful coordination'] : [])
+      ],
+      recommendations: [
+        'Regular team check-ins recommended',
+        ...(complexity === 'High' ? ['Consider breaking down complex tasks further'] : []),
+        ...(projectData.dueDate ? ['Monitor progress against deadline closely'] : ['Set clear milestones and deadlines'])
+      ]
+    }
+  }
+
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
@@ -236,10 +261,69 @@ export function AIProjectCreationWizard({
     console.log('🚀 Starting AI task generation...', { projectData })
     setIsGenerating(true)
     try {
-      // For demo purposes, use mock data based on project description keywords
-      // In production, this would call the actual AI API
-      console.log('📦 Importing mock data...')
-      const { mockProjectScenarios, generateProjectInsights } = await import('@/data/ai-mock-data')
+      // First try to call the actual Z.AI API for enhanced task generation
+      console.log('🤖 Calling Z.AI API for intelligent task generation...')
+      
+      try {
+        const response = await fetch('/api/ai/generate-project-tasks', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: projectData.name,
+            description: projectData.description,
+            category: projectData.category,
+            priority: projectData.priority,
+            dueDate: projectData.dueDate?.toISOString(),
+            language: 'en' // Could be made dynamic based on user preference
+          })
+        })
+
+        if (response.ok) {
+          const apiResult = await response.json()
+          console.log('✅ Z.AI API call successful:', apiResult)
+          
+          if (apiResult.tasks && apiResult.tasks.length > 0) {
+            const tasks = apiResult.tasks.map((task: any) => ({
+              id: task.id || `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              title: task.title,
+              description: task.description,
+              priority: task.priority,
+              estimatedHours: task.estimatedHours || 4,
+              dependsOn: task.dependsOn || [],
+              assigneeId: undefined,
+              dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+              category: task.category,
+              tags: task.tags || [],
+              status: 'TODO' as const
+            }))
+            
+            console.log('✅ Z.AI generated tasks:', tasks.length, 'tasks')
+            setGeneratedTasks(tasks)
+            
+            // Generate calendar events based on API-generated tasks
+            const events = generateCalendarEvents(tasks, projectData.dueDate, projectData)
+            setCalendarEvents(events)
+            
+            // Generate AI analysis summary using local function
+            const analysis = generateProjectInsights(projectData, tasks)
+            setAiAnalysis(analysis)
+            
+            setCurrentStep(WizardStep.TASK_REVIEW)
+            setIsGenerating(false)
+            return
+          }
+        } else {
+          console.log('❌ Z.AI API call failed, falling back to mock data')
+        }
+      } catch (apiError) {
+        console.error('❌ Z.AI API error, falling back to mock data:', apiError)
+      }
+      
+      // Fallback to mock data if API fails
+      console.log('📦 Using mock data as fallback...')
+      const { mockProjectScenarios, generateProjectInsights: generateMockInsights } = await import('@/data/ai-mock-data')
       console.log('✅ Mock data imported successfully', { scenarioCount: mockProjectScenarios.length })
       
       // Enhanced matching logic considering both category and description
@@ -330,7 +414,7 @@ export function AIProjectCreationWizard({
       
       // Set AI analysis with mock data
       console.log('🧠 Generating AI insights...')
-      const insights = generateProjectInsights(selectedScenario)
+      const insights = selectedScenario.aiAnalysis
       setAiAnalysis({
         complexity: selectedScenario.aiAnalysis.complexity,
         estimatedHours: selectedScenario.aiAnalysis.estimatedHours,

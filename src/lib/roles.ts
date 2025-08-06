@@ -697,26 +697,25 @@ export async function getAccessibleTasks(userId: string, projectId?: string) {
         avatar: true
       }
     },
-    // TODO: Re-enable assignees once the relation is working properly
-    // assignees: {
-    //   include: {
-    //     user: {
-    //       select: {
-    //         id: true,
-    //         name: true,
-    //         email: true,
-    //         avatar: true
-    //       }
-    //     },
-    //     assignedByUser: {
-    //       select: {
-    //         id: true,
-    //         name: true,
-    //         email: true
-    //       }
-    //     }
-    //   }
-    // },
+    assignees: {
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatar: true
+          }
+        },
+        assignedByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    },
     creator: {
       select: {
         id: true,
@@ -793,8 +792,8 @@ export async function getAccessibleTasks(userId: string, projectId?: string) {
         OR: [
           // Tasks assigned to the user (legacy single assignee)
           { assigneeId: userId },
-          // Tasks assigned to the user (new multi-assignee) - TODO: Re-enable when assignees relation is working
-          // { assignees: { some: { userId } } },
+          // Tasks assigned to the user (new multi-assignee)
+          { assignees: { some: { userId } } },
           // Tasks created by the user
           { creatorId: userId },
           // Tasks from projects they own
@@ -834,8 +833,8 @@ export async function getAccessibleTasks(userId: string, projectId?: string) {
       OR: [
         // Tasks assigned to the user (legacy single assignee)
         { assigneeId: userId },
-        // Tasks assigned to the user (new multi-assignee) - TODO: Re-enable when assignees relation is working
-        // { assignees: { some: { userId } } },
+        // Tasks assigned to the user (new multi-assignee)
+        { assignees: { some: { userId } } },
         // Tasks created by the user
         { creatorId: userId },
         // Tasks from projects they own (in case they own a project but have MEMBER role)
@@ -868,10 +867,9 @@ export async function canUserPerformTaskAction(
       project: {
         select: { id: true, ownerId: true, workspaceId: true }
       },
-      // TODO: Re-enable assignees once the relation is working properly
-      // assignees: {
-      //   select: { userId: true }
-      // }
+      assignees: {
+        select: { userId: true }
+      }
     }
   })
 
@@ -884,8 +882,8 @@ export async function canUserPerformTaskAction(
     return true
   }
 
-  // If user is assigned to the task (legacy single assignee), they can edit it (but not delete it unless they created it)
-  const isAssigned = task.assigneeId === userId // TODO: Add multi-assignee check when assignees relation is working
+  // If user is assigned to the task (legacy single assignee or multi-assignee), they can edit it (but not delete it unless they created it)
+  const isAssigned = task.assigneeId === userId || task.assignees.some(assignee => assignee.userId === userId)
   if (action === 'canEditTask' && isAssigned) {
     return true
   }
