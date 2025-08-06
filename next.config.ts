@@ -27,6 +27,7 @@ const nextConfig: NextConfig = {
     SMTP_PASS: process.env.SMTP_PASS || '',
     SMTP_FROM: process.env.SMTP_FROM || '',
     NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+    JWT_SECRET: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
   },
   
   // Security headers

@@ -2,7 +2,13 @@ import { NextRequest } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { db } from './db'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+// Safe environment variable access
+function getJWTSecret(): string {
+  if (typeof window !== 'undefined') {
+    throw new Error('JWT secret should not be accessed on client side')
+  }
+  return process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+}
 
 export interface AuthUser {
   id: string
@@ -45,7 +51,7 @@ export async function getAuthSession(request: NextRequest): Promise<AuthSession 
  */
 async function verifyToken(token: string): Promise<AuthSession | null> {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any
+    const decoded = jwt.verify(token, getJWTSecret()) as any
     
     if (!decoded.userId) {
       return null
@@ -92,7 +98,7 @@ async function verifyToken(token: string): Promise<AuthSession | null> {
 export function createToken(userId: string): string {
   return jwt.sign(
     { userId },
-    JWT_SECRET,
+    getJWTSecret(),
     { expiresIn: '30d' } // Token expires in 30 days
   )
 }
