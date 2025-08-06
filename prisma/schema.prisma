@@ -547,6 +547,7 @@ enum NotificationType {
   WORKSPACE_REMOVED
   ROLE_CHANGE
   DEADLINE_APPROACHING
+  MESSAGE
 }
 
 enum InvitationStatus {

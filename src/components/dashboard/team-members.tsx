@@ -42,6 +42,7 @@ interface TeamMember {
   lastSeen?: Date
   department?: string
   title?: string
+  unreadCount?: number
 }
 
 interface TeamMembersProps {
@@ -57,6 +58,7 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
   const [editPositionDialogOpen, setEditPositionDialogOpen] = useState(false)
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
   const { currentWorkspaceId, user } = useAuth()
   
   const targetWorkspaceId = workspaceId || currentWorkspaceId
@@ -68,9 +70,13 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
   useEffect(() => {
     if (targetWorkspaceId) {
       fetchTeamMembers()
+      loadUnreadCounts()
       
       // Set up interval to refresh online status every 30 seconds
-      const interval = setInterval(fetchTeamMembers, 30000)
+      const interval = setInterval(() => {
+        fetchTeamMembers()
+        loadUnreadCounts()
+      }, 30000)
       return () => clearInterval(interval)
     }
   }, [targetWorkspaceId])
@@ -132,6 +138,30 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
       console.error('Error fetching team members:', error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const loadUnreadCounts = async () => {
+    if (!targetWorkspaceId || !user?.id) return
+    
+    try {
+      const response = await fetch('/api/messages/internal?unreadOnly=true')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.conversations) {
+          const counts: Record<string, number> = {}
+          data.conversations.forEach((conv: any) => {
+            // Find the other participant (not current user)
+            const otherParticipant = conv.participants.find((p: any) => p.id !== user.id)
+            if (otherParticipant && conv.unreadCount > 0) {
+              counts[otherParticipant.id] = conv.unreadCount
+            }
+          })
+          setUnreadCounts(counts)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading unread counts:', error)
     }
   }
 
@@ -283,6 +313,11 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
                       >
                         {getRoleLabel(member.role)}
                       </Badge>
+                      {unreadCounts[member.id] && unreadCounts[member.id] > 0 && (
+                        <Badge variant="destructive" className="text-xs">
+                          {unreadCounts[member.id]} new
+                        </Badge>
+                      )}
                       {member.isOnline ? (
                         <span className="text-xs text-green-600 font-medium">{t("common.online")}</span>
                       ) : (
@@ -306,15 +341,22 @@ export function TeamMembers({ workspaceId, maxHeight = "400px", onStartChat }: T
 
                   {/* Action buttons - show on hover */}
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8"
-                      onClick={() => onStartChat?.(member.id)}
-                      title="Start chat"
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                    </Button>
+                    <div className="relative">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className={`h-8 w-8 ${unreadCounts[member.id] ? 'text-red-600 hover:text-red-700' : ''}`}
+                        onClick={() => onStartChat?.(member.id)}
+                        title={unreadCounts[member.id] ? `${unreadCounts[member.id]} unread messages` : "Start chat"}
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                      {unreadCounts[member.id] && unreadCounts[member.id] > 0 && (
+                        <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-white text-xs flex items-center justify-center">
+                          {unreadCounts[member.id] > 9 ? '9+' : unreadCounts[member.id]}
+                        </div>
+                      )}
+                    </div>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
                       <Mail className="h-4 w-4" />
                     </Button>

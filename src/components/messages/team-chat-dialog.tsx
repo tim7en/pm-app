@@ -92,6 +92,7 @@ interface Conversation {
   type: 'internal'
   createdAt?: Date
   updatedAt?: Date
+  hasUnreadMessages?: boolean
 }
 
 interface TeamChatDialogProps {
@@ -135,6 +136,8 @@ function TeamChatDialogContent({
   const [loadingMessages, setLoadingMessages] = useState(false)
   const [selectingConversation, setSelectingConversation] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [unreadConversations, setUnreadConversations] = useState<Conversation[]>([])
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
@@ -165,6 +168,13 @@ function TeamChatDialogContent({
       
       // Only load team members
       loadTeamMembers()
+      
+      // Set up polling for unread messages every 30 seconds
+      const pollInterval = setInterval(() => {
+        loadUnreadConversations()
+      }, 30000)
+      
+      return () => clearInterval(pollInterval)
     }
   }, [isOpen, currentUserId, isAuthenticated, currentWorkspace])
 
@@ -276,12 +286,50 @@ function TeamChatDialogContent({
           variant: "default"
         })
       }
+      
+      // Load unread conversations after loading team members
+      await loadUnreadConversations()
     } catch (error) {
       console.error('Error in loadTeamMembers:', error)
       handleApiError(error, 'loading team members')
       setTeamMembers([]) // Set empty array as fallback
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // Load unread conversations
+  const loadUnreadConversations = async () => {
+    try {
+      const response = await fetch('/api/messages/internal?unreadOnly=true')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.conversations) {
+          const unreadConvs = data.conversations.map((conv: any) => ({
+            id: conv.id,
+            participants: conv.participants,
+            messages: [],
+            lastMessage: conv.lastMessage ? {
+              id: conv.lastMessage.id,
+              content: conv.lastMessage.content,
+              senderId: conv.lastMessage.sender.id,
+              senderName: conv.lastMessage.sender.name,
+              senderAvatar: conv.lastMessage.sender.avatar,
+              timestamp: new Date(conv.lastMessage.timestamp),
+              isRead: conv.lastMessage.isRead
+            } : undefined,
+            unreadCount: conv.unreadCount || 0,
+            isGroup: conv.isGroup || false,
+            type: 'internal' as const,
+            hasUnreadMessages: true
+          }))
+          
+          setUnreadConversations(unreadConvs)
+          setTotalUnreadCount(unreadConvs.reduce((sum: number, conv: Conversation) => sum + conv.unreadCount, 0))
+        }
+      }
+    } catch (error) {
+      console.error('Error loading unread conversations:', error)
     }
   }
 
@@ -369,6 +417,13 @@ function TeamChatDialogContent({
             : conv
         )
       )
+      
+      // Remove from unread conversations and update total count
+      setUnreadConversations(prev => {
+        const filtered = prev.filter(conv => conv.id !== conversation.id)
+        setTotalUnreadCount(filtered.reduce((sum, conv) => sum + conv.unreadCount, 0))
+        return filtered
+      })
       
       // Scroll to bottom after messages are loaded
       setTimeout(() => {
@@ -921,11 +976,16 @@ function TeamChatDialogContent({
               )}
               <MessageSquare className="h-5 w-5 text-primary" />
               <div>
-                <DialogTitle>
+                <DialogTitle className="flex items-center gap-2">
                   {activeConversation 
                     ? getConversationDisplayName(activeConversation)
                     : 'Team Communication'
                   }
+                  {!activeConversation && totalUnreadCount > 0 && (
+                    <Badge variant="destructive" className="text-xs">
+                      {totalUnreadCount} unread
+                    </Badge>
+                  )}
                 </DialogTitle>
                 <DialogDescription>
                   {activeConversation 
@@ -972,6 +1032,73 @@ function TeamChatDialogContent({
 
               <ScrollArea className="flex-1 min-h-0">
                 <div className="p-4">
+                  {/* Unread Conversations */}
+                  {unreadConversations.length > 0 && (
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                          <MessageSquare className="h-4 w-4" />
+                          Unread Messages
+                        </h3>
+                        <Badge variant="destructive" className="text-xs">
+                          {totalUnreadCount} unread
+                        </Badge>
+                      </div>
+                      <div className="space-y-2">
+                        {unreadConversations.map((conversation) => (
+                          <div
+                            key={`unread-conversation-${conversation.id}`}
+                            className={cn(
+                              "flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors hover:bg-accent/50 border-l-4 border-l-red-500 bg-red-50/50",
+                              selectingConversation && "opacity-50 cursor-not-allowed"
+                            )}
+                            onClick={() => !selectingConversation && handleConversationSelect(conversation)}
+                          >
+                            <div className="relative">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={getOtherParticipant(conversation)?.avatar} />
+                                <AvatarFallback>
+                                  {getOtherParticipant(conversation)?.name?.split(' ').map(n => n[0]).join('') || 'U'}
+                                </AvatarFallback>
+                              </Avatar>
+                              {getOtherParticipant(conversation)?.isOnline && (
+                                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+                              )}
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <h4 className="font-medium text-sm truncate">
+                                  {getConversationDisplayName(conversation)}
+                                </h4>
+                                {conversation.lastMessage && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatMessageTime(conversation.lastMessage.timestamp)}
+                                  </span>
+                                )}
+                              </div>
+                              
+                              {conversation.lastMessage && (
+                                <p className="text-xs text-muted-foreground truncate font-medium">
+                                  {conversation.lastMessage.senderId === currentUserId ? 'You: ' : ''}{conversation.lastMessage.content}
+                                </p>
+                              )}
+                              
+                              <div className="flex items-center justify-between mt-1">
+                                <span className="text-xs text-red-600 font-medium">
+                                  {conversation.unreadCount} new message{conversation.unreadCount !== 1 ? 's' : ''}
+                                </span>
+                                <Badge variant="destructive" className="text-xs">
+                                  New
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Recent Conversations */}
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-3">

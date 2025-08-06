@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthSession } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { NotificationService, NotificationType } from '@/lib/notification-service'
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,6 +13,7 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url)
     const conversationId = url.searchParams.get('conversationId')
     const participantId = url.searchParams.get('participantId')
+    const unreadOnly = url.searchParams.get('unreadOnly') === 'true'
 
     if (conversationId) {
       // Get messages for a specific conversation
@@ -267,10 +269,17 @@ export async function GET(request: NextRequest) {
             isOnline: Math.random() > 0.3 // Simulate online status for now
           })),
           lastMessage: lastMessage ? {
+            id: lastMessage.id,
             content: lastMessage.content,
             timestamp: lastMessage.createdAt,
             senderId: lastMessage.senderId,
-            senderName: lastMessage.sender.name || lastMessage.sender.email
+            sender: {
+              id: lastMessage.sender.id,
+              name: lastMessage.sender.name || lastMessage.sender.email,
+              email: lastMessage.sender.email,
+              avatar: lastMessage.sender.avatar
+            },
+            isRead: lastMessage.isRead
           } : {
             content: 'Start a conversation',
             timestamp: conversation.createdAt,
@@ -286,9 +295,14 @@ export async function GET(request: NextRequest) {
         }
       })
 
+      // Filter to only unread conversations if requested
+      const filteredConversations = unreadOnly 
+        ? formattedConversations.filter(conv => conv.unreadCount > 0)
+        : formattedConversations
+
       return NextResponse.json({
         success: true,
-        conversations: formattedConversations
+        conversations: filteredConversations
       })
     }
 
@@ -393,6 +407,42 @@ export async function POST(request: NextRequest) {
       where: { id: targetConversationId },
       data: { updatedAt: new Date() }
     })
+
+    // Create notifications for other participants
+    try {
+      const otherParticipants = await db.conversationParticipant.findMany({
+        where: {
+          conversationId: targetConversationId,
+          userId: { not: session.user.id }
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
+          }
+        }
+      })
+
+      // Create notifications for each other participant
+      for (const participant of otherParticipants) {
+        await NotificationService.createNotification({
+          title: `New message from ${message.sender.name || message.sender.email}`,
+          message: content.length > 50 ? `${content.substring(0, 50)}...` : content,
+          type: 'MESSAGE' as any, // Use string literal until schema is updated
+          userId: participant.userId,
+          relatedId: targetConversationId,
+          relatedUrl: `/messages?conversation=${targetConversationId}`,
+          senderName: message.sender.name || message.sender.email,
+          senderAvatar: message.sender.avatar || undefined
+        })
+      }
+    } catch (notificationError) {
+      console.error('Error creating message notifications:', notificationError)
+      // Don't fail the message send if notification fails
+    }
 
     // Format response
     const formattedMessage = {
