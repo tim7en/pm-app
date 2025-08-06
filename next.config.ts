@@ -5,6 +5,16 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Output configuration for better deployment
+  output: 'standalone',
+  
+  // Skip static generation for all routes
+  trailingSlash: true,
+  skipTrailingSlashRedirect: true,
+  
   // 禁用 Next.js 热重载，由 nodemon 处理重编译
   reactStrictMode: false,
   

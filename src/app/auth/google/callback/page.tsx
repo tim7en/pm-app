@@ -1,6 +1,8 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+export const dynamic = 'force-dynamic'
+
+import { useEffect, useState, useRef, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,7 +11,7 @@ import { Loader2, CheckCircle, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
-export default function GoogleCallbackPage() {
+function GoogleCallbackForm() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [error, setError] = useState("")
   const [isNewUser, setIsNewUser] = useState(false)
@@ -171,5 +173,13 @@ export default function GoogleCallbackPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function GoogleCallbackPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
+      <GoogleCallbackForm />
+    </Suspense>
   )
 }

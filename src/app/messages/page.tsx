@@ -15,21 +15,6 @@ export default function MessagesPage() {
   const { isAuthenticated, currentWorkspaceId } = useAuth()
   const { t } = useTranslation()
   
-  // Early return if not authenticated
-  if (!isAuthenticated || !currentWorkspaceId) {
-    return (
-      <div className="flex h-screen bg-background">
-        <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
-          <Card>
-            <CardContent className="p-6">
-              <p className="text-muted-foreground">{t("messages.pleaseSelectWorkspace")}</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )
-  }
   const {
     filteredConversations,
     activeConversation,
@@ -52,6 +37,22 @@ export default function MessagesPage() {
     generateDraftReply,
     uploadAttachment
   } = useMessenger()
+  
+  // Early return if not authenticated
+  if (!isAuthenticated || !currentWorkspaceId) {
+    return (
+      <div className="flex h-screen bg-background">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-muted-foreground">{t("messages.pleaseSelectWorkspace")}</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
 
   const handleSendMessage = async (content: string) => {
     if (activeConversation?.type === 'internal') {

@@ -122,7 +122,7 @@ export async function DELETE(
 
     // Optionally delete file from filesystem
     try {
-      const fs = require('fs').promises
+      const fs = await import('fs/promises')
       const filePath = join(process.cwd(), attachment.filePath)
       await fs.unlink(filePath)
     } catch (fileError) {
