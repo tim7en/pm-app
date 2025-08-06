@@ -14,6 +14,20 @@ class EmailService {
   private transporter: nodemailer.Transporter | null = null
   private isConfigured: boolean = false
 
+  // Helper function to safely get environment variables
+  private getEnvVar(key: string, defaultValue: string = ''): string {
+    try {
+      // Check if we're on the client side or if process.env is not available
+      if (typeof window !== 'undefined' || typeof process === 'undefined' || !process.env) {
+        return defaultValue
+      }
+      return process.env[key] || defaultValue
+    } catch (error) {
+      console.warn(`Failed to access environment variable ${key}:`, error)
+      return defaultValue
+    }
+  }
+
   constructor() {
     this.setupTransporter()
   }
@@ -23,12 +37,12 @@ class EmailService {
       // For development, we'll use a simple configuration
       // In production, you should use environment variables
       const config: EmailConfig = {
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: process.env.SMTP_SECURE === 'true',
+        host: this.getEnvVar('SMTP_HOST', 'smtp.gmail.com'),
+        port: parseInt(this.getEnvVar('SMTP_PORT', '587')),
+        secure: this.getEnvVar('SMTP_SECURE') === 'true',
         auth: {
-          user: process.env.SMTP_USER || '',
-          pass: process.env.SMTP_PASS || ''
+          user: this.getEnvVar('SMTP_USER'),
+          pass: this.getEnvVar('SMTP_PASS')
         }
       }
 
@@ -55,10 +69,10 @@ class EmailService {
         return true // Return true for development
       }
 
-      const resetUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`
+      const resetUrl = `${this.getEnvVar('NEXTAUTH_URL', 'http://localhost:3000')}/auth/reset-password?token=${resetToken}`
       
       const mailOptions = {
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        from: this.getEnvVar('SMTP_FROM') || this.getEnvVar('SMTP_USER'),
         to,
         subject: 'Password Reset Request - Project Manager',
         html: `
@@ -175,7 +189,7 @@ class EmailService {
       }
 
       const mailOptions = {
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        from: this.getEnvVar('SMTP_FROM') || this.getEnvVar('SMTP_USER'),
         to,
         subject: 'Welcome to Project Manager!',
         html: `
@@ -251,7 +265,7 @@ class EmailService {
               </ul>
               
               <div style="text-align: center;">
-                <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}" class="button">Get Started</a>
+                <a href="${this.getEnvVar('NEXTAUTH_URL', 'http://localhost:3000')}" class="button">Get Started</a>
               </div>
               
               <div class="footer">
@@ -290,5 +304,28 @@ class EmailService {
   }
 }
 
-// Export a singleton instance
-export const emailService = new EmailService()
+// Export a function that lazily creates the email service instance
+let emailServiceInstance: EmailService | null = null
+
+export function getEmailService(): EmailService {
+  if (!emailServiceInstance) {
+    emailServiceInstance = new EmailService()
+  }
+  return emailServiceInstance
+}
+
+// For backward compatibility, export the service as a getter
+export const emailService = {
+  get instance() {
+    return getEmailService()
+  },
+  sendPasswordResetEmail: (to: string, resetToken: string, userName?: string) => {
+    return getEmailService().sendPasswordResetEmail(to, resetToken, userName)
+  },
+  sendWelcomeEmail: (to: string, userName: string) => {
+    return getEmailService().sendWelcomeEmail(to, userName)
+  },
+  testConnection: () => {
+    return getEmailService().testConnection()
+  }
+}
