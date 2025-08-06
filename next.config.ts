@@ -8,17 +8,22 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  
+  // Force dynamic rendering for everything
+  experimental: {
+    forceSwcTransforms: true,
+  },
+  
   // Output configuration for better deployment
   output: 'standalone',
   
-  // Skip static generation for all routes to prevent build errors
+  // Completely disable static optimization
   trailingSlash: false,
   skipTrailingSlashRedirect: true,
   
-  // Disable static page generation to prevent build-time errors
-  experimental: {
-    // Force all pages to be rendered at runtime
-    forceSwcTransforms: true,
+  // Disable all static generation
+  generateBuildId: async () => {
+    return 'dynamic-build'
   },
   
   // 禁用 Next.js 热重载，由 nodemon 处理重编译
