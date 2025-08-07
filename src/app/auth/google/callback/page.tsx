@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,10 +9,11 @@ import { Loader2, CheckCircle, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
-export default function GoogleCallbackPage() {
+function GoogleCallbackContent() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [error, setError] = useState("")
   const [isNewUser, setIsNewUser] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const hasProcessedRef = useRef(false)
   
   const router = useRouter()
@@ -20,6 +21,12 @@ export default function GoogleCallbackPage() {
   const { login, register } = useAuth()
   
   useEffect(() => {
+    setMounted(true)
+  }, [])
+  
+  useEffect(() => {
+    if (!mounted) return
+    
     // Prevent duplicate processing using ref (works better with React Strict Mode)
     if (hasProcessedRef.current) return
     hasProcessedRef.current = true
@@ -84,20 +91,20 @@ export default function GoogleCallbackPage() {
     }
     
     handleCallback()
-  }, [])
+  }, [mounted, searchParams])
   
-  if (status === 'loading') {
+  if (!mounted || status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <Card>
             <CardHeader className="text-center">
               <Loader2 className="mx-auto h-12 w-12 animate-spin text-blue-500 mb-4" />
-              <CardTitle>Signing you in...</CardTitle>
+              <CardTitle>{!mounted ? 'Loading...' : 'Signing you in...'}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-center text-gray-600">
-                Please wait while we complete your Google sign-in.
+                {!mounted ? 'Please wait...' : 'Please wait while we complete your Google sign-in.'}
               </p>
             </CardContent>
           </Card>
@@ -171,5 +178,33 @@ export default function GoogleCallbackPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <Card>
+          <CardHeader className="text-center">
+            <Loader2 className="mx-auto h-12 w-12 animate-spin text-blue-500 mb-4" />
+            <CardTitle>Loading...</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-center text-gray-600">
+              Please wait...
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+export default function GoogleCallbackPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <GoogleCallbackContent />
+    </Suspense>
   )
 }

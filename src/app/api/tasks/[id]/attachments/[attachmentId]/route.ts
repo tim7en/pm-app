@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readFile } from 'fs/promises'
+import { readFile, unlink } from 'fs/promises'
 import { join } from 'path'
 import { db } from '@/lib/db'
 import { getAuthSession } from '@/lib/auth'
@@ -122,9 +122,8 @@ export async function DELETE(
 
     // Optionally delete file from filesystem
     try {
-      const fs = require('fs').promises
       const filePath = join(process.cwd(), attachment.filePath)
-      await fs.unlink(filePath)
+      await unlink(filePath)
     } catch (fileError) {
       console.warn('Could not delete file from filesystem:', fileError)
       // Continue anyway - database deletion is more important

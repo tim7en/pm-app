@@ -1,17 +1,225 @@
-# Deployment Guide for PM-App on Ubuntu 20.04 LTS
+# Deployment Guide for PM-App
 
-## Server Specifications
+## 🚀 Deployment Options
+
+### Option 1: Docker Hub Deployment (Recommended) 🐳
+- **Easy**: One-command deployment
+- **Scalable**: Works on any Docker-enabled server
+- **Portable**: Deploy anywhere with Docker
+
+### Option 2: Traditional Ubuntu Server 🖥️
 - **RAM**: 2 GB
-- **Storage**: 15 GB HDD
+- **Storage**: 15 GB HDD  
 - **CPU**: 1 vCPU
 - **OS**: Ubuntu 20.04 LTS
 
 ## Prerequisites
+
+### For Docker Deployment:
+- Docker installed on target server
+- Docker Hub account
+- SSH access to your server
+
+### For Traditional Deployment:
 - SSH access to your server
 - Domain name pointing to your server IP
 - Basic Linux command line knowledge
 
-## Step 1: Server Setup
+## 🐳 Docker Hub Deployment (Recommended)
+
+### Step 1: Prepare Environment Variables
+
+Create a production environment file on your server:
+
+```bash
+# On your server, create the environment file
+cat > .env.production << 'EOF'
+# Application
+NODE_ENV=production
+PORT=3000
+HOSTNAME=0.0.0.0
+
+# Database (will be created inside container)
+DATABASE_URL=file:./data/production.db
+
+# Authentication & Security - REPLACE WITH REAL VALUES
+NEXTAUTH_SECRET=your-super-secure-nextauth-secret-at-least-32-chars-long-CHANGE-THIS
+NEXTAUTH_URL=https://your-domain.com
+JWT_SECRET=your-super-secure-jwt-secret-at-least-32-chars-long-CHANGE-THIS
+
+# OpenAI API (for AI features) - ADD YOUR KEYS
+OPENAI_API_KEY=your-openai-api-key-here
+OPENAI_API_KEY_2=your-backup-openai-api-key-here
+
+# Google OAuth (for Gmail integration) - ADD YOUR CREDENTIALS
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=https://your-domain.com/api/email/gmail/callback
+
+# Email SMTP Configuration - CONFIGURE YOUR EMAIL
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password_here
+SMTP_FROM=your_email@gmail.com
+
+# Production settings
+NEXT_TELEMETRY_DISABLED=1
+EOF
+```
+
+### Step 2: Deploy from Docker Hub
+
+```bash
+# Pull and run the PM app from Docker Hub
+docker run -d \
+  --name pm-app \
+  --env-file .env.production \
+  -p 80:3000 \
+  -v pm-app-data:/app/data \
+  --restart unless-stopped \
+  tim7en/pm-app:latest
+```
+
+### Step 3: Setup with Docker Compose (Recommended)
+
+Create a `docker-compose.yml` file:
+
+```yaml
+version: '3.8'
+
+services:
+  pm-app:
+    image: tim7en/pm-app:latest
+    container_name: pm-app
+    restart: unless-stopped
+    ports:
+      - "80:3000"
+    env_file:
+      - .env.production
+    volumes:
+      - pm-app-data:/app/data
+      - pm-app-uploads:/app/public/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  nginx:
+    image: nginx:alpine
+    container_name: pm-app-nginx
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - pm-app
+
+volumes:
+  pm-app-data:
+  pm-app-uploads:
+```
+
+Then deploy:
+
+```bash
+# Deploy with Docker Compose
+docker-compose up -d
+
+# Check status
+docker-compose ps
+
+# View logs
+docker-compose logs -f pm-app
+```
+
+### Step 4: SSL Setup with Nginx
+
+Create `nginx.conf`:
+
+```nginx
+events {
+    worker_connections 1024;
+}
+
+http {
+    upstream app {
+        server pm-app:3000;
+    }
+    
+    server {
+        listen 80;
+        server_name your-domain.com;
+        return 301 https://$server_name$request_uri;
+    }
+    
+    server {
+        listen 443 ssl http2;
+        server_name your-domain.com;
+        
+        ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+        
+        client_max_body_size 100M;
+        
+        location / {
+            proxy_pass http://app;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_cache_bypass $http_upgrade;
+        }
+        
+        location /api/socketio/ {
+            proxy_pass http://app;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+}
+```
+
+## 📦 Building and Pushing to Docker Hub
+
+### For Developers: Building Your Own Image
+
+```bash
+# 1. Build the Docker image
+docker build -t tim7en/pm-app:latest .
+
+# 2. Test locally
+docker run -p 3000:3000 --env-file .env tim7en/pm-app:latest
+
+# 3. Login to Docker Hub
+docker login
+
+# 4. Push to Docker Hub
+docker push tim7en/pm-app:latest
+
+# 5. Tag specific version
+docker tag tim7en/pm-app:latest tim7en/pm-app:v1.0.0
+docker push tim7en/pm-app:v1.0.0
+```
+
+---
+
+## 🖥️ Traditional Ubuntu Server Deployment
+
+### Step 1: Server Setup
 
 1. **Connect to your server**:
    ```bash

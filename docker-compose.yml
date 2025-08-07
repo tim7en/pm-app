@@ -1,27 +1,103 @@
-# Docker Compose for Production
+# Docker Compose for PM-App Production
 version: '3.8'
 
 services:
-  app:
-    build: .
+  # Main application
+  pm-app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: pm-app
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - DATABASE_URL=file:./data/dev.db
+      - NEXTAUTH_URL=http://localhost:3000
     env_file:
       - .env
     volumes:
-      - ./logs:/app/logs
-      - ./prisma:/app/prisma
-      - ./uploads:/app/uploads
+      # Persistent data volumes
+      - pm-app-data:/app/data
+      - pm-app-logs:/app/logs
+      - pm-app-uploads:/app/uploads
+      # Bind mount for database persistence (optional alternative)
+      # - ./data:/app/data
     restart: unless-stopped
+    networks:
+      - pm-app-network
+    depends_on:
+      - nginx
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 40s
     deploy:
       resources:
         limits:
           memory: 1.5G
           cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: pm-app-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - nginx-cache:/var/cache/nginx
+    restart: unless-stopped
+    networks:
+      - pm-app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Database backup service (optional)
+  db-backup:
+    image: alpine:latest
+    container_name: pm-app-backup
+    volumes:
+      - pm-app-data:/data:ro
+      - ./backups:/backups
+    command: >
+      sh -c "
+        while true; do
+          echo 'Creating database backup...'
+          cp /data/dev.db /backups/backup-$$(date +%Y%m%d_%H%M%S).db
+          find /backups -name 'backup-*.db' -mtime +7 -delete
+          sleep 86400
+        done
+      "
+    restart: unless-stopped
+    depends_on:
+      - pm-app
+
+# Named volumes for data persistence
+volumes:
+  pm-app-data:
+    driver: local
+  pm-app-logs:
+    driver: local
+  pm-app-uploads:
+    driver: local
+  nginx-cache:
+    driver: local
+
+# Custom network
+networks:
+  pm-app-network:
+    driver: bridge

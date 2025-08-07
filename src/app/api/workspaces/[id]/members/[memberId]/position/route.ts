@@ -77,9 +77,7 @@ export async function PUT(
         }
       },
       data: {
-        // @ts-ignore - Prisma types not updated yet
         title: title || null,
-        // @ts-ignore - Prisma types not updated yet
         department: department || null
       },
       include: {

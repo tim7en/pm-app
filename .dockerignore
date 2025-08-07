@@ -11,10 +11,13 @@ pnpm-lock.yaml
 .next
 out
 build
+dist
 
-# Development files
+# Environment files (keep .env.docker as template)
+.env
 .env.local
 .env.development
+.env.test
 
 # Testing
 coverage
@@ -23,6 +26,8 @@ coverage
 *.spec.js
 *.spec.ts
 test
+tests
+__tests__
 
 # Logs
 logs
@@ -32,24 +37,33 @@ yarn-debug.log*
 yarn-error.log*
 local-*
 
+# Runtime data
+data
+uploads
+backups
+
 # Git
 .git
 .gitignore
+.gitattributes
 
-# Docker
-Dockerfile
+# Docker files (avoid recursion)
+Dockerfile*
 .dockerignore
+docker-compose*.yml
 
 # Documentation
 *.md
 README.md
 CHANGELOG.md
+docs
 
 # IDE files
 .vscode
 .idea
 *.swp
 *.swo
+.history
 
 # OS generated files
 .DS_Store
@@ -59,7 +73,28 @@ CHANGELOG.md
 .Trashes
 ehthumbs.db
 Thumbs.db
+desktop.ini
 
-# Scripts not needed in production
+# Deployment scripts
 deploy-*.sh
-docker-compose.yml
+docker-launch.*
+
+# Temporary files
+tmp
+temp
+.tmp
+
+# Cache directories
+.cache
+.parcel-cache
+.eslintcache
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
