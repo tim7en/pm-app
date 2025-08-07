@@ -1,13 +1,65 @@
-Dockerfile
-.dockerignore
+# Dependencies
 node_modules
-npm-debug.log
-README.md
-.next
-.git
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+
+# Production builds
+.next
+out
+build
+
+# Development files
+.env.local
+.env.development
+
+# Testing
+coverage
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
 test
+
+# Logs
+logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 local-*
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Documentation
+*.md
+README.md
+CHANGELOG.md
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Scripts not needed in production
+deploy-*.sh
+docker-compose.yml
