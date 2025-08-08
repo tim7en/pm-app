@@ -1,15 +1,15 @@
-# 🚀 Welcome to Z.ai Code Scaffold
+# 🚀 PM-App (Project Management Platform)
 
-A modern, production-ready web application scaffold powered by cutting-edge technologies, designed to accelerate your development with [Z.ai](https://chat.z.ai)'s AI-powered coding assistance.
+Modern project & task management application built on Next.js 15, TypeScript, Prisma, real‑time Socket.IO, shadcn/ui, and robust role / workspace / notification systems. This README consolidates prior duplicate docs and corrects version mismatches.
 
 ## ✨ Technology Stack
 
 This scaffold provides a robust foundation built with:
 
 ### 🎯 Core Framework
-- **⚡ Next.js 15** - The React framework for production with App Router
-- **📘 TypeScript 5** - Type-safe JavaScript for better developer experience
-- **🎨 Tailwind CSS 4** - Utility-first CSS framework for rapid UI development
+- **⚡ Next.js 15** (App Router)
+- **📘 TypeScript 5**
+- **🎨 Tailwind CSS 3.4** (corrected; earlier doc showed v4)
 
 ### 🧩 UI Components & Styling
 - **🧩 shadcn/ui** - High-quality, accessible components built on Radix UI
@@ -54,7 +54,7 @@ This scaffold provides a robust foundation built with:
 - **🚀 Production Ready** - Optimized build and deployment settings
 - **🤖 AI-Friendly** - Structured codebase perfect for AI assistance
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Development)
 
 ### Prerequisites
 - Node.js >= 20.19.0 (check `.nvmrc` file)
@@ -76,7 +76,7 @@ nvm install 20.19.0
 nvm use 20.19.0
 ```
 
-### Installation & Development
+### Install & Run
 
 ```bash
 # Install dependencies (use legacy peer deps for compatibility)
@@ -89,15 +89,12 @@ npm run dev
 npm run dev:windows    # Windows
 npm run dev:mac        # macOS/Linux
 
-# Build for production
+# Build & start production locally
 npm run build
-
-# Start production server (cross-platform)
 npm start
 
-# Platform-specific production commands:
-npm run start:windows  # Windows  
-npm run start:mac      # macOS/Linux
+# PM2 (optional process manager)
+npm run start:pm2
 ```
 
 ### Troubleshooting Cross-Platform Issues
@@ -110,19 +107,20 @@ npm run start:mac      # macOS/Linux
 
 Open [http://localhost:3000](http://localhost:3000) to see your application running.
 
-## 🤖 Powered by Z.ai
+## 🔐 Core Product Features
 
-This scaffold is optimized for use with [Z.ai](https://chat.z.ai) - your AI assistant for:
+- Authentication (role & workspace aware)
+- Multi-workspace membership
+- Projects (status, ownership, sections)
+- Tasks (multi-assignee, verification workflow, dependencies, tags, attachments, subtasks)
+- Real-time notifications & messaging (Socket.IO)
+- Calendar events & attendees
+- Bug reports module
+- Conversations (internal / external)
+- Internationalization scaffolding
+- Analytics / dashboard foundations
 
-- **💻 Code Generation** - Generate components, pages, and features instantly
-- **🎨 UI Development** - Create beautiful interfaces with AI assistance  
-- **🔧 Bug Fixing** - Identify and resolve issues with intelligent suggestions
-- **📝 Documentation** - Auto-generate comprehensive documentation
-- **🚀 Optimization** - Performance improvements and best practices
-
-Ready to build something amazing? Start chatting with Z.ai at [chat.z.ai](https://chat.z.ai) and experience the future of AI-powered development!
-
-## 📁 Project Structure
+## 📁 Project Structure (Simplified)
 
 ```
 src/
@@ -133,39 +131,87 @@ src/
 └── lib/                # Utility functions and configurations
 ```
 
-## 🎨 Available Features & Components
+## 🛠 API Surface (Representative)
 
-This scaffold includes a comprehensive set of modern web development tools:
+See `src/app/api/*` for full implementation.
 
-### 🧩 UI Components (shadcn/ui)
-- **Layout**: Card, Separator, Aspect Ratio, Resizable Panels
-- **Forms**: Input, Textarea, Select, Checkbox, Radio Group, Switch
-- **Feedback**: Alert, Toast (Sonner), Progress, Skeleton
-- **Navigation**: Breadcrumb, Menubar, Navigation Menu, Pagination
-- **Overlay**: Dialog, Sheet, Popover, Tooltip, Hover Card
-- **Data Display**: Badge, Avatar, Calendar
+| Method | Endpoint      | Purpose        |
+|--------|---------------|----------------|
+| GET    | /api/projects | List projects  |
+| POST   | /api/projects | Create project |
+| GET    | /api/tasks    | List tasks     |
+| POST   | /api/tasks    | Create task    |
+| GET    | /api/health   | Health check   |
 
-### 📊 Advanced Data Features
-- **Tables**: Powerful data tables with sorting, filtering, pagination (TanStack Table)
-- **Charts**: Beautiful visualizations with Recharts
-- **Forms**: Type-safe forms with React Hook Form + Zod validation
+Prisma schema (`prisma/schema.prisma`) defines data model & relations.
 
-### 🎨 Interactive Features
-- **Animations**: Smooth micro-interactions with Framer Motion
-- **Drag & Drop**: Modern drag-and-drop functionality with DND Kit
-- **Theme Switching**: Built-in dark/light mode support
+## 🧪 Testing
 
-### 🔐 Backend Integration
-- **Authentication**: Ready-to-use auth flows with NextAuth.js
-- **Database**: Type-safe database operations with Prisma
-- **API Client**: HTTP requests with Axios + TanStack Query
-- **State Management**: Simple and scalable with Zustand
+Vitest configured (`vitest.config.ts`). Place tests under `tests/` (preferred) and gradually migrate any legacy scripts. Run:
+```
+npm test
+```
 
-### 🌍 Production Features
-- **Internationalization**: Multi-language support with Next Intl
-- **Image Optimization**: Automatic image processing with Sharp
-- **Type Safety**: End-to-end TypeScript with Zod validation
-- **Essential Hooks**: 100+ useful React hooks with ReactUse for common patterns
+## � Database & Migrations
+
+Development: SQLite (fast, local). Production: switch to PostgreSQL.
+
+Apply migrations in production:
+```
+npm run db:migrate:deploy
+```
+
+Local dev (evolve schema):
+```
+npm run db:migrate
+```
+
+## ⚙️ Environment Variables
+
+Essential:
+- DATABASE_URL
+- NEXTAUTH_SECRET / JWT_SECRET
+- PORT / NODE_ENV
+- GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (optional)
+- OPENAI_API_KEY (optional)
+
+See `.env.example` & `.env.production.example`.
+
+## 📦 Deployment Overview
+
+1. Docker / Docker Compose – see `DEPLOYMENT_GUIDE.md`
+2. PM2 on Ubuntu – see `UBUNTU_DEPLOYMENT_GUIDE.md`
+3. Future: PaaS (custom server & Socket.IO need adaptation for Vercel)
+
+Health endpoint: `GET /api/health`
+WebSocket path: `/api/socketio`
+
+## 🛡 Security Notes
+
+- Security headers in `next.config.ts`
+- Add CSP & permissions-policy post-launch (tracked)
+- Rotate all secrets before go-live
+- Enforce HTTPS at reverse proxy (Nginx)
+
+## 🧭 Roadmap (Post Launch)
+
+- Consolidate duplicate QA scripts
+- S3 / object storage for uploads
+- Feature flag system
+- Observability (Sentry + OpenTelemetry)
+- API rate limiting & abuse protection
+- CI pipeline (build / test / scan / deploy)
+
+## 📄 Launch Support
+
+See `PRODUCTION_LAUNCH_CHECKLIST.md` for gating criteria.
+
+## ❤️ Attribution
+
+Built by the team. Production readiness hardening & documentation consolidation complete.
+
+---
+For deployment paths consult: `DEPLOYMENT_GUIDE.md` and `UBUNTU_DEPLOYMENT_GUIDE.md`.
 
 ## 🤝 Get Started with Z.ai
 
@@ -173,7 +219,3 @@ This scaffold includes a comprehensive set of modern web development tools:
 2. **Visit [chat.z.ai](https://chat.z.ai)** to access your AI coding assistant
 3. **Start building** with intelligent code generation and assistance
 4. **Deploy with confidence** using the production-ready setup
-
----
-
-Built with ❤️ for the developer community. Supercharged by [Z.ai](https://chat.z.ai) 🚀

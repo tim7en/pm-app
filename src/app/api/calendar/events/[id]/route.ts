@@ -16,9 +16,10 @@ const updateEventSchema = z.object({
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getAuthSession(request)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -26,7 +27,7 @@ export async function PUT(
 
     const body = await request.json()
     const data = updateEventSchema.parse(body)
-    const eventId = params.id
+    const eventId = id
 
     // TODO: Replace with actual database operations after migration
     // For now, return a mock updated event
@@ -77,15 +78,16 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getAuthSession(request)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const eventId = params.id
+    const eventId = id
 
     // TODO: Replace with actual database operations after migration
     // For now, return success response

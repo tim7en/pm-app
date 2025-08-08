@@ -1,34 +1,38 @@
 #!/bin/bash
 
-# Ubuntu 20.04 LTS Server Setup Script for PM-App
-# This script sets up your project on a 2GB RAM / 1 vCPU / 15GB HDD server
+# PM-App Ubuntu VM Deployment Script
+# Deploy PM-App using Docker on Ubuntu VM with best practices
 
-set -e
+set -e  # Exit on any error
 
-echo "🚀 Setting up PM-App on Ubuntu 20.04 LTS..."
+echo "=========================================="
+echo "    PM-App Ubuntu VM Deployment"
+echo "=========================================="
+echo
 
-# Update system
-echo "📦 Updating system packages..."
-sudo apt update && sudo apt upgrade -y
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
-# Install essential packages
-echo "🔧 Installing essential packages..."
-sudo apt install -y curl wget git unzip build-essential
+# Function to print colored output
+print_status() {
+    echo -e "${GREEN}[INFO]${NC} $1"
+}
 
-# Install Node.js 20.x
-echo "📦 Installing Node.js 20.x..."
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs
+print_warning() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
 
-# Verify Node.js installation
-node_version=$(node --version)
-npm_version=$(npm --version)
-echo "✅ Node.js version: $node_version"
-echo "✅ NPM version: $npm_version"
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
 
-# Install PM2 globally
-echo "📦 Installing PM2..."
-sudo npm install -g pm2
+print_step() {
+    echo -e "${BLUE}[STEP]${NC} $1"
+}
 
 # Install Docker (optional, for containerized deployment)
 echo "🐳 Installing Docker..."
