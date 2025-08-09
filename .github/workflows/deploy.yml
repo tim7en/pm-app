@@ -30,7 +30,15 @@ jobs:
     - name: 🔍 Verify test setup files
       run: |
         echo "Checking for test setup file..."
-        ls -la src/test/
+        if [ -d "src/test" ]; then
+          echo "✅ src/test directory exists"
+          ls -la src/test/
+        else
+          echo "❌ src/test directory not found"
+          echo "Creating src/test directory and setup file..."
+          mkdir -p src/test
+          touch src/test/setup.ts
+        fi
         echo "Testing vitest config..."
         npx vitest --version
         

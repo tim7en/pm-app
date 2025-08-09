@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { createToken } from '@/lib/auth'
-import { emailService } from '@/lib/email'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
@@ -57,19 +56,12 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Send welcome email (skip if not configured)
-    try {
-      await emailService.sendWelcomeEmail(user.email, user.name || 'User')
-      console.log('Welcome email sent successfully')
-    } catch (emailError) {
-      console.log('Email sending skipped (not configured):', emailError instanceof Error ? emailError.message : 'Unknown error')
-      // Continue with registration even if email fails
-    }
-
     // Create JWT token
     const token = createToken(user.id)
 
     const response = NextResponse.json({
+      success: true,
+      message: 'User registered successfully',
       user: {
         id: user.id,
         email: user.email,
@@ -96,7 +88,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Registration error:', error)
     return NextResponse.json(
-      { error: 'Failed to register user' },
+      { 
+        error: 'Failed to register user',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }
