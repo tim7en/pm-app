@@ -9,6 +9,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; attachmentId: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -73,6 +74,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string; attachmentId: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -117,7 +119,7 @@ export async function GET(
     try {
       const fileBuffer = await readFile(attachment.filePath)
       
-      return new NextResponse(fileBuffer, {
+      return new NextResponse(fileBuffer as any, {
         status: 200,
         headers: {
           'Content-Type': attachment.mimeType || 'application/octet-stream',

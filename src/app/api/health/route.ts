@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { db } from "@/lib/db";
 
 export async function GET() {
   try {
     // Check database connection
-    await prisma.$queryRaw`SELECT 1`;
+    await db.$queryRaw`SELECT 1`;
     
     // Check memory usage
     const memUsage = process.memoryUsage();
@@ -31,6 +29,6 @@ export async function GET() {
       timestamp: new Date().toISOString()
     }, { status: 503 });
   } finally {
-    await prisma.$disconnect();
+    await db.$disconnect();
   }
 }

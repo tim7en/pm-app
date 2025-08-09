@@ -22,7 +22,7 @@ import { useToast } from "@/hooks/use-toast"
 import { TaskVerification } from "./task-verification"
 import { TaskComments } from "./task-comments"
 import { TaskSubtasks } from "./task-subtasks"
-import { TaskStatus, Priority, TaskVerificationStatus } from "@prisma/client"
+import { TaskStatus, Priority, TaskVerificationStatus } from '@/lib/prisma-mock'
 
 interface Task {
   id: string

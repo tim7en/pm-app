@@ -33,11 +33,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { TaskStatus, Priority } from "@prisma/client"
+import { TaskStatus, Priority } from '@/lib/prisma-mock'
 import { format } from "date-fns"
 
 interface TaskPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export default function TaskDetailPage({ params }: TaskPageProps) {
@@ -48,6 +48,12 @@ export default function TaskDetailPage({ params }: TaskPageProps) {
   const [task, setTask] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [resolvedParams, setResolvedParams] = useState<{ id: string } | null>(null)
+
+  // Resolve params for Next.js 15 compatibility
+  useEffect(() => {
+    params.then(setResolvedParams)
+  }, [params])
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -58,11 +64,13 @@ export default function TaskDetailPage({ params }: TaskPageProps) {
     if (isAuthenticated && currentWorkspace) {
       fetchTask()
     }
-  }, [isAuthenticated, isLoading, currentWorkspace, params.id])
+  }, [isAuthenticated, isLoading, currentWorkspace, resolvedParams?.id])
 
   const fetchTask = async () => {
+    if (!resolvedParams?.id) return
+    
     try {
-      const response = await apiCall(`/api/tasks/${params.id}`, {
+      const response = await apiCall(`/api/tasks/${resolvedParams.id}`, {
         credentials: 'include'
       })
       

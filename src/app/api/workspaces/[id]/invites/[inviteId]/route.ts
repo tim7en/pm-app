@@ -4,9 +4,10 @@ import { getAuthSession } from '@/lib/auth'
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; inviteId: string } }
+  { params }: { params: Promise<{ id: string; inviteId: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -21,7 +22,7 @@ export async function DELETE(
       where: {
         userId_workspaceId: {
           userId: session.user.id,
-          workspaceId: params.id
+          workspaceId: resolvedParams.id
         }
       }
     })
@@ -36,11 +37,11 @@ export async function DELETE(
     // Get the invitation to verify it belongs to this workspace
     const invitation = await db.workspaceInvitation.findUnique({
       where: {
-        id: params.inviteId
+        id: resolvedParams.inviteId
       }
     })
 
-    if (!invitation || invitation.workspaceId !== params.id) {
+    if (!invitation || invitation.workspaceId !== resolvedParams.id) {
       return NextResponse.json(
         { error: 'Invitation not found in this workspace' },
         { status: 404 }
@@ -50,7 +51,7 @@ export async function DELETE(
     // Delete the invitation
     await db.workspaceInvitation.delete({
       where: {
-        id: params.inviteId
+        id: resolvedParams.inviteId
       }
     })
 

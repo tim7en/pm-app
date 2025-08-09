@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { ProjectStatus } from '@prisma/client'
+import { ProjectStatus } from '@/lib/prisma-mock'
 import { getAuthSession } from '@/lib/auth'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const project = await db.project.findUnique({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       include: {
         owner: {
           select: { id: true, name: true, avatar: true }
@@ -99,9 +100,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const body = await request.json()
     const {
       name,
@@ -119,7 +121,7 @@ export async function PUT(
     }
 
     const project = await db.project.update({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       data: updateData,
       include: {
         owner: {
@@ -172,9 +174,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -186,7 +189,7 @@ export async function DELETE(
 
     // Verify project exists and user has permission to delete it
     const project = await db.project.findUnique({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       include: {
         owner: true,
         members: {
@@ -217,7 +220,7 @@ export async function DELETE(
 
     // Delete project (cascading deletes will handle tasks, comments, subtasks, etc.)
     await db.project.delete({
-      where: { id: params.id }
+      where: { id: resolvedParams.id }
     })
 
     return NextResponse.json({ success: true })

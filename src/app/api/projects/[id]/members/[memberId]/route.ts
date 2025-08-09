@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { ProjectRole } from '@prisma/client'
+import { ProjectRole } from '@/lib/prisma-mock'
 import { getAuthSession } from '@/lib/auth'
 
 // PUT /api/projects/[id]/members/[memberId] - Update member role
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; memberId: string } }
+  { params }: { params: Promise<{ id: string; memberId: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -30,7 +31,7 @@ export async function PUT(
 
     // Check if user has permission to update roles (project owner or admin)
     const project = await db.project.findUnique({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       include: {
         members: {
           where: { userId: session.user.id }
@@ -59,7 +60,7 @@ export async function PUT(
 
     // Update member role
     const updatedMember = await db.projectMember.update({
-      where: { id: params.memberId },
+      where: { id: resolvedParams.memberId },
       data: { role: role as ProjectRole },
       include: {
         user: {
@@ -81,9 +82,10 @@ export async function PUT(
 // DELETE /api/projects/[id]/members/[memberId] - Remove member
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; memberId: string } }
+  { params }: { params: Promise<{ id: string; memberId: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -95,7 +97,7 @@ export async function DELETE(
 
     // Check if user has permission to remove members (project owner or admin)
     const project = await db.project.findUnique({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       include: {
         members: {
           where: { userId: session.user.id }
@@ -124,7 +126,7 @@ export async function DELETE(
 
     // Don't allow removing the project owner
     const memberToRemove = await db.projectMember.findUnique({
-      where: { id: params.memberId },
+      where: { id: resolvedParams.memberId },
       include: { user: true }
     })
 
@@ -137,7 +139,7 @@ export async function DELETE(
 
     // Remove member
     await db.projectMember.delete({
-      where: { id: params.memberId }
+      where: { id: resolvedParams.memberId }
     })
 
     return NextResponse.json({ success: true })

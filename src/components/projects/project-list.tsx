@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Search, Filter, Plus, SortAsc, Grid, List } from "lucide-react"
-import { ProjectStatus } from "@prisma/client"
+import { ProjectStatus } from '@/lib/prisma-mock'
 import { useTranslation } from "@/hooks/use-translation"
 
 interface ProjectMember {

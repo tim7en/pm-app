@@ -25,7 +25,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { TaskCard } from "./task-card"
 import { SortableTaskCard } from "./sortable-task-card"
 import { DroppableColumn } from "./droppable-column"
-import { TaskStatus, Priority } from "@prisma/client"
+import { TaskStatus, Priority } from '@/lib/prisma-mock'
 import { useTranslation } from "@/hooks/use-translation"
 
 interface TaskBoardProps {

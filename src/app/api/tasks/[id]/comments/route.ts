@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getAuthSession } from '@/lib/auth'
 import { NotificationService } from '@/lib/notification-service'
-import { NotificationType } from '@prisma/client'
+import { NotificationType } from '@/lib/prisma-mock'
 import { getSocketInstance } from '@/lib/socket'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -19,7 +20,7 @@ export async function GET(
       )
     }
 
-    const taskId = params.id
+    const taskId = resolvedParams.id
 
     // Verify task exists and user has access to it
     const task = await db.task.findFirst({
@@ -77,9 +78,10 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -89,7 +91,7 @@ export async function POST(
       )
     }
 
-    const taskId = params.id
+    const taskId = resolvedParams.id
     const body = await request.json()
     const { content } = body
 

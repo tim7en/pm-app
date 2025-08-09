@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { TaskStatus, Priority } from '@prisma/client'
+import { TaskStatus, Priority } from '@/lib/prisma-mock'
 import { getAuthSession } from '@/lib/auth'
 import { canUserPerformAction, canUserPerformTaskAction, getAccessibleTasks, getUserSystemRole } from '@/lib/roles'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -19,7 +20,7 @@ export async function GET(
     }
 
     const task = await db.task.findUnique({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       include: {
         assignee: {
           select: { id: true, name: true, avatar: true }
@@ -149,9 +150,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -175,7 +177,7 @@ export async function PUT(
 
     // Get the existing task to validate permissions
     const existingTask = await db.task.findUnique({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       include: {
         project: {
           include: {
@@ -195,7 +197,7 @@ export async function PUT(
     // Check if user has permission to update this task
     const hasPermission = await canUserPerformTaskAction(
       session.user.id,
-      params.id,
+      resolvedParams.id,
       'canEditTask'
     )
 
@@ -284,14 +286,14 @@ export async function PUT(
     if (tags !== undefined) {
       // Delete existing tags
       await db.taskTag.deleteMany({
-        where: { taskId: params.id }
+        where: { taskId: resolvedParams.id }
       })
       
       // Create new tags
       if (tags.length > 0) {
         await db.taskTag.createMany({
           data: tags.map((tag: any) => ({
-            taskId: params.id,
+            taskId: resolvedParams.id,
             name: tag.name,
             color: tag.color || '#6b7280'
           }))
@@ -300,7 +302,7 @@ export async function PUT(
     }
 
     const task = await db.task.update({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       data: updateData,
       include: {
         assignee: {
@@ -351,9 +353,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -365,7 +368,7 @@ export async function DELETE(
 
     // Get the existing task to validate permissions
     const existingTask = await db.task.findUnique({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       include: {
         project: {
           include: {
@@ -385,7 +388,7 @@ export async function DELETE(
     // Check if user has permission to delete this task
     const hasPermission = await canUserPerformTaskAction(
       session.user.id,
-      params.id,
+      resolvedParams.id,
       'canDeleteTask'
     )
 
@@ -398,22 +401,22 @@ export async function DELETE(
 
     // Delete related tags first
     await db.taskTag.deleteMany({
-      where: { taskId: params.id }
+      where: { taskId: resolvedParams.id }
     })
 
     // Delete related subtasks
     await db.subTask.deleteMany({
-      where: { taskId: params.id }
+      where: { taskId: resolvedParams.id }
     })
 
     // Delete related comments
     await db.comment.deleteMany({
-      where: { taskId: params.id }
+      where: { taskId: resolvedParams.id }
     })
 
     // Delete the task
     await db.task.delete({
-      where: { id: params.id }
+      where: { id: resolvedParams.id }
     })
 
     return NextResponse.json({ success: true })

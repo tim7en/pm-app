@@ -27,7 +27,7 @@ import {
   Clock,
   Flag
 } from "lucide-react"
-import { TaskStatus, Priority } from "@prisma/client"
+import { TaskStatus, Priority } from '@/lib/prisma-mock'
 import { useTranslation } from "@/hooks/use-translation"
 
 interface Task {

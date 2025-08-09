@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { NotificationType } from '@/lib/prisma-mock'
 import { getAuthSession } from '@/lib/auth'
 import { canUserPerformTaskAction } from '@/lib/roles'
 import { NotificationService } from '@/lib/notification-service'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -30,7 +32,7 @@ export async function POST(
 
     // Get the existing task to validate permissions
     const existingTask = await db.task.findUnique({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       include: {
         project: {
           include: {
@@ -50,7 +52,7 @@ export async function POST(
     // Check if user has permission to assign this task
     const hasPermission = await canUserPerformTaskAction(
       session.user.id,
-      params.id,
+      resolvedParams.id,
       'canEditTask'
     )
 
@@ -171,7 +173,7 @@ export async function POST(
 
     // Now assign the task
     const updatedTask = await db.task.update({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       data: { assigneeId },
       include: {
         assignee: {
@@ -208,7 +210,7 @@ export async function POST(
         await NotificationService.createNotification({
           title: 'New Task Assigned',
           message: `You have been assigned to task "${updatedTask.title}" in project "${updatedTask.project.name}"`,
-          type: 'TASK_ASSIGNED',
+          type: NotificationType.TASK_ASSIGNED,
           userId: assigneeId,
           relatedId: updatedTask.id,
           relatedUrl: `/tasks/${updatedTask.id}`,
@@ -292,9 +294,10 @@ export async function POST(
 // Allow unassigning tasks (set assigneeId to null)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -307,7 +310,7 @@ export async function DELETE(
     // Check if user has permission to unassign this task
     const hasPermission = await canUserPerformTaskAction(
       session.user.id,
-      params.id,
+      resolvedParams.id,
       'canEditTask'
     )
 
@@ -319,7 +322,7 @@ export async function DELETE(
     }
 
     const updatedTask = await db.task.update({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       data: { assigneeId: null },
       include: {
         assignee: {

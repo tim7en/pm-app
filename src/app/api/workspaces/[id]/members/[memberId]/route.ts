@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { Role } from '@prisma/client'
+import { Role } from '@/lib/prisma-mock'
 import { getAuthSession } from '@/lib/auth'
 
 // PUT /api/workspaces/[id]/members/[memberId] - Update member role
@@ -9,6 +9,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string; memberId: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     const { id, memberId } = await params
     
@@ -98,6 +99,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; memberId: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     const { id, memberId } = await params
     

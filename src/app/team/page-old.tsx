@@ -5,7 +5,7 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { WorkspaceTeamManagement } from "@/components/teams/workspace-team-management"
 import { useAuth } from "@/contexts/AuthContext"
-import { Role } from "@prisma/client"
+import { Role } from '@/lib/prisma-mock'
 
 export default function TeamPage() {
   const { user, currentWorkspaceId } = useAuth()

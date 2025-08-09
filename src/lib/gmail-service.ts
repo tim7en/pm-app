@@ -87,6 +87,13 @@ export class GmailService {
   }
 
   /**
+   * Get Gmail API instance (for advanced usage)
+   */
+  getGmailInstance() {
+    return this.gmail
+  }
+
+  /**
    * Get user's Gmail profile
    */
   async getProfile() {

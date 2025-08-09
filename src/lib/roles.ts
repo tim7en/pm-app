@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { ProjectRole, TaskStatus, Priority, TaskVerificationStatus, Role } from '@prisma/client'
+import { ProjectRole, TaskStatus, Priority, TaskVerificationStatus, Role } from '@/lib/prisma-mock'
 
 // Permission types for fine-grained access control
 export type SystemPermission = 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { ProjectStatus } from '@prisma/client'
+import { ProjectStatus } from '@/lib/prisma-mock'
 import { getAuthSession } from '@/lib/auth'
 import { getAccessibleProjects, getUserSystemRole } from '@/lib/roles'
 
