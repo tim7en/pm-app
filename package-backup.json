@@ -1,0 +1,29 @@
+{
+  "name": "project-manager",
+  "version": "1.0.0", 
+  "private": true,
+  "engines": {
+    "node": ">=20.19.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "nodemon --exec \"npx tsx server.ts\" --watch server.ts --watch src --ext ts,tsx,js,jsx",
+    "dev:network": "nodemon --exec \"npx tsx server.ts 0.0.0.0 3000\" --watch server.ts --watch src --ext ts,tsx,js,jsx",
+    "dev:windows": "nodemon --exec \"npx tsx server.ts\" --watch server.ts --watch src --ext ts,tsx,js,jsx",
+    "dev:mac": "nodemon --exec 'npx tsx server.ts' --watch server.ts --watch src --ext ts,tsx,js,jsx",
+    "build": "next build",
+    "build-simple": "next build --no-lint",
+    "start": "cross-env NODE_ENV=production tsx server.ts",
+    "start:windows": "set NODE_ENV=production && tsx server.ts",
+    "start:mac": "NODE_ENV=production tsx server.ts",
+    "lint": "next lint",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:reset": "prisma migrate reset",
+    "db:seed": "tsx prisma/seed.ts"
+  }
+}

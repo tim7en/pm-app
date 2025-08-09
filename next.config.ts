@@ -3,7 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   typescript: {
-    ignoreBuildErrors: true,
+    // Enforce types in production; relax in dev for iteration speed
+    ignoreBuildErrors: process.env.NODE_ENV !== 'production',
   },
   eslint: {
     ignoreDuringBuilds: true,

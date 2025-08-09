@@ -1,0 +1,176 @@
+# Docker Compose for PM-App Production with External Database
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  pm-app-db:
+    image: postgres:16-alpine
+    container_name: pm-app-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pmapp
+      POSTGRES_USER: pmapp_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change_this_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - pm-app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pmapp_user -d pmapp"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # Redis Cache (optional for sessions/caching)
+  pm-app-redis:
+    image: redis:7-alpine
+    container_name: pm-app-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-change_this_password}
+    volumes:
+      - redis_data:/data
+    networks:
+      - pm-app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+
+  # Main application
+  pm-app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: pm-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - DATABASE_URL=postgresql://pmapp_user:${DB_PASSWORD:-change_this_password}@pm-app-db:5432/pmapp
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-change_this_password}@pm-app-redis:6379
+      - NEXTAUTH_URL=${APP_URL:-http://localhost:3000}
+    env_file:
+      - .env.production
+    volumes:
+      - pm-app-logs:/app/logs
+      - pm-app-uploads:/app/uploads
+    networks:
+      - pm-app-network
+    depends_on:
+      pm-app-db:
+        condition: service_healthy
+      pm-app-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    user: "1001:1001"
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /app/.next/cache:noexec,nosuid,size=200m
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: pm-app-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_cache:/var/cache/nginx
+      - nginx_logs:/var/log/nginx
+    networks:
+      - pm-app-network
+    depends_on:
+      - pm-app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    user: "101:101"
+
+  # Database backup service
+  db-backup:
+    image: postgres:16-alpine
+    container_name: pm-app-backup
+    restart: unless-stopped
+    volumes:
+      - ./backups:/backups
+    environment:
+      - PGPASSWORD=${DB_PASSWORD:-change_this_password}
+      - BACKUP_RETENTION_DAYS=30
+    networks:
+      - pm-app-network
+    depends_on:
+      pm-app-db:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Database backup service started'
+        while true; do
+          echo 'Creating database backup at $$(date)'
+          pg_dump -h pm-app-db -U pmapp_user -d pmapp > /backups/backup-$$(date +%Y%m%d_%H%M%S).sql
+          echo 'Backup created successfully'
+          find /backups -name 'backup-*.sql' -mtime +$${BACKUP_RETENTION_DAYS:-30} -delete
+          echo 'Old backups cleaned up'
+          sleep 86400  # Run daily
+        done
+      "
+
+# Named volumes for data persistence
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  pm-app-logs:
+    driver: local
+  pm-app-uploads:
+    driver: local
+  nginx_cache:
+    driver: local
+  nginx_logs:
+    driver: local
+
+# Custom network for service isolation
+networks:
+  pm-app-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
