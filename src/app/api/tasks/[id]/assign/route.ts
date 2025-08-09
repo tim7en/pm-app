@@ -6,9 +6,10 @@ import { NotificationService } from '@/lib/notification-service'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -50,7 +51,7 @@ export async function POST(
     // Check if user has permission to assign this task
     const hasPermission = await canUserPerformTaskAction(
       session.user.id,
-      params.id,
+      resolvedParams.id,
       'canEditTask'
     )
 
@@ -292,9 +293,10 @@ export async function POST(
 // Allow unassigning tasks (set assigneeId to null)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -307,7 +309,7 @@ export async function DELETE(
     // Check if user has permission to unassign this task
     const hasPermission = await canUserPerformTaskAction(
       session.user.id,
-      params.id,
+      resolvedParams.id,
       'canEditTask'
     )
 

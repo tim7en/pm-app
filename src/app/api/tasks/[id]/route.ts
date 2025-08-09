@@ -6,9 +6,10 @@ import { canUserPerformAction, canUserPerformTaskAction, getAccessibleTasks, get
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -149,9 +150,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -195,7 +197,7 @@ export async function PUT(
     // Check if user has permission to update this task
     const hasPermission = await canUserPerformTaskAction(
       session.user.id,
-      params.id,
+      resolvedParams.id,
       'canEditTask'
     )
 
@@ -351,9 +353,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -385,7 +388,7 @@ export async function DELETE(
     // Check if user has permission to delete this task
     const hasPermission = await canUserPerformTaskAction(
       session.user.id,
-      params.id,
+      resolvedParams.id,
       'canDeleteTask'
     )
 

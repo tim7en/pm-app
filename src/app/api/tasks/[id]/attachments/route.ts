@@ -9,6 +9,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     const { id } = await params
     
@@ -116,6 +117,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     const { id } = await params
     

@@ -4,9 +4,10 @@ import { join } from 'path'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { locale: string } }
+  { params }: { params: Promise<{ locale: string }> }
 ) {
   try {
+    const resolvedParams = await params
     console.log('Translation API called with params:', params)
     const { locale } = await params
     console.log('Resolved locale:', locale)

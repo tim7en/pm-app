@@ -8,6 +8,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string; memberId: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     const { id: workspaceId, memberId } = await params
     

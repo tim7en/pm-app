@@ -9,6 +9,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string; memberId: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     const { id, memberId } = await params
     
@@ -98,6 +99,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; memberId: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     const { id, memberId } = await params
     

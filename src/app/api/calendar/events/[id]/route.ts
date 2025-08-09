@@ -19,6 +19,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const { id } = await params
     const session = await getAuthSession(request)
     if (!session) {
@@ -81,6 +82,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const { id } = await params
     const session = await getAuthSession(request)
     if (!session) {

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -11,15 +10,11 @@ import { SocketProvider } from "@/contexts/SocketContext";
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// Use system fonts as fallback for better reliability
+const fontVariables = {
+  sans: "--font-geist-sans",
+  mono: "--font-geist-mono",
+};
 
 export const metadata: Metadata = {
   title: "Project Manager - Complete Project Management",
@@ -79,7 +74,12 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Project Manager" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className="font-sans antialiased bg-background text-foreground"
+        style={{ 
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+          '--font-geist-sans': 'system-ui, -apple-system, sans-serif',
+          '--font-geist-mono': 'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, monospace'
+        } as React.CSSProperties}
       >
         <ThemeProvider>
           <AuthProvider>
