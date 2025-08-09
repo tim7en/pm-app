@@ -13,7 +13,7 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { TeamChatDialog } from './team-chat-dialog'
+import { TeamChatDialog } from '../src/components/messages/team-chat-dialog'
 
 // Mock the required hooks and components
 vi.mock('@/hooks/use-toast', () => ({

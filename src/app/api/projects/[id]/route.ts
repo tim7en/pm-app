@@ -5,11 +5,12 @@ import { getAuthSession } from '@/lib/auth'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const project = await db.project.findUnique({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       include: {
         owner: {
           select: { id: true, name: true, avatar: true }

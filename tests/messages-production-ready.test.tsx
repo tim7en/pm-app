@@ -4,22 +4,32 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { vi, describe, test, expect, beforeEach } from 'vitest'
 import '@testing-library/jest-dom'
 import MessagesPage from '../src/app/messages/page'
 import { AuthContext } from '../src/contexts/AuthContext'
 import { useMessenger } from '../src/hooks/use-messenger'
 
 // Mock the useMessenger hook
-jest.mock('../src/hooks/use-messenger')
-const mockUseMessenger = useMessenger as jest.MockedFunction<typeof useMessenger>
+vi.mock('../src/hooks/use-messenger')
+const mockUseMessenger = vi.mocked(useMessenger)
 
 // Mock components that might cause issues in testing
-jest.mock('../src/components/layout/sidebar', () => ({
+vi.mock('../src/components/layout/sidebar', () => ({
   Sidebar: () => <div data-testid="sidebar">Sidebar</div>
 }))
 
-jest.mock('../src/components/layout/header', () => ({
+vi.mock('../src/components/layout/header', () => ({
   Header: () => <div data-testid="header">Header</div>
+}))
+
+// Mock translation hook to prevent API calls
+vi.mock('../src/hooks/use-translation', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+    loading: false,
+    error: null
+  })
 }))
 
 describe('Messages Page Production Readiness', () => {
@@ -27,8 +37,8 @@ describe('Messages Page Production Readiness', () => {
     isAuthenticated: true,
     currentWorkspaceId: 'test-workspace-123',
     user: { id: 'user-1', name: 'Test User', email: 'test@example.com' },
-    login: jest.fn(),
-    logout: jest.fn(),
+    login: vi.fn(),
+    logout: vi.fn(),
     loading: false
   }
 
@@ -45,16 +55,16 @@ describe('Messages Page Production Readiness', () => {
     composing: false,
     draftEmail: null,
     teamMembers: [],
-    setActiveConversation: jest.fn(),
-    setActiveFolder: jest.fn(),
-    setSearchQuery: jest.fn(),
-    startComposing: jest.fn(),
-    stopComposing: jest.fn(),
-    updateDraftEmail: jest.fn(),
-    sendEmail: jest.fn(),
-    sendInternalMessage: jest.fn(),
-    generateDraftReply: jest.fn(),
-    uploadAttachment: jest.fn()
+    setActiveConversation: vi.fn(),
+    setActiveFolder: vi.fn(),
+    setSearchQuery: vi.fn(),
+    startComposing: vi.fn(),
+    stopComposing: vi.fn(),
+    updateDraftEmail: vi.fn(),
+    sendEmail: vi.fn(),
+    sendInternalMessage: vi.fn(),
+    generateDraftReply: vi.fn(),
+    uploadAttachment: vi.fn()
   }
 
   beforeEach(() => {
@@ -62,7 +72,7 @@ describe('Messages Page Production Readiness', () => {
   })
 
   afterEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   test('1. Shows authentication gate when not authenticated', () => {
@@ -96,7 +106,7 @@ describe('Messages Page Production Readiness', () => {
   test('3. Error boundary catches and displays errors gracefully', () => {
     // Mock console.error to avoid noise in test output
     const originalError = console.error
-    console.error = jest.fn()
+    console.error = vi.fn()
 
     // Force an error by providing invalid props
     const ThrowError = () => {

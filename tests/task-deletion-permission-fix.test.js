@@ -15,6 +15,23 @@
  * - If user created the task, they can delete it regardless of assignment
  */
 
+import { vi } from 'vitest'
+
+// Mock the database module first to avoid Prisma initialization
+vi.mock('../src/lib/db', () => ({
+  db: {
+    user: {
+      findUnique: vi.fn(),
+    },
+    task: {
+      findUnique: vi.fn(),
+    },
+    project: {
+      findUnique: vi.fn(),
+    },
+  }
+}))
+
 import { canUserPerformTaskAction } from '../src/lib/roles'
 
 // Mock database for testing
