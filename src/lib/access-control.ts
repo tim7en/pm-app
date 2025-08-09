@@ -244,7 +244,7 @@ export function requireProjectAdmin(projectId: string) {
  * Create a permission-protected API handler
  */
 export function withPermission<T extends any[]>(
-  permissionCheck: (...args: T) => Promise<boolean>,
+  permissionCheck: (userId: string, ...args: T) => Promise<boolean>,
   handler: (request: NextRequest, ...args: T) => Promise<NextResponse>
 ) {
   return async (request: NextRequest, ...args: T): Promise<NextResponse> => {

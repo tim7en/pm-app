@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { NotificationType } from '@/lib/prisma-mock'
 import { getAuthSession } from '@/lib/auth'
 
 // POST /api/invitations/[id]/accept - Accept workspace invitation
@@ -99,7 +100,7 @@ export async function POST(
       data: {
         title: 'Welcome to the team!',
         message: `You have successfully joined ${invitation.workspace.name}`,
-        type: 'WORKSPACE_INVITE',
+        type: NotificationType.WORKSPACE_INVITE,
         userId: session.user.id
       }
     })

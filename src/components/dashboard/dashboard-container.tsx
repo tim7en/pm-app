@@ -252,7 +252,7 @@ export function DashboardContainer() {
     setReassignDialogOpen(true)
   }
 
-  const onReassignComplete = async (taskId: string, newAssigneeId?: string) => {
+  const onReassignComplete = async (taskId: string, newAssigneeIds?: string[]) => {
     // Refresh tasks to get updated assignee information
     await fetchTasks()
   }

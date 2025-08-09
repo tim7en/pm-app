@@ -76,7 +76,7 @@ export function ProjectMembers({
   const [loading, setLoading] = useState(true)
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
   const [inviteEmail, setInviteEmail] = useState("")
-  const [inviteRole, setInviteRole] = useState<ProjectRole>("MEMBER")
+  const [inviteRole, setInviteRole] = useState<ProjectRole>(ProjectRole.MEMBER)
 
   const canManageMembers = currentUserId === projectOwnerId || userRole === "ADMIN"
 
@@ -125,7 +125,7 @@ export function ProjectMembers({
         })
         setInviteDialogOpen(false)
         setInviteEmail("")
-        setInviteRole("MEMBER")
+        setInviteRole(ProjectRole.MEMBER)
         fetchMembers()
       } else {
         const errorData = await response.json()
@@ -315,13 +315,13 @@ export function ProjectMembers({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleUpdateRole(member.id, "ADMIN")}>
+                        <DropdownMenuItem onClick={() => handleUpdateRole(member.id, ProjectRole.ADMIN)}>
                           Make Admin
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleUpdateRole(member.id, "MEMBER")}>
+                        <DropdownMenuItem onClick={() => handleUpdateRole(member.id, ProjectRole.MEMBER)}>
                           Make Member
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleUpdateRole(member.id, "VIEWER")}>
+                        <DropdownMenuItem onClick={() => handleUpdateRole(member.id, ProjectRole.VIEWER)}>
                           Make Viewer
                         </DropdownMenuItem>
                         <DropdownMenuItem 

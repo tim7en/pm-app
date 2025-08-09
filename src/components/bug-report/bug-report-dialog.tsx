@@ -152,7 +152,7 @@ export function BugReportDialog({ children, className }: BugReportDialogProps) {
       // Modern browsers support screen capture API
       if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
         const stream = await navigator.mediaDevices.getDisplayMedia({
-          video: { mediaSource: 'screen' }
+          video: true
         })
         
         const video = document.createElement('video')

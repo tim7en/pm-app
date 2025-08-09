@@ -224,7 +224,7 @@ export async function POST(
         await NotificationService.createNotification({
           title: 'Added to Workspace',
           message: `You have been added to workspace "${existingTask.project.workspace.name}" and assigned to task "${updatedTask.title}"`,
-          type: 'WORKSPACE_INVITE',
+          type: NotificationType.WORKSPACE_INVITE,
           userId: assigneeId,
           relatedId: existingTask.project.workspaceId,
           relatedUrl: `/workspaces/${existingTask.project.workspaceId}`,
@@ -238,7 +238,7 @@ export async function POST(
         await NotificationService.createNotification({
           title: 'Added to Project',
           message: `You have been added to project "${updatedTask.project.name}" and assigned to task "${updatedTask.title}"`,
-          type: 'PROJECT_INVITE',
+          type: NotificationType.PROJECT_INVITE,
           userId: assigneeId,
           relatedId: existingTask.projectId,
           relatedUrl: `/projects/${existingTask.projectId}`,

@@ -17,7 +17,7 @@ export async function PATCH(
       )
     }
 
-    const { id: taskId, subtaskId } = params
+    const { id: taskId, subtaskId } = resolvedParams
     const body = await request.json()
     const { isCompleted } = body
 
@@ -79,7 +79,7 @@ export async function DELETE(
       )
     }
 
-    const { id: taskId, subtaskId } = params
+    const { id: taskId, subtaskId } = resolvedParams
 
     // Verify task exists and user has access to it
     const task = await db.task.findFirst({

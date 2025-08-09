@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
@@ -50,7 +52,7 @@ export default function ServerError() {
         </div>
 
         <div style={{ marginBottom: '1rem' }}>
-          <a 
+          <Link 
             href="/"
             style={{
               display: 'inline-block',
@@ -66,7 +68,7 @@ export default function ServerError() {
             }}
           >
             🏠 Go Home
-          </a>
+          </Link>
           
           <button 
             onClick={() => window.location.reload()}

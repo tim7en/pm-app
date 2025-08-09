@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
@@ -49,7 +51,7 @@ export default function NotFound() {
         </div>
 
         <div style={{ marginBottom: '1rem' }}>
-          <a 
+          <Link 
             href="/"
             style={{
               display: 'inline-block',
@@ -65,9 +67,9 @@ export default function NotFound() {
             }}
           >
             🏠 Go Home
-          </a>
+          </Link>
           
-          <a 
+          <Link 
             href="/workspaces"
             style={{
               display: 'inline-block',
@@ -83,7 +85,7 @@ export default function NotFound() {
             }}
           >
             ← View Workspaces
-          </a>
+          </Link>
         </div>
 
         <div style={{

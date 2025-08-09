@@ -19,7 +19,7 @@ export async function GET(
       )
     }
 
-    const { id: taskId, attachmentId } = params
+    const { id: taskId, attachmentId } = resolvedParams
 
     // Get attachment and verify access
     const attachment = await db.taskAttachment.findFirst({
@@ -55,7 +55,7 @@ export async function GET(
     const fileBuffer = await readFile(filePath)
 
     // Return file with appropriate headers
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(fileBuffer as BodyInit, {
       headers: {
         'Content-Type': attachment.mimeType,
         'Content-Disposition': `attachment; filename="${attachment.fileName}"`,
@@ -86,7 +86,7 @@ export async function DELETE(
       )
     }
 
-    const { attachmentId } = params
+    const { attachmentId } = resolvedParams
 
     // Get attachment and verify access
     const attachment = await db.taskAttachment.findFirst({

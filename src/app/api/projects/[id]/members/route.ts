@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { ProjectRole } from '@/lib/prisma-mock'
+import { ProjectRole, NotificationType } from '@/lib/prisma-mock'
 import { getAuthSession } from '@/lib/auth'
 
 // GET /api/projects/[id]/members - Get project members (includes workspace members)
@@ -211,7 +211,7 @@ export async function POST(
       data: {
         title: 'Project Invitation',
         message: `You have been invited to join a project with ${role.toLowerCase()} role`,
-        type: 'PROJECT_INVITE',
+        type: NotificationType.PROJECT_INVITE,
         userId: targetUserId
       }
     })

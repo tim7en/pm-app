@@ -11,6 +11,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
+
+interface AuthTokens {
+  accessToken: string
+  refreshToken: string
+}
+
 import { 
   Plus, 
   Edit2, 
@@ -100,11 +106,11 @@ export function LabelManager() {
       setLoading(true)
       
       // Get OAuth tokens from localStorage or session
-      let authTokens = null
+      let authTokens: AuthTokens | null = null
       try {
         const savedTokens = localStorage.getItem('gmail-tokens')
         if (savedTokens) {
-          authTokens = JSON.parse(savedTokens)
+          authTokens = JSON.parse(savedTokens) as AuthTokens
         }
       } catch (e) {
         console.warn('No saved tokens found')

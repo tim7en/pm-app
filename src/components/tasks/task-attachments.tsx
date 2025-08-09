@@ -78,12 +78,12 @@ export function TaskAttachments({
   }
 
   const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith('image/')) return <Image className="h-4 w-4" />
-    if (mimeType.startsWith('video/')) return <Video className="h-4 w-4" />
-    if (mimeType.startsWith('audio/')) return <Music className="h-4 w-4" />
-    if (mimeType.includes('pdf') || mimeType.includes('document')) return <FileText className="h-4 w-4" />
-    if (mimeType.includes('zip') || mimeType.includes('archive')) return <FileArchive className="h-4 w-4" />
-    return <File className="h-4 w-4" />
+    if (mimeType.startsWith('image/')) return <Image className="h-4 w-4" aria-label="Image file" />
+    if (mimeType.startsWith('video/')) return <Video className="h-4 w-4" aria-label="Video file" />
+    if (mimeType.startsWith('audio/')) return <Music className="h-4 w-4" aria-label="Audio file" />
+    if (mimeType.includes('pdf') || mimeType.includes('document')) return <FileText className="h-4 w-4" aria-label="Document file" />
+    if (mimeType.includes('zip') || mimeType.includes('archive')) return <FileArchive className="h-4 w-4" aria-label="Archive file" />
+    return <File className="h-4 w-4" aria-label="File" />
   }
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {

@@ -40,12 +40,9 @@ interface Task {
   status: TaskStatus
   priority: Priority
   dueDate?: Date
-  createdAt: Date
-  updatedAt: Date
   assignee?: {
     id: string
     name: string
-    email: string
     avatar?: string
   }
   assignees?: {
@@ -60,24 +57,28 @@ interface Task {
   creator: {
     id: string
     name: string
-    email: string
     avatar?: string
   }
   project: {
     id: string
     name: string
-    color?: string
+    color: string
+    workspaceId: string
   }
   subtasks?: Array<{
     id: string
     title: string
     completed: boolean
   }>
-  tags?: Array<{
+  tags: Array<{
     id: string
     name: string
     color: string
   }>
+  commentCount: number
+  attachmentCount: number
+  subtaskCount: number
+  completedSubtaskCount: number
 }
 
 function TasksPageContent() {
@@ -111,7 +112,7 @@ function TasksPageContent() {
     assignee: "all"
   })
 
-  const socket = useSocket()
+  const { socket } = useSocket()
 
   // Get task parameters from URL
   const taskId = searchParams.get('taskId')
@@ -157,6 +158,8 @@ function TasksPageContent() {
     const handleTaskDeleted = (deletedTaskId: string) => {
       setTasks(prev => prev.filter(task => task.id !== deletedTaskId))
     }
+
+    if (!socket) return
 
     socket.on('taskCreated', handleTaskCreated)
     socket.on('taskUpdated', handleTaskUpdated)
@@ -387,13 +390,33 @@ function TasksPageContent() {
     setTaskDialogOpen(true)
   }
 
-  const handleTaskReassign = (task: Task) => {
+  // Transform Task to TaskDialog format
+  const transformTaskForDialog = (task: Task | null) => {
+    if (!task) return undefined
+    return {
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      projectId: task.project.id,
+      assigneeId: task.assignee?.id,
+      assigneeIds: task.assignees?.map(a => a.user.id),
+      assignees: task.assignees,
+      priority: task.priority,
+      dueDate: task.dueDate,
+      status: task.status,
+      tags: task.tags.map(tag => ({ name: tag.name, color: tag.color })),
+      subtasks: task.subtasks?.map(sub => ({ title: sub.title, isCompleted: sub.completed })) || []
+    }
+  }
+
+  const handleTaskReassign = (taskId: string, currentAssigneeId?: string) => {
+    const task = tasks.find(t => t.id === taskId)
     if (!task) return
     
     setReassignTaskData({
       taskId: task.id,
       taskTitle: task.title,
-      currentAssigneeId: task.assignee?.id,
+      currentAssigneeId: currentAssigneeId,
       currentAssigneeIds: task.assignees?.map(a => a.user.id) || []
     })
     setReassignDialogOpen(true)
@@ -664,13 +687,6 @@ function TasksPageContent() {
                     setInitialTaskStatus(status)
                     setTaskDialogOpen(true)
                   }}
-                  onTaskEdit={(task) => {
-                    setEditingTask(task)
-                    setOpenCommentsTab(false)
-                    setTaskDialogOpen(true)
-                  }}
-                  onTaskEditWithComments={handleTaskEditWithComments}
-                  onTaskReassign={handleTaskReassign}
                   currentUserId={user?.id}
                 />
               </TabsContent>
@@ -679,6 +695,7 @@ function TasksPageContent() {
                 <TaskGantt 
                   tasks={filteredTasks}
                   onTaskUpdate={handleTaskUpdate}
+                  onTaskDelete={handleDeleteTask}
                   onTaskEdit={(task) => {
                     setEditingTask(task)
                     setOpenCommentsTab(false)
@@ -702,7 +719,7 @@ function TasksPageContent() {
             setOpenCommentsTab(false)
           }
         }}
-        task={editingTask}
+        task={transformTaskForDialog(editingTask)}
         initialStatus={initialTaskStatus}
         initialTab={openCommentsTab ? "comments" : "details"}
         projects={projects}

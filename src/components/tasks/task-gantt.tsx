@@ -317,8 +317,8 @@ export function TaskGantt({
                 className="col-span-9 grid gap-1 gantt-grid"
                 style={{ 
                   gridTemplateColumns: `repeat(${dateRange.days.length}, 1fr)`,
-                  '--grid-columns': dateRange.days.length
-                }}
+                  '--grid-columns': dateRange.days.length.toString()
+                } as React.CSSProperties}
               >
                 {dateRange.days.map((day, index) => {
                   const isToday = isSameDay(day, new Date())
@@ -376,7 +376,7 @@ export function TaskGantt({
                     </div>
                     <div 
                       className="col-span-9 relative h-8 bg-muted/10 rounded-sm gantt-grid"
-                      style={{ '--grid-columns': dateRange.days.length }}
+                      style={{ '--grid-columns': dateRange.days.length.toString() } as React.CSSProperties}
                     >
                       {/* Project timeline background with grid */}
                     </div>

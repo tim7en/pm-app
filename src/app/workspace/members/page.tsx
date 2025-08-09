@@ -67,9 +67,7 @@ import { useAuth } from "@/contexts/AuthContext"
 
 const inviteSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
-  role: z.enum(["MEMBER", "ADMIN"], {
-    required_error: "Please select a role",
-  }),
+  role: z.enum(["MEMBER", "ADMIN"]),
 })
 
 type InviteFormData = z.infer<typeof inviteSchema>

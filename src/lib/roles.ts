@@ -492,7 +492,7 @@ export async function getUserProjectRole(userId: string, projectId: string): Pro
   })
   
   if (project?.ownerId === userId) {
-    return 'ADMIN'
+    return ProjectRole.ADMIN
   }
   
   // Check project membership
@@ -525,13 +525,13 @@ export async function getUserProjectRole(userId: string, projectId: string): Pro
     if (workspaceMember) {
       // Workspace owners and admins get ADMIN role in projects
       if (workspaceMember.role === 'OWNER') {
-        return 'ADMIN'
+        return ProjectRole.ADMIN
       }
       if (workspaceMember.role === 'ADMIN') {
-        return 'MANAGER'
+        return ProjectRole.MANAGER
       }
       // Regular workspace members get MEMBER role in projects
-      return 'MEMBER'
+      return ProjectRole.MEMBER
     }
   }
   
@@ -634,7 +634,19 @@ export async function getAccessibleProjects(userId: string) {
     })
   }
   
-  // For invited members (MEMBER, GUEST), only show projects where they have assigned tasks or own projects
+  // For invited members (MEMBER, GUEST), show projects where they have access
+  // This includes: owned projects, assigned tasks, created tasks, and workspace ownership/admin privileges
+  
+  // Get user's workspace memberships to check for OWNER/ADMIN privileges
+  const userWorkspaces = await db.workspaceMember.findMany({
+    where: { userId },
+    select: { workspaceId: true, role: true }
+  })
+  
+  const ownedOrAdminWorkspaceIds = userWorkspaces
+    .filter(w => w.role === 'OWNER' || w.role === 'ADMIN')
+    .map(w => w.workspaceId)
+  
   return db.project.findMany({
     where: {
       OR: [
@@ -645,7 +657,9 @@ export async function getAccessibleProjects(userId: string) {
         // Projects that have tasks assigned to them (new multi-assignee) - TODO: Fix this once assignees relation is working
         // { tasks: { some: { assignees: { some: { userId: userId } } } } },
         // Projects that have tasks created by them
-        { tasks: { some: { creatorId: userId } } }
+        { tasks: { some: { creatorId: userId } } },
+        // Projects in workspaces where they are OWNER or ADMIN
+        { workspaceId: { in: ownedOrAdminWorkspaceIds } }
       ]
     },
     include: {

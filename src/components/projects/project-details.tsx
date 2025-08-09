@@ -44,6 +44,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
+import { ProjectRole } from "@/lib/prisma-mock"
 
 interface ProjectMember {
   id: string
@@ -409,7 +410,7 @@ export function ProjectDetails({
                 projectId={project.id}
                 projectOwnerId={project.owner?.id || project.ownerId}
                 currentUserId="current-user-id" // This should come from auth context
-                userRole="ADMIN" // This should come from user's role in project
+                userRole={ProjectRole.ADMIN} // This should come from user's role in project
               />
             </TabsContent>
 

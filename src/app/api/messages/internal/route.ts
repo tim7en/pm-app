@@ -431,7 +431,7 @@ export async function POST(request: NextRequest) {
         await NotificationService.createNotification({
           title: `New message from ${message.sender.name || message.sender.email}`,
           message: content.length > 50 ? `${content.substring(0, 50)}...` : content,
-          type: 'MESSAGE' as any, // Use string literal until schema is updated
+          type: NotificationType.MESSAGE,
           userId: participant.userId,
           relatedId: targetConversationId,
           relatedUrl: `/messages?conversation=${targetConversationId}`,

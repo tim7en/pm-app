@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getAuthSession } from '@/lib/auth'
 import { canUserVerifyTasks } from '@/lib/roles'
+import { NotificationType } from '@/lib/prisma-mock'
 
 export async function POST(
   request: NextRequest,
@@ -66,7 +67,7 @@ export async function POST(
           data: {
             title: 'Task Verified',
             message: `Your task "${task.title}" has been verified`,
-            type: 'TASK_VERIFIED',
+            type: NotificationType.TASK_VERIFIED,
             userId: updatedTask.assigneeId
           }
         })
@@ -104,7 +105,7 @@ export async function POST(
           data: {
             title: 'Task Rejected',
             message: `Your task "${task.title}" has been rejected`,
-            type: 'TASK_REJECTED',
+            type: NotificationType.TASK_REJECTED,
             userId: updatedTask.assigneeId
           }
         })

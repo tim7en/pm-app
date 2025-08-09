@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getAuthSession } from '@/lib/auth'
 import { canUserPerformAction } from '@/lib/roles'
-import { NotificationService } from '@/lib/notification-service'
+import { NotificationService, NotificationType } from '@/lib/notification-service'
 
 // GET /api/tasks/[id]/assignees - Get task assignees
 export async function GET(
@@ -213,7 +213,7 @@ export async function POST(
     await Promise.all(
       newAssignments.map(assignment =>
         NotificationService.createNotification({
-          type: 'TASK_ASSIGNED',
+          type: NotificationType.TASK_ASSIGNED,
           title: 'Task Assigned',
           message: `You have been assigned to task: ${task.title}`,
           userId: assignment.userId,
@@ -386,7 +386,7 @@ export async function PUT(
     await Promise.all(
       result.map(assignment =>
         NotificationService.createNotification({
-          type: 'TASK_ASSIGNED',
+          type: NotificationType.TASK_ASSIGNED,
           title: 'Task Assigned',
           message: `You have been assigned to task: ${task.title}`,
           userId: assignment.userId,

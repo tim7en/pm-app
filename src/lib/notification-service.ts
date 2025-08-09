@@ -1,7 +1,6 @@
 import { NotificationType } from '@/lib/prisma-mock'
 import { getSocketInstance, emitNotificationToUser, emitNotificationCountToUser } from './socket'
-
-const prisma = new PrismaClient()
+import { db as prisma } from './db'
 
 export { NotificationType }
 
@@ -357,7 +356,8 @@ export class NotificationService {
       WORKSPACE_INVITE: 'team',
       WORKSPACE_REMOVED: 'team',
       ROLE_CHANGE: 'team',
-      DEADLINE_APPROACHING: 'system'
+      DEADLINE_APPROACHING: 'system',
+      MESSAGE: 'message'
     }
     
     return typeMap[type] || 'system'
@@ -380,7 +380,8 @@ export class NotificationService {
       WORKSPACE_INVITE: '/workspaces',
       WORKSPACE_REMOVED: '/workspaces',
       ROLE_CHANGE: '/team',
-      DEADLINE_APPROACHING: '/calendar'
+      DEADLINE_APPROACHING: '/calendar',
+      MESSAGE: '/messages'
     }
 
     return urlMap[type] || null
@@ -409,7 +410,8 @@ export class NotificationService {
       WORKSPACE_INVITE: '',
       WORKSPACE_REMOVED: '',
       ROLE_CHANGE: '',
-      DEADLINE_APPROACHING: `Deadline approaching for "${taskTitle}"`
+      DEADLINE_APPROACHING: `Deadline approaching for "${taskTitle}"`,
+      MESSAGE: `New message regarding "${taskTitle}"`
     }
 
     const titles: Record<NotificationType, string> = {
@@ -425,7 +427,8 @@ export class NotificationService {
       WORKSPACE_INVITE: '',
       WORKSPACE_REMOVED: '',
       ROLE_CHANGE: '',
-      DEADLINE_APPROACHING: 'Deadline Approaching'
+      DEADLINE_APPROACHING: 'Deadline Approaching',
+      MESSAGE: 'New Message'
     }
 
     return this.createNotification({
