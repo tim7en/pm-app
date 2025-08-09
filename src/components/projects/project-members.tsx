@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Plus, MoreHorizontal, Crown, Shield, User } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { ProjectRole } from "@prisma/client"
+import { ProjectRole } from '@/lib/prisma-mock'
 
 interface ProjectMember {
   id: string

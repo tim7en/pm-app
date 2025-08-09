@@ -3,7 +3,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { TaskCard } from './task-card'
-import { TaskStatus, Priority } from "@prisma/client"
+import { TaskStatus, Priority } from '@/lib/prisma-mock'
 
 interface SortableTaskCardProps {
   task: {

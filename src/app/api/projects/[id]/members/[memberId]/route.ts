@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { ProjectRole } from '@prisma/client'
+import { ProjectRole } from '@/lib/prisma-mock'
 import { getAuthSession } from '@/lib/auth'
 
 // PUT /api/projects/[id]/members/[memberId] - Update member role

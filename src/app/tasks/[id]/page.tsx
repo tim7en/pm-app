@@ -33,7 +33,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { TaskStatus, Priority } from "@prisma/client"
+import { TaskStatus, Priority } from '@/lib/prisma-mock'
 import { format } from "date-fns"
 
 interface TaskPageProps {

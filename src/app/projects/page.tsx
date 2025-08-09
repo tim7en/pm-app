@@ -27,7 +27,7 @@ import {
   TrendingUp,
   Target
 } from "lucide-react"
-import { ProjectStatus } from "@prisma/client"
+import { ProjectStatus } from '@/lib/prisma-mock'
 
 interface Project {
   id: string

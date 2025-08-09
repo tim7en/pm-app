@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { TaskStatus, Priority, NotificationType } from '@prisma/client'
+import { TaskStatus, Priority, NotificationType } from '@/lib/prisma-mock'
 import { getAuthSession } from '@/lib/auth'
 import { getAccessibleTasks, canUserPerformAction } from '@/lib/roles'
 import { NotificationService } from '@/lib/notification-service'

@@ -41,7 +41,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CalendarIcon, Plus, X, MessageSquare, AlertCircle } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
-import { TaskStatus, Priority } from "@prisma/client"
+import { TaskStatus, Priority } from '@/lib/prisma-mock'
 import { useAuth } from "@/contexts/AuthContext"
 import { useTranslation } from "@/hooks/use-translation"
 import { useAPI } from "@/hooks/use-api"

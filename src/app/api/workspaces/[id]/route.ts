@@ -22,7 +22,7 @@ export async function GET(
       where: {
         userId_workspaceId: {
           userId: session.user.id,
-          workspaceId: params.id
+          workspaceId: resolvedParams.id
         }
       },
       include: {
@@ -90,7 +90,7 @@ export async function PUT(
       where: {
         userId_workspaceId: {
           userId: session.user.id,
-          workspaceId: params.id
+          workspaceId: resolvedParams.id
         }
       }
     })
@@ -111,7 +111,7 @@ export async function PUT(
 
     // Update the workspace
     const updatedWorkspace = await db.workspace.update({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       data: {
         name: name.trim(),
         description: description?.trim() || null,
@@ -152,7 +152,7 @@ export async function DELETE(
       where: {
         userId_workspaceId: {
           userId: session.user.id,
-          workspaceId: params.id
+          workspaceId: resolvedParams.id
         }
       }
     })
@@ -166,7 +166,7 @@ export async function DELETE(
 
     // Get all related data to clean up
     const workspace = await db.workspace.findUnique({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       include: {
         projects: {
           include: {
@@ -220,22 +220,22 @@ export async function DELETE(
       
       // Delete projects
       await tx.project.deleteMany({
-        where: { workspaceId: params.id }
+        where: { workspaceId: resolvedParams.id }
       })
       
       // Delete invitations
       await tx.workspaceInvitation.deleteMany({
-        where: { workspaceId: params.id }
+        where: { workspaceId: resolvedParams.id }
       })
       
       // Delete workspace members
       await tx.workspaceMember.deleteMany({
-        where: { workspaceId: params.id }
+        where: { workspaceId: resolvedParams.id }
       })
       
       // Finally delete the workspace
       await tx.workspace.delete({
-        where: { id: params.id }
+        where: { id: resolvedParams.id }
       })
     })
 

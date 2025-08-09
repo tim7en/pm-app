@@ -32,7 +32,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { CalendarIcon, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { ProjectStatus } from "@prisma/client"
+import { ProjectStatus } from '@/lib/prisma-mock'
 import { useAuth } from "@/contexts/AuthContext"
 import { useTranslation } from "@/hooks/use-translation"
 

@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       expiry_date: Date.now() + 3600000
     })
 
-    const gmail = gmailService.gmail
+    const gmail = gmailService.getGmailInstance()
 
     // Get recent emails for analysis (last 30 days or custom range)
     const startDate = dateRange?.start ? new Date(dateRange.start) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
@@ -192,7 +192,7 @@ function analyzeEmailData(emails: any[]) {
     }))
 
   // Generate recommendations
-  const recommendations = []
+  const recommendations: string[] = []
   
   if (emails.length > 50) {
     recommendations.push(`You've processed ${emails.length} emails. Consider using AI classification for better organization.`)

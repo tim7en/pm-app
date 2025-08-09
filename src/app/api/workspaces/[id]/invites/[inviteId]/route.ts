@@ -22,7 +22,7 @@ export async function DELETE(
       where: {
         userId_workspaceId: {
           userId: session.user.id,
-          workspaceId: params.id
+          workspaceId: resolvedParams.id
         }
       }
     })
@@ -37,7 +37,7 @@ export async function DELETE(
     // Get the invitation to verify it belongs to this workspace
     const invitation = await db.workspaceInvitation.findUnique({
       where: {
-        id: params.inviteId
+        id: resolvedParams.inviteId
       }
     })
 
@@ -51,7 +51,7 @@ export async function DELETE(
     // Delete the invitation
     await db.workspaceInvitation.delete({
       where: {
-        id: params.inviteId
+        id: resolvedParams.inviteId
       }
     })
 

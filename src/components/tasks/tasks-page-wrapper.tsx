@@ -31,7 +31,7 @@ import {
   FolderOpen,
   ListChecks
 } from "lucide-react"
-import { TaskStatus, Priority } from "@prisma/client"
+import { TaskStatus, Priority } from '@/lib/prisma-mock'
 
 interface Task {
   id: string

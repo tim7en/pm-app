@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { Role } from '@prisma/client'
+import { Role } from '@/lib/prisma-mock'
 import { getAuthSession } from '@/lib/auth'
 
 // GET /api/workspaces/[id]/members - Get workspace members
@@ -244,7 +244,7 @@ export async function POST(
       data: {
         title: 'Workspace Invitation',
         message: `You have been invited to join ${invitation.workspace.name} with ${role.toLowerCase()} role by ${invitation.inviter.name}`,
-        type: 'WORKSPACE_INVITE',
+        type: NotificationType.PROJECT_INVITE,
         userId: userToInvite.id
       }
     })

@@ -22,7 +22,7 @@ export async function GET(
       where: {
         userId_workspaceId: {
           userId: session.user.id,
-          workspaceId: params.id
+          workspaceId: resolvedParams.id
         }
       }
     })
@@ -37,7 +37,7 @@ export async function GET(
     // Get pending invitations
     const invitations = await db.workspaceInvitation.findMany({
       where: {
-        workspaceId: params.id,
+        workspaceId: resolvedParams.id,
         status: 'PENDING'
       },
       include: {

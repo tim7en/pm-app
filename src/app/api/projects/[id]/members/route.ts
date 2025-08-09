@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { ProjectRole } from '@prisma/client'
+import { ProjectRole } from '@/lib/prisma-mock'
 import { getAuthSession } from '@/lib/auth'
 
 // GET /api/projects/[id]/members - Get project members (includes workspace members)
@@ -75,9 +75,9 @@ export async function GET(
     for (const wsMember of workspaceMembers) {
       if (!seenUserIds.has(wsMember.userId)) {
         // Map workspace role to project role
-        let projectRole: ProjectRole = 'MEMBER'
-        if (wsMember.role === 'OWNER') projectRole = 'ADMIN'
-        else if (wsMember.role === 'ADMIN') projectRole = 'MANAGER'
+        let projectRole: ProjectRole = ProjectRole.MEMBER
+        if (wsMember.role === 'OWNER') projectRole = ProjectRole.ADMIN
+        else if (wsMember.role === 'ADMIN') projectRole = ProjectRole.MANAGER
 
         allMembers.push({
           id: `ws-${wsMember.id}`,
@@ -119,7 +119,7 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { userId, email, role = 'MEMBER' } = body
+    const { userId, email, role = ProjectRole.MEMBER } = body
 
     let targetUserId = userId
 

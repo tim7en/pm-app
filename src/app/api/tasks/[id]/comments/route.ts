@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getAuthSession } from '@/lib/auth'
 import { NotificationService } from '@/lib/notification-service'
-import { NotificationType } from '@prisma/client'
+import { NotificationType } from '@/lib/prisma-mock'
 import { getSocketInstance } from '@/lib/socket'
 
 export async function GET(

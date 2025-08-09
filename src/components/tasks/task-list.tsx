@@ -30,7 +30,7 @@ import {
   Eye
 } from "lucide-react"
 import { useTranslation } from "@/hooks/use-translation"
-import { TaskStatus, Priority } from "@prisma/client"
+import { TaskStatus, Priority } from '@/lib/prisma-mock'
 import { 
   DropdownMenu,
   DropdownMenuContent,

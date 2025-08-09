@@ -119,7 +119,7 @@ export async function GET(
     try {
       const fileBuffer = await readFile(attachment.filePath)
       
-      return new NextResponse(fileBuffer, {
+      return new NextResponse(fileBuffer as any, {
         status: 200,
         headers: {
           'Content-Type': attachment.mimeType || 'application/octet-stream',

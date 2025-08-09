@@ -11,7 +11,7 @@ import { format } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
 import { useAPI } from "@/hooks/use-api"
 import { useSocketContext } from "@/contexts/SocketContext"
-import { TaskStatus } from "@prisma/client"
+import { TaskStatus } from '@/lib/prisma-mock'
 import { useTranslation } from "@/hooks/use-translation"
 
 interface Comment {

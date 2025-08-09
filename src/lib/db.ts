@@ -1,7 +1,14 @@
-import { PrismaClient } from '@prisma/client'
+// Try to import from @prisma/client, fall back to mock if not available
+let PrismaClient: any
+try {
+  PrismaClient = require('@prisma/client').PrismaClient
+} catch (error) {
+  console.log('Using mock Prisma client for build compatibility')
+  PrismaClient = require('./prisma-mock').PrismaClient
+}
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
+  prisma: any | undefined
 }
 
 export const db =

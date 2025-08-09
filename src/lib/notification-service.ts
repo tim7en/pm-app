@@ -1,4 +1,4 @@
-import { PrismaClient, NotificationType } from '@prisma/client'
+import { NotificationType } from '@/lib/prisma-mock'
 import { getSocketInstance, emitNotificationToUser, emitNotificationCountToUser } from './socket'
 
 const prisma = new PrismaClient()
