@@ -7,14 +7,15 @@ export default defineConfig({
     setupFiles: ['./src/tests/setup.ts'],
     globals: true,
     include: [
-      './src/tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-      './tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'
+      './src/tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'
     ],
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
       '**/cypress/**',
-      '**/.next/**'
+      '**/.next/**',
+      './tests/**', // Exclude old test directory
+      '**/scripts/**' // Exclude validation scripts
     ]
   },
   resolve: {

@@ -1,19 +1,22 @@
-import { describe, it, expect } from 'vitest'
-import { dbUtils } from '@/lib/database'
+import { describe, it, expect, vi } from 'vitest'
 
-describe('Database Layer', () => {
-  it('should have a health check function', () => {
-    expect(dbUtils.healthCheck).toBeDefined()
-    expect(typeof dbUtils.healthCheck).toBe('function')
-  })
+// Mock Prisma to avoid database dependency in unit tests
+vi.mock('@prisma/client', () => ({
+  PrismaClient: vi.fn().mockImplementation(() => ({
+    $queryRaw: vi.fn(),
+    $disconnect: vi.fn(),
+    $transaction: vi.fn(),
+  }))
+}))
 
-  it('should have a disconnect function', () => {
-    expect(dbUtils.disconnect).toBeDefined()
-    expect(typeof dbUtils.disconnect).toBe('function')
-  })
-
-  it('should have a transaction wrapper', () => {
-    expect(dbUtils.transaction).toBeDefined()
-    expect(typeof dbUtils.transaction).toBe('function')
+describe('Database Layer Structure', () => {
+  it('should have proper exports', async () => {
+    // Test that our database module exports exist
+    const dbModule = await import('@/lib/database')
+    
+    expect(dbModule.dbUtils).toBeDefined()
+    expect(typeof dbModule.dbUtils.healthCheck).toBe('function')
+    expect(typeof dbModule.dbUtils.disconnect).toBe('function')
+    expect(typeof dbModule.dbUtils.transaction).toBe('function')
   })
 })
