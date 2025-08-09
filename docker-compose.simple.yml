@@ -1,0 +1,35 @@
+# Docker Compose for PM-App - Basic Setup
+version: '3.8'
+
+services:
+  # Main application
+  pm-app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: pm-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "80:3000"  # Map port 80 to app port 3000
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - DATABASE_URL=file:./dev.db
+    volumes:
+      - pm-app-data:/app/data
+      - pm-app-logs:/app/logs
+      - pm-app-uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  pm-app-data:
+  pm-app-logs:
+  pm-app-uploads:

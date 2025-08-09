@@ -12,7 +12,7 @@ import {
   Trash2, 
   File, 
   FileText, 
-  Image, 
+  Image as ImageIcon, 
   FileArchive,
   Video,
   Music
@@ -78,7 +78,7 @@ export function TaskAttachments({
   }
 
   const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith('image/')) return <Image className="h-4 w-4" />
+    if (mimeType.startsWith('image/')) return <ImageIcon className="h-4 w-4" />
     if (mimeType.startsWith('video/')) return <Video className="h-4 w-4" />
     if (mimeType.startsWith('audio/')) return <Music className="h-4 w-4" />
     if (mimeType.includes('pdf') || mimeType.includes('document')) return <FileText className="h-4 w-4" />
