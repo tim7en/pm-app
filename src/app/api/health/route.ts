@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
     // Check database connection
-    await db.$queryRaw`SELECT 1`;
+    await prisma.$queryRaw`SELECT 1`;
     
     // Check memory usage
     const memUsage = process.memoryUsage();
@@ -23,12 +23,12 @@ export async function GET() {
       environment: process.env.NODE_ENV
     });
   } catch (error) {
+    console.error('Health check failed:', error);
     return NextResponse.json({ 
       status: "unhealthy",
       error: "Database connection failed",
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 503 });
-  } finally {
-    await db.$disconnect();
   }
 }

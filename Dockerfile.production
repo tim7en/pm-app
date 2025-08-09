@@ -1,0 +1,110 @@
+# Production-Optimized Docker Build for PM-App
+# Multi-stage build for minimal production image
+
+# Stage 1: Dependencies
+FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+RUN npm install --only=production --ignore-scripts --legacy-peer-deps && npm cache clean --force
+
+# Stage 2: Builder
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache \
+    libc6-compat \
+    python3 \
+    make \
+    g++ \
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    giflib-dev \
+    librsvg-dev \
+    pixman-dev
+
+# Copy package files and install all dependencies
+COPY package*.json ./
+RUN npm install --ignore-scripts --legacy-peer-deps
+
+# Copy configuration files
+COPY next.config.ts ./
+COPY tailwind.config.ts ./
+COPY postcss.config.mjs ./
+COPY tsconfig.json ./
+COPY components.json ./
+
+# Copy Prisma schema and generate client
+COPY prisma ./prisma/
+RUN npx prisma generate
+
+# Copy source code
+COPY src ./src
+COPY public ./public
+COPY server.ts ./
+
+# Build the application
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+RUN npm run build
+
+# Stage 3: Production runtime
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+# Install runtime dependencies and security updates
+RUN apk upgrade --no-cache && \
+    apk add --no-cache \
+    libc6-compat \
+    cairo \
+    jpeg \
+    pango \
+    giflib \
+    librsvg \
+    pixman \
+    dumb-init \
+    curl \
+    tini
+
+# Create nextjs user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Create necessary directories
+RUN mkdir -p /app/data /app/logs /app/uploads /app/.next/cache
+RUN chown -R nextjs:nodejs /app
+
+# Copy production dependencies
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+
+# Copy built application
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+# Copy Prisma for runtime
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+
+USER nextjs
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+ENV NEXT_TELEMETRY_DISABLED=1
+
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:3000/api/health || exit 1
+
+# Use tini for signal handling
+ENTRYPOINT ["tini", "--"]
+CMD ["node", "server.js"]
