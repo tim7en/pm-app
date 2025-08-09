@@ -28,7 +28,7 @@ import {
   Coffee,
   Heart
 } from "lucide-react"
-import { TaskStatus, Priority, ProjectStatus } from "@prisma/client"
+import { TaskStatus, Priority, ProjectStatus } from "@/types/prisma-fallback"
 import { useAPI } from "@/hooks/use-api"
 import { useAuth } from "@/contexts/AuthContext"
 

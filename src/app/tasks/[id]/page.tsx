@@ -37,7 +37,7 @@ import { TaskStatus, Priority } from "@prisma/client"
 import { format } from "date-fns"
 
 interface TaskPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export default function TaskDetailPage({ params }: TaskPageProps) {
@@ -48,6 +48,14 @@ export default function TaskDetailPage({ params }: TaskPageProps) {
   const [task, setTask] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [taskId, setTaskId] = useState<string | null>(null)
+
+  // Resolve params on component mount
+  useEffect(() => {
+    params.then(resolvedParams => {
+      setTaskId(resolvedParams.id)
+    })
+  }, [params])
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -55,14 +63,16 @@ export default function TaskDetailPage({ params }: TaskPageProps) {
       return
     }
     
-    if (isAuthenticated && currentWorkspace) {
+    if (isAuthenticated && currentWorkspace && taskId) {
       fetchTask()
     }
-  }, [isAuthenticated, isLoading, currentWorkspace, params.id])
+  }, [isAuthenticated, isLoading, currentWorkspace, taskId])
 
   const fetchTask = async () => {
+    if (!taskId) return
+    
     try {
-      const response = await apiCall(`/api/tasks/${params.id}`, {
+      const response = await apiCall(`/api/tasks/${taskId}`, {
         credentials: 'include'
       })
       

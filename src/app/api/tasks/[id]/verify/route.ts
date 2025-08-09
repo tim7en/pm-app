@@ -5,10 +5,11 @@ import { canUserVerifyTasks } from '@/lib/roles'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string  }> }
 ) {
   try {
-    const taskId = params.id
+    const resolvedParams = await params
+    const taskId = resolvedParams.id
     const session = await getAuthSession(request)
     
     if (!session) {

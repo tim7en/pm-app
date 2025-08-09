@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { aiAssistant } from '@/lib/ai-assistant'
 import { getAuthSession } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { NotificationType } from '@prisma/client'
+import { NotificationType } from '@/types/prisma-fallback'
 
 export async function POST(request: NextRequest) {
   try {

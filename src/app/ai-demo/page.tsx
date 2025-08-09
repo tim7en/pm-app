@@ -405,7 +405,7 @@ export default function AIDemo() {
                   <Alert className="border-green-200 bg-green-50">
                     <Sparkles className="h-4 w-4 text-green-600" />
                     <AlertDescription className="text-green-800">
-                      {getCurrentDemo().example.message}
+                      {(getCurrentDemo().example as any)?.message || 'AI feedback generated!'}
                     </AlertDescription>
                   </Alert>
                   <div className="grid grid-cols-3 gap-2 text-center">
@@ -430,12 +430,12 @@ export default function AIDemo() {
                   <Alert className="border-orange-200 bg-orange-50">
                     <Coffee className="h-4 w-4 text-orange-600" />
                     <AlertDescription className="text-orange-800">
-                      {getCurrentDemo().example.reminder}
+                      {(getCurrentDemo().example as any)?.reminder || 'Smart reminder generated!'}
                     </AlertDescription>
                   </Alert>
                   <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded">
                     <strong>Manager Notification:</strong><br />
-                    {getCurrentDemo().example.managerNotification}
+                    {(getCurrentDemo().example as any)?.managerNotification || 'Manager has been notified.'}
                   </div>
                   <div className="text-center">
                     <h4 className="font-medium mb-2">⏰ Work Schedule</h4>

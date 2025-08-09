@@ -9,6 +9,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; attachmentId: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -73,6 +74,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string; attachmentId: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
