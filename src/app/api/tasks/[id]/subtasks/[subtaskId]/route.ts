@@ -4,9 +4,10 @@ import { getAuthSession } from '@/lib/auth'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; subtaskId: string } }
+  { params }: { params: Promise<{ id: string; subtaskId: string  }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -65,9 +66,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; subtaskId: string } }
+  { params }: { params: Promise<{ id: string; subtaskId: string  }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {

@@ -6,9 +6,10 @@ import { getAuthSession } from '@/lib/auth'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string; attachmentId: string } }
+  { params }: { params: Promise<{ id: string; attachmentId: string  }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -72,9 +73,10 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; attachmentId: string } }
+  { params }: { params: Promise<{ id: string; attachmentId: string  }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {

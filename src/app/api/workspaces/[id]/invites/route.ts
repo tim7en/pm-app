@@ -4,9 +4,10 @@ import { getAuthSession } from '@/lib/auth'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string  }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -21,7 +22,7 @@ export async function GET(
       where: {
         userId_workspaceId: {
           userId: session.user.id,
-          workspaceId: params.id
+          workspaceId: resolvedParams.id
         }
       }
     })
@@ -36,7 +37,7 @@ export async function GET(
     // Get pending invitations
     const invitations = await db.workspaceInvitation.findMany({
       where: {
-        workspaceId: params.id,
+        workspaceId: resolvedParams.id,
         status: 'PENDING'
       },
       include: {

@@ -4,9 +4,10 @@ import { getAuthSession } from '@/lib/auth'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string  }> }
 ) {
   try {
+    const resolvedParams = await params
     const session = await getAuthSession(request)
     
     if (!session) {
@@ -16,7 +17,7 @@ export async function POST(
       )
     }
 
-    const taskId = params.id
+    const taskId = resolvedParams.id
     const body = await request.json()
     const { title } = body
 
