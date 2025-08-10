@@ -3,7 +3,7 @@
  * Tests all app functionality with database integration and authentication mocking
  */
 
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, test, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
@@ -357,10 +357,21 @@ const initializeTestDatabase = () => {
 
 // Mock Global Setup
 const setupGlobalMocks = () => {
-  // Mock fetch API
+  // Mock fetch API with robust URL handling
   global.fetch = vi.fn().mockImplementation((url: string, options: any = {}) => {
     const method = options.method || 'GET'
-    const path = url.replace(/^https?:\/\/[^\/]+/, '') // Remove domain
+    // Handle both relative and absolute URLs
+    let path = url
+    if (url.startsWith('http')) {
+      try {
+        const urlObj = new URL(url)
+        path = urlObj.pathname
+      } catch (e) {
+        path = url.replace(/^https?:\/\/[^\/]+/, '') // Fallback
+      }
+    }
+
+    console.log(`Mock fetch called: ${method} ${path}`)
 
     // Authentication endpoints
     if (path.includes('/api/auth/login') && method === 'POST') {
@@ -369,6 +380,8 @@ const setupGlobalMocks = () => {
       if (user) {
         return Promise.resolve({
           ok: true,
+          status: 200,
+          headers: new Headers({ 'content-type': 'application/json' }),
           json: () => Promise.resolve({
             success: true,
             user,
@@ -379,6 +392,8 @@ const setupGlobalMocks = () => {
       }
       return Promise.resolve({
         ok: false,
+        status: 401,
+        headers: new Headers({ 'content-type': 'application/json' }),
         json: () => Promise.resolve({ error: 'Invalid credentials' })
       })
     }
@@ -386,6 +401,8 @@ const setupGlobalMocks = () => {
     if (path.includes('/api/auth/session')) {
       return Promise.resolve({
         ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
         json: () => Promise.resolve({
           user: mockAuthContext.user,
           workspace: mockAuthContext.currentWorkspace
@@ -397,6 +414,8 @@ const setupGlobalMocks = () => {
     if (path.includes('/api/users')) {
       return Promise.resolve({
         ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
         json: () => Promise.resolve({ users: mockUsers })
       })
     }
@@ -405,6 +424,8 @@ const setupGlobalMocks = () => {
     if (path.includes('/api/workspaces')) {
       return Promise.resolve({
         ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
         json: () => Promise.resolve({ workspaces: mockWorkspaces })
       })
     }
@@ -422,11 +443,15 @@ const setupGlobalMocks = () => {
         mockProjects.push(newProject)
         return Promise.resolve({
           ok: true,
+          status: 201,
+          headers: new Headers({ 'content-type': 'application/json' }),
           json: () => Promise.resolve({ success: true, project: newProject })
         })
       }
       return Promise.resolve({
         ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
         json: () => Promise.resolve({ projects: mockProjects })
       })
     }
@@ -444,11 +469,15 @@ const setupGlobalMocks = () => {
         mockTasks.push(newTask)
         return Promise.resolve({
           ok: true,
+          status: 201,
+          headers: new Headers({ 'content-type': 'application/json' }),
           json: () => Promise.resolve({ success: true, task: newTask })
         })
       }
       return Promise.resolve({
         ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
         json: () => Promise.resolve({ tasks: mockTasks })
       })
     }
@@ -466,11 +495,15 @@ const setupGlobalMocks = () => {
         mockMessages.push(newMessage)
         return Promise.resolve({
           ok: true,
+          status: 201,
+          headers: new Headers({ 'content-type': 'application/json' }),
           json: () => Promise.resolve({ success: true, message: newMessage })
         })
       }
       return Promise.resolve({
         ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
         json: () => Promise.resolve({ messages: mockMessages })
       })
     }
@@ -488,21 +521,28 @@ const setupGlobalMocks = () => {
         mockCalendarEvents.push(newEvent)
         return Promise.resolve({
           ok: true,
+          status: 201,
+          headers: new Headers({ 'content-type': 'application/json' }),
           json: () => Promise.resolve({ success: true, event: newEvent })
         })
       }
       return Promise.resolve({
         ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
         json: () => Promise.resolve({ events: mockCalendarEvents })
       })
     }
 
-    // Default response
+    // Default response for any unmatched endpoints
+    console.log(`Unmatched endpoint in mock: ${method} ${path}`)
     return Promise.resolve({
       ok: true,
-      json: () => Promise.resolve({ success: true })
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: () => Promise.resolve({ success: true, data: null })
     })
-  })
+  }) as any
 
   // Mock localStorage
   Object.defineProperty(window, 'localStorage', {
@@ -567,7 +607,27 @@ describe('Comprehensive App Functionality Tests', () => {
   let mockRouter: any
   let mockWebSocket: any
 
+  // Setup global mocks before all tests
+  beforeAll(() => {
+    vi.clearAllMocks()
+    
+    // Global fetch safety net - this ensures NO real fetch calls ever happen
+    global.fetch = vi.fn().mockImplementation((url: string | URL, options?: RequestInit) => {
+      const urlString = url instanceof URL ? url.toString() : url
+      console.error(`BLOCKED REAL FETCH ATTEMPT: ${urlString}`)
+      throw new Error(`Real fetch attempt blocked in tests: ${urlString}`)
+    })
+  })
+
+  afterAll(() => {
+    vi.clearAllMocks()
+    vi.restoreAllMocks()
+  })
+
   beforeEach(async () => {
+    // Clear all mocks first
+    vi.clearAllMocks()
+    
     // Initialize test database with mock data
     initializeTestDatabase()
     
@@ -582,10 +642,24 @@ describe('Comprehensive App Functionality Tests', () => {
     mockAuthContext.currentWorkspace = mockWorkspaces[0]
     mockAuthContext.currentWorkspaceId = mockWorkspaces[0].id
     mockAuthContext.workspaces = mockWorkspaces
+
+    // Ensure fetch is properly mocked
+    expect(vi.isMockFunction(global.fetch)).toBe(true)
   })
 
   afterEach(() => {
+    // Clear all mocks
     vi.clearAllMocks()
+    
+    // Reset test data
+    mockUsers.length = 0
+    mockWorkspaces.length = 0
+    mockProjects.length = 0
+    mockTasks.length = 0
+    mockMessages.length = 0
+    mockCalendarEvents.length = 0
+    mockNotifications.length = 0
+    
     // Reset auth context with proper typing
     mockAuthContext.user = null
     mockAuthContext.isAuthenticated = false
