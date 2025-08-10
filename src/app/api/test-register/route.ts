@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { PrismaClient } from '@prisma/client'
 
 // Use direct Prisma import to avoid db.ts complications
-const { PrismaClient } = require('@prisma/client')
 
 const prisma = new PrismaClient({
   log: ['query', 'info', 'warn', 'error'],
