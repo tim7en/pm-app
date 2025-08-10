@@ -43,6 +43,7 @@ RUN npx prisma generate
 
 # Copy source code
 COPY src ./src
+COPY config ./config
 COPY public ./public
 COPY server.ts ./
 COPY components.json ./
