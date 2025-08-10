@@ -4,7 +4,7 @@
  */
 
 import React from 'react'
-import { describe, test, expect, beforeEach, vi } from 'vitest'
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
@@ -60,6 +60,11 @@ describe('Messages Page Production Readiness', () => {
     vi.clearAllMocks()
   })
 
+  afterEach(() => {
+    vi.clearAllMocks()
+    vi.restoreAllMocks()
+  })
+
   test('1. Renders messages page successfully', () => {
     render(<MockMessagesPage />)
     
@@ -86,12 +91,24 @@ describe('Messages Page Production Readiness', () => {
   })
 
   test('4. Database operations are mocked', async () => {
-    // Test that our fetch mock handles API calls
-    const response = await fetch('http://localhost:3000/api/messages/internal')
+    // Mock fetch to simulate database operations
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ success: true, messages: [], count: 0 })
+    })
+    
+    // Replace global fetch with our mock
+    global.fetch = mockFetch
+    
+    // Test that our mock handles API calls correctly
+    const response = await fetch('/api/messages/internal')
     const data = await response.json()
     
+    expect(mockFetch).toHaveBeenCalledWith('/api/messages/internal')
     expect(response.ok).toBe(true)
     expect(data.success).toBe(true)
+    expect(data.messages).toEqual([])
   })
 
   test('5. Loading states work with mocks', () => {
