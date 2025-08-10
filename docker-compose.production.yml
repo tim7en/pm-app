@@ -56,6 +56,8 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile.prod
+      args:
+        NODE_ENV: production
     container_name: pm-app
     restart: unless-stopped
     ports:
@@ -66,7 +68,9 @@ services:
       - HOSTNAME=0.0.0.0
       - DATABASE_URL=postgresql://pmapp_user:${DB_PASSWORD:-change_this_password}@pm-app-db:5432/pmapp
       - REDIS_URL=redis://:${REDIS_PASSWORD:-change_this_password}@pm-app-redis:6379
-      - NEXTAUTH_URL=${APP_URL:-http://localhost:3000}
+      - NEXTAUTH_URL=http://198.163.207.39
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-prod-super-secure-nextauth-secret-32-chars-minimum-length}
+      - JWT_SECRET=${JWT_SECRET:-prod-super-secure-jwt-secret-32-chars-minimum-length}
     env_file:
       - .env.production
     volumes:

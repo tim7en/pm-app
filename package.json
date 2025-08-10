@@ -12,7 +12,7 @@
     "dev:windows": "set NODE_ENV=development && nodemon --exec \"npx tsx server.ts\" --watch server.ts --watch src --watch config --ext ts,tsx,js,jsx",
     "dev:mac": "NODE_ENV=development nodemon --exec 'npx tsx server.ts' --watch server.ts --watch src --watch config --ext ts,tsx,js,jsx",
     "dev:force": "NODE_ENV=development FORCE_DEV=true nodemon --exec \"npx tsx server.ts\" --watch server.ts --watch src --watch config --ext ts,tsx,js,jsx",
-    "build": "next build",
+    "build": "NODE_OPTIONS=\"--max-old-space-size=8192\" next build",
     "postinstall": "prisma generate",
     "deploy": "npm ci --production=false && npm run build",
     "start": "cross-env NODE_ENV=production tsx server.ts",

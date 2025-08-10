@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Production Docker Build and Deploy Script for PM-App
-# This script builds and deploys the PM-App for production
+# This script builds and deploys the PM-App for production using docker-compose
 
 set -e
 
@@ -9,10 +9,11 @@ echo "🚀 PM-App Production Deployment Script"
 echo "======================================"
 
 # Configuration
-IMAGE_NAME="pm-app"
-IMAGE_TAG="latest"
-CONTAINER_NAME="pm-app-production"
-PORT="3000"
+export NODE_ENV=production
+export DB_PASSWORD=${DB_PASSWORD:-change_this_password}
+export REDIS_PASSWORD=${REDIS_PASSWORD:-change_this_password}
+export NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-prod-super-secure-nextauth-secret-32-chars-minimum-length}
+export JWT_SECRET=${JWT_SECRET:-prod-super-secure-jwt-secret-32-chars-minimum-length}
 
 # Colors for output
 RED='\033[0;31m'
