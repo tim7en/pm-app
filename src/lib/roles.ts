@@ -356,7 +356,7 @@ export async function getUserWorkspaceRole(userId: string, workspaceId: string):
     select: { role: true }
   })
 
-  return workspaceMember?.role || null
+  return (workspaceMember?.role as any) || null
 }
 
 /**
@@ -507,7 +507,7 @@ export async function getUserProjectRole(userId: string, projectId: string): Pro
   })
   
   if (membership) {
-    return membership.role
+    return membership.role as any
   }
   
   // Check workspace membership - workspace members can participate in projects

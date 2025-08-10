@@ -4,6 +4,7 @@ import { existsSync } from 'fs'
 import path from 'path'
 import { db } from '@/lib/db'
 import { getAuthSession } from '@/lib/auth'
+import { NotificationType } from '@prisma/client'
 
 // POST /api/bug-reports - Submit a new bug report
 export async function POST(request: NextRequest) {
@@ -160,10 +161,8 @@ export async function POST(request: NextRequest) {
           data: {
             title: 'New Bug Report',
             message: `${reportedByName || 'A user'} reported a ${priority} priority bug: "${title.substring(0, 50)}${title.length > 50 ? '...' : ''}"`,
-            type: 'SYSTEM',
-            userId: admin.id,
-            relatedId: bugReport.id,
-            relatedUrl: `/admin/bug-reports/${bugReport.id}`
+            type: 'COMMENT_ADDED' as any,
+            userId: admin.id
           }
         })
       )

@@ -76,13 +76,13 @@ export async function GET(
     else if (systemRole === 'PROJECT_MANAGER' || systemRole === 'PROJECT_OFFICER') {
       // Check if user is assigned to the task
       const isAssigned = task.assigneeId === session.user.id || 
-                        task.assignees?.some(a => a.userId === session.user.id)
+                        !!(task.assignees?.some(a => a.userId === session.user.id))
       
       // Check if user created the task
       const isCreator = task.creatorId === session.user.id
       
       // Check if user owns the project
-      const isProjectOwner = task.project?.ownerId === session.user.id
+      const isProjectOwner = !!task.project?.ownerId && task.project.ownerId === session.user.id
       
       // Check if user is a member of the project
       const isProjectMember = task.project ? await db.projectMember.findUnique({
@@ -103,9 +103,9 @@ export async function GET(
           }
         }
       })
-      const isWorkspaceOwnerOrAdmin = workspaceMember && (workspaceMember.role === 'OWNER' || workspaceMember.role === 'ADMIN')
+      const isWorkspaceOwnerOrAdmin = !!(workspaceMember && (workspaceMember.role === 'OWNER' || workspaceMember.role === 'ADMIN'))
       
-      hasAccess = isAssigned || isCreator || isProjectOwner || isProjectMember || isWorkspaceOwnerOrAdmin
+      hasAccess = isAssigned || isCreator || isProjectOwner || !!isProjectMember || isWorkspaceOwnerOrAdmin
     }
     // For invited members (MEMBER, GUEST), only allow access to tasks they are directly involved with
     else {

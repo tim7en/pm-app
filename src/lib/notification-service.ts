@@ -42,7 +42,7 @@ export class NotificationService {
         data: {
           title: params.title,
           message: params.message,
-          type: params.type,
+          type: params.type as any,
           userId: params.userId,
           isRead: false,
         },
@@ -61,13 +61,13 @@ export class NotificationService {
       // Format notification for frontend
       const formattedNotification = {
         id: notification.id,
-        type: this.mapNotificationType(notification.type),
+        type: this.mapNotificationType(notification.type as any),
         title: notification.title,
         message: notification.message,
         isRead: notification.isRead,
         createdAt: notification.createdAt,
         relatedId: params.relatedId || null,
-        relatedUrl: params.relatedUrl || null,
+        relatedUrl: this.generateRelatedUrl(notification.type as any, notification.id),
         senderName: params.senderName || 'System',
         senderAvatar: params.senderAvatar || null
       }
@@ -119,13 +119,13 @@ export class NotificationService {
       // Format notifications for frontend
       const formattedNotifications = notifications.map(notification => ({
         id: notification.id,
-        type: this.mapNotificationType(notification.type),
+        type: this.mapNotificationType(notification.type as any),
         title: notification.title,
         message: notification.message,
         isRead: notification.isRead,
         createdAt: notification.createdAt,
         relatedId: null, // We'll enhance this later when we add relations
-        relatedUrl: this.generateRelatedUrl(notification.type, notification.id),
+        relatedUrl: this.generateRelatedUrl(notification.type as any, notification.id),
         senderName: 'System', // We'll enhance this when we add sender relations
         senderAvatar: null
       }))
