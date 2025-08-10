@@ -84,7 +84,7 @@ RUN mkdir -p data logs uploads .next/cache && \
 COPY package*.json ./
 RUN npm config set fund false && \
     npm config set audit false && \
-    npm install --omit=dev --ignore-scripts && \
+    npm install --omit=dev --ignore-scripts --legacy-peer-deps && \
     npm cache clean --force
 
 # Copy Prisma schema and generate client for production

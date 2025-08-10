@@ -115,10 +115,14 @@
     "zustand": "^5.0.6"
   },
   "overrides": {
-    "nodemailer": "^6.9.8"
+    "nodemailer": "^6.9.8",
+    "openai": {
+      "zod": "^4.0.2"
+    }
   },
   "resolutions": {
-    "nodemailer": "^6.9.8"
+    "nodemailer": "^6.9.8",
+    "openai/zod": "^4.0.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
