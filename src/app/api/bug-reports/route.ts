@@ -4,7 +4,6 @@ import { existsSync } from 'fs'
 import path from 'path'
 import { db } from '@/lib/db'
 import { getAuthSession } from '@/lib/auth'
-import { NotificationType } from '@prisma/client'
 
 // POST /api/bug-reports - Submit a new bug report
 export async function POST(request: NextRequest) {
