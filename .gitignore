@@ -42,6 +42,11 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# deployment guides with sensitive information
+docs/UBUNTU_PRODUCTION_DEPLOYMENT_GUIDE.md
+PRODUCTION_DEPLOYMENT_SUMMARY.md
+*.deployment.md
+
 # vercel
 .vercel
 
