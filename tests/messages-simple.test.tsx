@@ -87,7 +87,7 @@ describe('Messages Page Production Readiness', () => {
 
   test('4. Database operations are mocked', async () => {
     // Test that our fetch mock handles API calls
-    const response = await fetch('/api/messages/internal')
+    const response = await fetch('http://localhost:3000/api/messages/internal')
     const data = await response.json()
     
     expect(response.ok).toBe(true)

@@ -5,6 +5,7 @@
 
 import { describe, test, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import '@testing-library/jest-dom'
 import React from 'react'
 
 // Simple component that uses auth
@@ -75,6 +76,17 @@ describe('Authentication and Database Mocking', () => {
         json: () => Promise.resolve({ success: true, data: [] })
       })
     }) as any
+
+    // Mock localStorage
+    Object.defineProperty(window, 'localStorage', {
+      value: {
+        getItem: vi.fn(),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
+        clear: vi.fn(),
+      },
+      writable: true,
+    })
   })
 
   test('should render component without authentication errors', () => {
