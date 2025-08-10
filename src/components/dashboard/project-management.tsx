@@ -20,8 +20,8 @@ export function ProjectManagement({
   currentUserId
 }: ProjectManagementProps) {
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="space-y-4">
+      <div className="space-y-4">
         {projects.length > 0 ? (
           projects.map((project) => (
             <ProjectCard 
@@ -36,7 +36,7 @@ export function ProjectManagement({
             />
           ))
         ) : (
-          <div className="col-span-full text-center py-8 text-muted-foreground">
+          <div className="text-center py-8 text-muted-foreground">
             <p>No projects yet. Create your first project to get started!</p>
           </div>
         )}

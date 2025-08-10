@@ -57,6 +57,8 @@ interface CreateTaskModalProps {
     tags: Array<{ name: string; color: string }>
   }) => void
   children: React.ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 interface WorkspaceMember {
@@ -68,10 +70,14 @@ interface WorkspaceMember {
   joinedAt: string
 }
 
-export function CreateTaskModal({ projects, onCreateTask, children }: CreateTaskModalProps) {
-  const [open, setOpen] = useState(false)
+export function CreateTaskModal({ projects, onCreateTask, children, open: externalOpen, onOpenChange: externalOnOpenChange }: CreateTaskModalProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
   const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMember[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
+
+  // Use external control if provided, otherwise use internal state
+  const open = externalOpen !== undefined ? externalOpen : internalOpen
+  const setOpen = externalOnOpenChange || setInternalOpen
   const [formData, setFormData] = useState({
     title: "",
     description: "",

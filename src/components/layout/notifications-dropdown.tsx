@@ -728,38 +728,6 @@ export const NotificationsDropdown = React.memo(({ className }: NotificationsDro
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-semibold text-sm">Notifications</h3>
           <div className="flex items-center gap-2">
-            {/* Test notification button (dev only) */}
-            {process.env.NODE_ENV === 'development' && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs h-6 px-2"
-                onClick={async () => {
-                  try {
-                    const response = await fetch('/api/notifications/test', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        title: 'Test Notification',
-                        message: `Test notification created at ${new Date().toLocaleTimeString()}`
-                      })
-                    })
-                    const result = await response.json()
-                    if (result.success) {
-                      toast({
-                        title: "Success",
-                        description: "Test notification created!",
-                        variant: "default"
-                      })
-                    }
-                  } catch (error) {
-                    console.error('Failed to create test notification:', error)
-                  }
-                }}
-              >
-                Test
-              </Button>
-            )}
             {unreadCount > 0 && (
               <Button 
                 variant="ghost" 

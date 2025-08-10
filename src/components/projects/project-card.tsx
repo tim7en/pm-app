@@ -1,11 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,17 +14,17 @@ import {
 import { 
   Calendar, 
   Users, 
-  CheckCircle2, 
-  Clock, 
   MoreHorizontal,
   Star,
   FolderOpen,
   Crown,
   UserCheck,
-  Brain,
-  TrendingUp,
+  CheckCircle2,
+  Circle,
+  AlertCircle,
+  Clock,
   Target,
-  Zap
+  TrendingUp
 } from "lucide-react"
 import { useTranslation } from "@/hooks/use-translation"
 import { useProjectPermissions } from "@/hooks/use-permissions"
@@ -157,159 +155,110 @@ export function ProjectCard({
 
   const isOverdue = project.dueDate && new Date(project.dueDate) < new Date() && project.status !== ProjectStatus.COMPLETED
 
+  // Get progress icon based on completion percentage and status
+  const getProgressIcon = () => {
+    if (project.status === ProjectStatus.COMPLETED) {
+      return <CheckCircle2 className="h-5 w-5 text-green-600" />
+    }
+    if (isOverdue) {
+      return <AlertCircle className="h-5 w-5 text-red-600" />
+    }
+    if (progressPercentage === 0) {
+      return <Circle className="h-5 w-5 text-gray-400" />
+    }
+    if (progressPercentage < 50) {
+      return <Clock className="h-5 w-5 text-yellow-600" />
+    }
+    if (progressPercentage < 90) {
+      return <Target className="h-5 w-5 text-blue-600" />
+    }
+    return <TrendingUp className="h-5 w-5 text-green-600" />
+  }
+
   return (
-    <Card 
-      className="group hover-lift glass-card overflow-hidden border-2 hover:border-primary/20 transition-all duration-300 cursor-pointer"
+    <div 
+      className="group bg-card border rounded-lg p-4 hover:shadow-md transition-all duration-300 cursor-pointer hover:border-primary/20"
       onClick={() => onViewTasks?.(project.id)}
     >
-      <CardHeader className="pb-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-4 flex-1 min-w-0">
-            <div 
-              className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md group-hover:shadow-lg transition-shadow duration-300"
-              style={{ 
-                background: `linear-gradient(135deg, ${project.color}20 0%, ${project.color}10 100%)`,
-                border: `1px solid ${project.color}30`
-              }}
-            >
-              <FolderOpen className="h-6 w-6" style={{ color: project.color }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-3 mb-2">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-lg break-words line-clamp-2 mb-2 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent group-hover:from-primary group-hover:to-primary/80 transition-all duration-300">
-                    {project.name}
-                  </h3>
-                  {/* Project participation badges */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    {currentUserId && project.owner?.id === currentUserId && (
-                      <Badge variant="outline" className="text-xs font-medium text-amber-600 border-amber-200 bg-amber-50 flex-shrink-0 hover:bg-amber-100 transition-colors">
-                        <Crown className="h-3 w-3 mr-1" />
-                        {t("projects.creator")}
-                      </Badge>
-                    )}
-                    {currentUserId && project.owner?.id !== currentUserId && (
-                      <Badge variant="outline" className="text-xs font-medium text-blue-600 border-blue-200 bg-blue-50 flex-shrink-0 hover:bg-blue-100 transition-colors">
-                        <UserCheck className="h-3 w-3 mr-1" />
-                        {t("projects.member")}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 flex-shrink-0 hover-lift rounded-lg"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onToggleStar?.(project.id)
-                  }}
-                >
-                  <Star 
-                    className={`h-4 w-4 ${project.isStarred ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'}`}
-                  />
-                </Button>
-              </div>
-              {project.description && (
-                <p className="text-sm text-muted-foreground break-words line-clamp-2 mb-2 overflow-hidden">
-                  {project.description}
-                </p>
-              )}
-              <div className="flex items-center gap-2">
-                <Badge 
-                  variant="secondary" 
-                  className={`text-xs ${statusColors[project.status]} flex-shrink-0`}
-                >
-                  {statusLabels[project.status]}
-                </Badge>
-              </div>
-            </div>
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="pt-0">
-        {/* Progress */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between text-sm mb-2">
-            <span className="text-muted-foreground">{t("projects.progress")}</span>
-            <span className="font-medium">{progressPercentage}%</span>
-          </div>
-          <Progress value={progressPercentage} className="h-2" />
-          <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
-            <span>{project.completedTaskCount || 0} {t("projects.of")} {project.taskCount || 0} {t("projects.tasks")}</span>
-            <div className="flex items-center gap-1">
-              <CheckCircle2 className="h-3 w-3" />
-              <span>{progressPercentage}% {t("projects.complete")}</span>
-            </div>
-          </div>
+      <div className="flex items-center gap-4">
+        {/* Progress Icon */}
+        <div className="flex-shrink-0">
+          {getProgressIcon()}
         </div>
 
-        {/* AI Assessment - Commented out automatic generation */}
-        {/* 
-        {(aiAssessment || loadingAssessment) && project.status === ProjectStatus.ACTIVE && (
-          <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-            <div className="flex items-center gap-2 mb-2">
-              <Brain className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-800">AI Insights</span>
-            </div>
+        {/* Project Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 mb-2">
+            <h3 className="font-semibold text-base truncate bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent group-hover:from-primary group-hover:to-primary/80 transition-all duration-300">
+              {project.name}
+            </h3>
             
-            {loadingAssessment ? (
-              <div className="flex items-center gap-2 text-xs text-blue-600">
-                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
-                Analyzing project efficiency...
-              </div>
-            ) : aiAssessment && (
-              <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="flex items-center gap-1">
-                    <Target className="h-3 w-3 text-green-600" />
-                    <span className="text-xs text-muted-foreground">Efficiency:</span>
-                    <span className="text-xs font-medium">{aiAssessment.efficiencyScore || 'N/A'}%</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3 text-blue-600" />
-                    <span className="text-xs text-muted-foreground">Trend:</span>
-                    <span className="text-xs font-medium">{aiAssessment.trend || 'Stable'}</span>
-                  </div>
-                </div>
-                
-                {aiAssessment.quickInsight && (
-                  <div className="flex items-start gap-1">
-                    <Zap className="h-3 w-3 text-yellow-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      {aiAssessment.quickInsight}
-                    </p>
-                  </div>
-                )}
-              </div>
+            {/* Status Badge */}
+            <Badge 
+              variant="secondary" 
+              className={`text-xs ${statusColors[project.status]} flex-shrink-0`}
+            >
+              {statusLabels[project.status]}
+            </Badge>
+
+            {/* Project participation badges */}
+            {currentUserId && project.owner?.id === currentUserId && (
+              <Badge variant="outline" className="text-xs font-medium text-amber-600 border-amber-200 bg-amber-50 flex-shrink-0">
+                <Crown className="h-3 w-3 mr-1" />
+                {t("projects.creator")}
+              </Badge>
+            )}
+            {currentUserId && project.owner?.id !== currentUserId && (
+              <Badge variant="outline" className="text-xs font-medium text-blue-600 border-blue-200 bg-blue-50 flex-shrink-0">
+                <UserCheck className="h-3 w-3 mr-1" />
+                {t("projects.member")}
+              </Badge>
             )}
           </div>
-        )}
-        */}
 
-        {/* Meta Information */}
-        <div className="space-y-3">
+          {/* Description */}
+          {project.description && (
+            <p className="text-sm text-muted-foreground truncate mb-3">
+              {project.description}
+            </p>
+          )}
+
+          {/* Progress Bar */}
+          <div className="mb-2">
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-muted-foreground">
+                {project.completedTaskCount || 0} / {project.taskCount || 0} {t("projects.tasks")}
+              </span>
+              <span className="font-medium">{progressPercentage}%</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2">
+              <div 
+                className="bg-primary h-2 rounded-full transition-all duration-300"
+                style={{ width: `${progressPercentage}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Meta Info */}
+        <div className="flex items-center gap-4 flex-shrink-0">
           {/* Due Date */}
           {project.dueDate && (
-            <div className={`flex items-center gap-2 text-sm ${isOverdue ? 'text-red-500' : 'text-muted-foreground'}`}>
-              <Calendar className="h-4 w-4" />
-              <span>{t("projects.due")} {formatDate(project.dueDate)}</span>
-              {isOverdue && <Badge variant="destructive" className="text-xs">{t("projects.overdue")}</Badge>}
+            <div className={`flex items-center gap-1 text-xs ${isOverdue ? 'text-red-500' : 'text-muted-foreground'}`}>
+              <Calendar className="h-3 w-3" />
+              <span>{formatDate(project.dueDate)}</span>
             </div>
           )}
 
           {/* Team Members */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                {project.memberCount || 0} {t("projects.members", { count: project.memberCount || 0 })}
-              </span>
-            </div>
-            <div className="flex -space-x-2">
+          <div className="flex items-center gap-2">
+            <Users className="h-3 w-3 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              {project.memberCount || 0}
+            </span>
+            <div className="flex -space-x-1">
               {project.owner && (
-                <Avatar className="h-6 w-6 border-2 border-background">
+                <Avatar className="h-5 w-5 border border-background">
                   <AvatarImage src={project.owner.avatar} alt={project.owner.name} />
                   <AvatarFallback className="text-xs">
                     {project.owner.name ? project.owner.name.split(' ').map(n => n[0]).join('') : 'U'}
@@ -317,69 +266,52 @@ export function ProjectCard({
                 </Avatar>
               )}
               {(project.memberCount || 0) > 1 && (
-                <div className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center">
+                <div className="h-5 w-5 rounded-full bg-muted border border-background flex items-center justify-center">
                   <span className="text-xs font-medium">+{(project.memberCount || 0) - 1}</span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Recent Activity */}
-          {project.recentActivity && project.recentActivity.length > 0 && (
-            <div className="pt-2 border-t">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">{t("projects.recentActivity")}</span>
-              </div>
-              <div className="space-y-1">
-                {project.recentActivity.slice(0, 2).map((activity) => (
-                  <div key={activity.id} className="text-xs text-muted-foreground">
-                    {activity.message}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+          {/* Star Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 flex-shrink-0 hover-lift rounded-lg"
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleStar?.(project.id)
+            }}
+          >
+            <Star 
+              className={`h-3 w-3 ${project.isStarred ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'}`}
+            />
+          </Button>
 
-        {/* Actions */}
-        <div className="flex gap-2 mt-4 pt-3 border-t">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex-1"
-            onClick={(e) => {
-              e.stopPropagation()
-              onViewTasks?.(project.id)
-            }}
-          >
-            {t("projects.viewTasks")}
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation()
-              onGenerateInsights?.(project.id, project.name)
-            }}
-            className="flex items-center gap-1"
-          >
-            <Brain className="h-4 w-4" />
-          </Button>
+          {/* Actions Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="ghost" 
                 size="icon"
+                className="h-7 w-7"
                 onClick={(e) => {
                   e.stopPropagation()
                 }}
                 disabled={permissionsLoading}
               >
-                <MoreHorizontal className="h-4 w-4" />
+                <MoreHorizontal className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onViewTasks?.(project.id)
+                }}
+              >
+                {t("projects.viewTasks")}
+              </DropdownMenuItem>
               <ProjectEditGate 
                 projectId={project.id}
                 fallback={null}
@@ -421,7 +353,7 @@ export function ProjectCard({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

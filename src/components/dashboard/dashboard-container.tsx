@@ -416,11 +416,14 @@ export function DashboardContainer() {
           }}
         />
         
-        <main id="dashboard-content" className="flex-1 overflow-y-auto p-8 scrollbar-thin">
-          <div className="max-w-7xl mx-auto space-y-8">
+        <main id="dashboard-content" className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 scrollbar-thin">
+          <div className="max-w-6xl mx-auto space-y-6 lg:space-y-8">
             {/* Welcome Section */}
             <div className="animate-fade-in">
-              <DashboardHeader onCreateTask={() => setTaskDialogOpen(true)} />
+              <DashboardHeader 
+                onCreateTask={() => setTaskDialogOpen(true)} 
+                onCreateProject={() => setProjectDialogOpen(true)}
+              />
             </div>
 
             {/* Stats Cards */}
@@ -430,35 +433,35 @@ export function DashboardContainer() {
 
             {/* Main Content Tabs */}
             <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
-              <Tabs defaultValue="overview" className="space-y-8 premium-tabs">
-                <TabsList className="grid w-full grid-cols-4 glass-card border-0 shadow-premium p-1 h-12">
+              <Tabs defaultValue="overview" className="space-y-6 lg:space-y-8 premium-tabs">
+                <TabsList className="grid w-full grid-cols-4 glass-card border-0 shadow-premium p-1 h-10 lg:h-12">
                   <TabsTrigger 
                     value="overview" 
-                    className="transition-all duration-300 font-medium rounded-lg h-10"
+                    className="transition-all duration-300 font-medium rounded-lg h-8 lg:h-10 text-sm lg:text-base"
                   >
                     {t("dashboard.overview")}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="tasks"
-                    className="transition-all duration-300 font-medium rounded-lg h-10"
+                    className="transition-all duration-300 font-medium rounded-lg h-8 lg:h-10 text-sm lg:text-base"
                   >
                     {t("dashboard.myTasks")}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="projects"
-                    className="transition-all duration-300 font-medium rounded-lg h-10"
+                    className="transition-all duration-300 font-medium rounded-lg h-8 lg:h-10 text-sm lg:text-base"
                   >
                     {t("dashboard.projects")}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="activity"
-                    className="transition-all duration-300 font-medium rounded-lg h-10"
+                    className="transition-all duration-300 font-medium rounded-lg h-8 lg:h-10 text-sm lg:text-base"
                   >
                     {t("dashboard.activity")}
                   </TabsTrigger>
                 </TabsList>
 
-              <TabsContent value="overview" className="space-y-8">
+              <TabsContent value="overview" className="space-y-6 lg:space-y-8">
                 <DashboardOverview
                   tasks={tasks}
                   projects={projects}
@@ -498,7 +501,7 @@ export function DashboardContainer() {
                 />
               </TabsContent>
 
-              <TabsContent value="tasks" className="space-y-8">
+              <TabsContent value="tasks" className="space-y-6 lg:space-y-8">
                 <TaskManagement
                   tasks={tasks}
                   projects={projects}
@@ -517,7 +520,7 @@ export function DashboardContainer() {
                 />
               </TabsContent>
 
-              <TabsContent value="projects" className="space-y-8">
+              <TabsContent value="projects" className="space-y-6 lg:space-y-8">
                 <ProjectManagement
                   projects={projects}
                   onProjectEdit={(project) => {
@@ -544,7 +547,7 @@ export function DashboardContainer() {
                 />
               </TabsContent>
 
-              <TabsContent value="activity" className="space-y-8">
+              <TabsContent value="activity" className="space-y-6 lg:space-y-8">
                 <ActivityFeed 
                   activities={recentActivity} 
                   currentUserId={user?.id}

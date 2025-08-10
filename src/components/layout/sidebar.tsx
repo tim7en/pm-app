@@ -114,10 +114,10 @@ export function Sidebar() {
   return (
     <div className={cn(
       "flex flex-col h-full bg-background/95 backdrop-blur-md border-r border-border/50 shadow-sm transition-all duration-300 overflow-hidden",
-      isCollapsed ? "w-16" : "w-72"
+      isCollapsed ? "w-16" : "w-64"
     )}>
       {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-border/50 flex-shrink-0">
+      <div className="flex items-center justify-between p-4 lg:p-6 border-b border-border/50 flex-shrink-0">
         {!isCollapsed && (
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-gradient-primary rounded-xl flex items-center justify-center shadow-md">
@@ -148,7 +148,7 @@ export function Sidebar() {
       {/* Scrollable Navigation Container */}
       <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40">
         {/* Main Navigation */}
-        <nav className="p-6 space-y-3">
+        <nav className="p-4 lg:p-6 space-y-3">
           {navigation.map((item) => {
             const isActive = pathname === item.href
             return (
@@ -171,7 +171,7 @@ export function Sidebar() {
 
         {/* Workspace Management */}
         {!isCollapsed && (
-          <div className="px-6 pb-6">
+          <div className="px-4 lg:px-6 pb-4 lg:pb-6">
             <div className="pt-6 mt-6 border-t border-border/50">
               <div className="flex items-center mb-4">
                 <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">
@@ -206,7 +206,7 @@ export function Sidebar() {
 
         {/* Projects Section */}
         {!isCollapsed && currentWorkspace && (
-          <div className="px-6 pb-6">
+          <div className="px-4 lg:px-6 pb-4 lg:pb-6">
             <div className="pt-6 mt-6 border-t border-border/50">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">

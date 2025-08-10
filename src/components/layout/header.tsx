@@ -13,6 +13,8 @@ import { NotificationsDropdown } from "@/components/layout/notifications-dropdow
 import { MessageNotification } from "@/components/messages/message-notification"
 import { BugReportDialog } from "@/components/bug-report/bug-report-dialog"
 import { LanguageSelector } from "@/components/ui/language-selector"
+import { CreateTaskModal } from "@/components/tasks/create-task-modal"
+import { WorkspaceCreationDialog } from "@/components/workspace/workspace-creation-dialog"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/hooks/use-translation"
@@ -25,7 +27,9 @@ import {
   MessageSquare,
   Settings,
   LogOut,
-  Bug
+  Bug,
+  Building2,
+  CheckSquare
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -47,6 +51,8 @@ interface HeaderProps {
 export function Header({ tasks, projects, users, onImportData, onProjectCreated }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [projectDialogOpen, setProjectDialogOpen] = useState(false)
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false)
+  const [workspaceDialogOpen, setWorkspaceDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { user, logout, getAuthHeaders } = useAuth()
   const { toast } = useToast()
@@ -142,6 +148,45 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
     }
   }
 
+  const handleCreateTask = async (taskData: any) => {
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify(taskData)
+      })
+      
+      if (response.ok) {
+        const newTask = await response.json()
+        setTaskDialogOpen(false)
+        toast({
+          title: "Task Created",
+          description: `Task "${newTask.title}" created successfully`,
+        })
+        // Emit task created event for notification system
+        window.dispatchEvent(new CustomEvent('taskCreated', { 
+          detail: { title: newTask.title } 
+        }))
+      } else {
+        const data = await response.json()
+        console.error('Error creating task:', data.error)
+        toast({
+          title: "Task Creation Failed",
+          description: data.error || "Failed to create task",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Error creating task:', error)
+      toast({
+        title: "Task Creation Failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleLogout = async () => {
     try {
       await logout()
@@ -217,7 +262,7 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
                 {t("header.create")}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52 glass-card border-0 shadow-premium">
+            <DropdownMenuContent align="end" className="w-56 glass-card border-0 shadow-premium">
               <DropdownMenuItem 
                 onClick={() => setProjectDialogOpen(true)}
                 className="gap-3 p-3 rounded-lg hover:bg-primary/10 transition-colors"
@@ -227,12 +272,23 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
                 </div>
                 <span className="font-medium">{t("header.newProject")}</span>
               </DropdownMenuItem>
-              <DropdownMenuItem disabled className="gap-3 p-3 rounded-lg opacity-60">
-                <div className="p-1.5 rounded-md bg-gradient-to-br from-muted/20 to-muted/10">
-                  <Plus className="h-4 w-4 text-muted-foreground" />
+              <DropdownMenuItem 
+                onClick={() => setTaskDialogOpen(true)}
+                className="gap-3 p-3 rounded-lg hover:bg-blue/10 transition-colors"
+              >
+                <div className="p-1.5 rounded-md bg-gradient-to-br from-blue-500/20 to-blue-600/10">
+                  <CheckSquare className="h-4 w-4 text-blue-600" />
                 </div>
-                <span className="font-medium">{t("header.newTask")}</span>
-                <Badge variant="secondary" className="ml-auto text-xs">{t("header.soon")}</Badge>
+                <span className="font-medium">{t("header.newTask") || "New Task"}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setWorkspaceDialogOpen(true)}
+                className="gap-3 p-3 rounded-lg hover:bg-purple/10 transition-colors"
+              >
+                <div className="p-1.5 rounded-md bg-gradient-to-br from-purple-500/20 to-purple-600/10">
+                  <Building2 className="h-4 w-4 text-purple-600" />
+                </div>
+                <span className="font-medium">New Workspace</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -343,6 +399,24 @@ export function Header({ tasks, projects, users, onImportData, onProjectCreated 
         projects={projects}
         workspaceMembers={users}
       />
+
+      {/* Task Creation Modal */}
+      <CreateTaskModal
+        projects={projects || []}
+        onCreateTask={handleCreateTask}
+        open={taskDialogOpen}
+        onOpenChange={setTaskDialogOpen}
+      >
+        <div />
+      </CreateTaskModal>
+
+      {/* Workspace Creation Dialog */}
+      <WorkspaceCreationDialog
+        open={workspaceDialogOpen}
+        onOpenChange={setWorkspaceDialogOpen}
+      >
+        <div />
+      </WorkspaceCreationDialog>
     </header>
   )
 }

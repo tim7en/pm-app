@@ -189,8 +189,8 @@ export function EnhancedProjectCreation({
             {children}
           </DialogTrigger>
         )}
-        <DialogContent className="max-w-2xl">
-          <DialogHeader className="text-center pb-2">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="text-center pb-2 flex-shrink-0">
             <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               {t("projects.createNew")}
             </DialogTitle>
@@ -199,7 +199,7 @@ export function EnhancedProjectCreation({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-6">
+          <div className="space-y-4 py-6 overflow-y-auto flex-1">
             {/* AI-Powered Creation - Featured */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -340,7 +340,7 @@ export function EnhancedProjectCreation({
             </motion.div>
           </div>
 
-          <div className="text-center pt-4 border-t">
+          <div className="text-center pt-4 border-t flex-shrink-0">
             <p className="text-sm text-muted-foreground">
               {t("ai.wizard.chooseBestOption")}
             </p>

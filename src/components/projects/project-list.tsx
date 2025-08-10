@@ -44,7 +44,7 @@ export function ProjectList({ projects, onProjectCreate, onProjectUpdate, curren
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [sortBy, setSortBy] = useState<string>("updatedAt")
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list")
 
   const filteredProjects = projects
     .filter(project => {
