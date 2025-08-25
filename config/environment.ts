@@ -28,12 +28,12 @@ export interface AppConfig {
   };
 }
 
-// Force development mode for now
-const FORCE_DEVELOPMENT = true;
+// Force development mode for now - DISABLE IN PRODUCTION
+const FORCE_DEVELOPMENT = process.env.FORCE_DEV === 'true';
 
 // Determine environment
 const getEnvironment = (): 'development' | 'production' => {
-  if (FORCE_DEVELOPMENT) return 'development';
+  if (FORCE_DEVELOPMENT && process.env.NODE_ENV !== 'production') return 'development';
   return process.env.NODE_ENV as 'development' | 'production' || 'development';
 };
 
@@ -74,10 +74,10 @@ const productionConfig: AppConfig = {
   mode: 'production',
   server: {
     port: parseInt(process.env.PORT || '3000'),
-    hostname: '0.0.0.0',
+    hostname: process.env.HOSTNAME || '0.0.0.0',
     cors: {
-      origin: process.env.ALLOWED_ORIGINS?.split(',') || ["*"],
-      methods: ["GET", "POST", "PUT", "DELETE"]
+      origin: process.env.ALLOWED_ORIGINS?.split(',') || ["https://198.163.207.39"],
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     }
   },
   next: {
@@ -85,7 +85,7 @@ const productionConfig: AppConfig = {
   },
   database: {
     url: process.env.DATABASE_URL!,
-    logging: false
+    logging: process.env.LOG_LEVEL === 'debug'
   },
   auth: {
     secret: process.env.NEXTAUTH_SECRET!,
@@ -93,7 +93,7 @@ const productionConfig: AppConfig = {
   },
   features: {
     hotReload: false,
-    verboseLogging: false,
+    verboseLogging: process.env.LOG_LEVEL === 'debug',
     errorReporting: true
   }
 };

@@ -1,0 +1,206 @@
+# Docker Compose for PM-App Production with Caddy and External Database
+# Ubuntu 20.04 LTS Compatible Configuration
+version: '3.8'
+
+services:
+  # Main PM-App Application
+  pm-app:
+    build: 
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        NODE_ENV: production
+    container_name: pm-app
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL:-}
+      - NEXTAUTH_URL=https://198.163.207.39
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - ALLOWED_ORIGINS=https://198.163.207.39
+    env_file:
+      - .env.production
+    volumes:
+      - pm-app-logs:/app/logs
+      - pm-app-uploads:/app/uploads
+    networks:
+      - pm-app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.5'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=200m
+      - /app/.next/cache:noexec,nosuid,size=500m
+
+  # Caddy Reverse Proxy with Automatic HTTPS
+  caddy:
+    image: caddy:2.7-alpine
+    container_name: pm-app-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # For HTTP/3 support
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_logs:/var/log/caddy
+    networks:
+      - pm-app-network
+    depends_on:
+      pm-app:
+        condition: service_healthy
+    environment:
+      - CADDY_INGRESS_NETWORKS=pm-app-network
+    healthcheck:
+      test: ["CMD", "caddy", "version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+
+  # Redis Cache (Optional - for session storage and caching)
+  redis:
+    image: redis:7-alpine
+    container_name: pm-app-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-secure_redis_password}
+    volumes:
+      - redis_data:/data
+    networks:
+      - pm-app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    security_opt:
+      - no-new-privileges:true
+
+  # Monitoring and Health Check Service
+  healthcheck:
+    image: alpine:latest
+    container_name: pm-app-healthcheck
+    restart: unless-stopped
+    command: >
+      sh -c "
+        apk add --no-cache curl &&
+        while true; do
+          echo 'Running health checks at $(date)'
+          curl -f http://pm-app:3000/api/health || echo 'App health check failed'
+          curl -f http://caddy/api/health || echo 'Caddy health check failed'
+          sleep 300
+        done
+      "
+    networks:
+      - pm-app-network
+    depends_on:
+      - pm-app
+      - caddy
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.1'
+
+  # Log aggregation service
+  log-rotator:
+    image: alpine:latest
+    container_name: pm-app-log-rotator
+    restart: unless-stopped
+    volumes:
+      - pm-app-logs:/app/logs
+      - caddy_logs:/caddy/logs
+    command: >
+      sh -c "
+        while true; do
+          echo 'Rotating logs at $(date)'
+          find /app/logs -name '*.log' -size +100M -exec gzip {} \;
+          find /app/logs -name '*.gz' -mtime +30 -delete
+          find /caddy/logs -name '*.log' -size +100M -exec gzip {} \;
+          find /caddy/logs -name '*.gz' -mtime +30 -delete
+          sleep 86400
+        done
+      "
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.1'
+
+# Named volumes for data persistence
+volumes:
+  pm-app-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /var/log/pm-app
+  pm-app-uploads:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /var/uploads/pm-app
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+  caddy_logs:
+    driver: local
+  redis_data:
+    driver: local
+
+# Custom network for service isolation and communication
+networks:
+  pm-app-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+    driver_opts:
+      com.docker.network.bridge.name: pm-app-br
+      com.docker.network.driver.mtu: 1500

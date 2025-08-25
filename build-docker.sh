@@ -42,7 +42,7 @@ log_info "Docker is running"
 log_info "Building Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
 log_info "This may take several minutes..."
 
-if docker build -f Dockerfile.simple-prod -t ${IMAGE_NAME}:${IMAGE_TAG} .; then
+if docker build -f Dockerfile.prod -t ${IMAGE_NAME}:${IMAGE_TAG} .; then
     log_success "Docker image built successfully!"
     echo ""
     echo "Image Details:"

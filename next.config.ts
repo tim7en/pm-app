@@ -37,7 +37,7 @@ const nextConfig: NextConfig = {
     SMTP_USER: process.env.SMTP_USER || '',
     SMTP_PASS: process.env.SMTP_PASS || '',
     SMTP_FROM: process.env.SMTP_FROM || 'noreply@198.163.207.39',
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://198.163.207.39',
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'https://198.163.207.39',
     JWT_SECRET: process.env.JWT_SECRET || '',
     OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
     OPENAI_API_KEY_2: process.env.OPENAI_API_KEY_2 || '',
