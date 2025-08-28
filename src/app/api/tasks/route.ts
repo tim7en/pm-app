@@ -4,101 +4,128 @@ import { TaskStatus, Priority, NotificationType } from '@/lib/prisma-mock'
 import { getAuthSession } from '@/lib/auth'
 import { getAccessibleTasks, canUserPerformAction } from '@/lib/roles'
 import { NotificationService } from '@/lib/notification-service'
+import { taskCreateSchema, validateRequestBody } from '@/lib/validations'
+import { 
+  withErrorHandling, 
+  AuthenticationError, 
+  AuthorizationError, 
+  NotFoundError,
+  ValidationError,
+  withDatabase 
+} from '@/lib/errors'
+import { authenticatedApiRateLimit } from '@/lib/rate-limit'
+import { log, createRequestLogger } from '@/lib/logger'
 
-export async function GET(request: NextRequest) {
-  try {
-    const session = await getAuthSession(request)
-    
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
-    }
+export const GET = withErrorHandling(async (request: NextRequest) => {
+  const requestLogger = createRequestLogger(request)
+  
+  // Apply rate limiting
+  const rateLimitResponse = await authenticatedApiRateLimit(request)
+  if (rateLimitResponse) {
+    requestLogger.warn('Tasks GET rate limit exceeded')
+    return rateLimitResponse
+  }
 
-    const { searchParams } = new URL(request.url)
-    const projectId = searchParams.get('projectId')
-    const workspaceId = searchParams.get('workspaceId')
-    const status = searchParams.get('status')
-    const priority = searchParams.get('priority')
-    const search = searchParams.get('search')
+  const session = await getAuthSession(request)
+  
+  if (!session) {
+    throw new AuthenticationError()
+  }
 
-    // Get all accessible tasks for the user
-    let tasks = await getAccessibleTasks(session.user.id, projectId || undefined)
-    
-    // Filter by workspace if specified (through projects)
-    if (workspaceId) {
-      tasks = tasks.filter(task => task.project?.workspaceId === workspaceId)
-    }
-    
-    // Apply other filters
-    if (status && Object.values(TaskStatus).includes(status as TaskStatus)) {
-      tasks = tasks.filter(task => task.status === status)
-    }
-    
-    if (priority && Object.values(Priority).includes(priority as Priority)) {
-      tasks = tasks.filter(task => task.priority === priority)
-    }
-    
-    if (search) {
-      const searchLower = search.toLowerCase()
-      tasks = tasks.filter(task => 
-        task.title.toLowerCase().includes(searchLower) ||
-        task.description?.toLowerCase().includes(searchLower)
-      )
-    }
+  const { searchParams } = new URL(request.url)
+  const projectId = searchParams.get('projectId')
+  const workspaceId = searchParams.get('workspaceId')
+  const status = searchParams.get('status')
+  const priority = searchParams.get('priority')
+  const search = searchParams.get('search')
 
-    return NextResponse.json(tasks)
-  } catch (error) {
-    console.error('Error fetching tasks:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch tasks' },
-      { status: 500 }
+  requestLogger.api('Fetching tasks', { 
+    userId: session.user.id,
+    projectId,
+    workspaceId,
+    filters: { status, priority, search }
+  })
+
+  // Get all accessible tasks for the user
+  let tasks = await withDatabase(async () => {
+    return getAccessibleTasks(session.user.id, projectId || undefined)
+  }, 'get accessible tasks')
+  
+  // Filter by workspace if specified (through projects)
+  if (workspaceId) {
+    tasks = tasks.filter(task => task.project?.workspaceId === workspaceId)
+  }
+  
+  // Apply other filters
+  if (status && Object.values(TaskStatus).includes(status as TaskStatus)) {
+    tasks = tasks.filter(task => task.status === status)
+  }
+  
+  if (priority && Object.values(Priority).includes(priority as Priority)) {
+    tasks = tasks.filter(task => task.priority === priority)
+  }
+  
+  if (search) {
+    const searchLower = search.toLowerCase()
+    tasks = tasks.filter(task => 
+      task.title.toLowerCase().includes(searchLower) ||
+      task.description?.toLowerCase().includes(searchLower)
     )
   }
-}
 
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getAuthSession(request)
-    
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
-    }
+  requestLogger.api('Tasks fetched successfully', { 
+    userId: session.user.id,
+    taskCount: tasks.length
+  })
 
-    const body = await request.json()
-    const {
-      title,
-      description,
-      projectId,
-      assigneeId,
-      assigneeIds,
-      priority = 'MEDIUM',
-      dueDate,
-      tags = []
-    } = body
+  return NextResponse.json(tasks)
+})
 
-    if (!title || !projectId) {
-      return NextResponse.json(
-        { error: 'Title and project are required' },
-        { status: 400 }
-      )
-    }
+export const POST = withErrorHandling(async (request: NextRequest) => {
+  const requestLogger = createRequestLogger(request)
+  
+  // Apply rate limiting
+  const rateLimitResponse = await authenticatedApiRateLimit(request)
+  if (rateLimitResponse) {
+    requestLogger.warn('Tasks POST rate limit exceeded')
+    return rateLimitResponse
+  }
 
-    // Check if user can create tasks in this project
-    const canCreateTask = await canUserPerformAction(session.user.id, projectId, 'canCreateTask')
-    if (!canCreateTask) {
-      return NextResponse.json(
-        { error: 'You do not have permission to create tasks in this project' },
-        { status: 403 }
-      )
-    }
+  const session = await getAuthSession(request)
+  
+  if (!session) {
+    throw new AuthenticationError()
+  }
 
-    // Verify project exists and user has access
-    const project = await db.project.findFirst({
+  const body = await request.json()
+  const validatedData = validateRequestBody(taskCreateSchema, body)
+  const {
+    title,
+    description,
+    projectId,
+    assigneeId,
+    assigneeIds,
+    priority = 'MEDIUM',
+    dueDate,
+    tags = []
+  } = validatedData
+
+  requestLogger.api('Creating task', { 
+    userId: session.user.id,
+    projectId,
+    title,
+    assigneeCount: assigneeIds?.length || (assigneeId ? 1 : 0)
+  })
+
+  // Check if user can create tasks in this project
+  const canCreateTask = await canUserPerformAction(session.user.id, projectId, 'canCreateTask')
+  if (!canCreateTask) {
+    throw new AuthorizationError('You do not have permission to create tasks in this project')
+  }
+
+  // Verify project exists and user has access
+  const project = await withDatabase(async () => {
+    return db.project.findFirst({
       where: {
         id: projectId,
         OR: [
@@ -107,29 +134,27 @@ export async function POST(request: NextRequest) {
         ]
       }
     })
+  }, 'verify project access')
 
-    if (!project) {
-      return NextResponse.json(
-        { error: 'Project not found or access denied' },
-        { status: 404 }
-      )
-    }
+  if (!project) {
+    throw new NotFoundError('Project')
+  }
 
-    // Get workspace and project information for permission checking
-    const projectWithWorkspace = await db.project.findUnique({
+  // Get workspace and project information for permission checking
+  const projectWithWorkspace = await withDatabase(async () => {
+    return db.project.findUnique({
       where: { id: projectId },
       select: { workspaceId: true, ownerId: true }
     })
+  }, 'get project workspace info')
 
-    if (!projectWithWorkspace) {
-      return NextResponse.json(
-        { error: 'Project not found' },
-        { status: 404 }
-      )
-    }
+  if (!projectWithWorkspace) {
+    throw new NotFoundError('Project')
+  }
 
-    // Check user's role in workspace to determine assignment permissions
-    const userWorkspaceMember = await db.workspaceMember.findUnique({
+  // Check user's role in workspace to determine assignment permissions
+  const userWorkspaceMember = await withDatabase(async () => {
+    return db.workspaceMember.findUnique({
       where: {
         userId_workspaceId: {
           userId: session.user.id,
@@ -137,53 +162,51 @@ export async function POST(request: NextRequest) {
         }
       }
     })
+  }, 'get user workspace membership')
 
-    const isProjectOwner = projectWithWorkspace.ownerId === session.user.id
-    const isWorkspaceOwnerOrAdmin = userWorkspaceMember?.role === 'OWNER' || userWorkspaceMember?.role === 'ADMIN'
+  const isProjectOwner = projectWithWorkspace.ownerId === session.user.id
+  const isWorkspaceOwnerOrAdmin = userWorkspaceMember?.role === 'OWNER' || userWorkspaceMember?.role === 'ADMIN'
 
-    // Determine which assignee IDs to use (new multi-assignee or legacy single assignee)
-    const targetAssigneeIds = assigneeIds && assigneeIds.length > 0 
-      ? assigneeIds 
-      : (assigneeId && assigneeId.trim() !== '' ? [assigneeId] : [])
+  // Determine which assignee IDs to use (new multi-assignee or legacy single assignee)
+  const targetAssigneeIds = assigneeIds && assigneeIds.length > 0 
+    ? assigneeIds 
+    : (assigneeId && assigneeId.trim() !== '' ? [assigneeId] : [])
 
-    // Validate assignee permissions and workspace membership
-    if (targetAssigneeIds.length > 0) {
-      // If user is a regular member and not project owner, they can only assign to themselves
-      if (!isWorkspaceOwnerOrAdmin && !isProjectOwner) {
-        const hasNonSelfAssignment = targetAssigneeIds.some(id => id !== session.user.id)
-        if (hasNonSelfAssignment) {
-          return NextResponse.json(
-            { error: 'Members can only assign tasks to themselves unless they are project owners' },
-            { status: 403 }
-          )
-        }
+  // Validate assignee permissions and workspace membership
+  if (targetAssigneeIds.length > 0) {
+    // If user is a regular member and not project owner, they can only assign to themselves
+    if (!isWorkspaceOwnerOrAdmin && !isProjectOwner) {
+      const hasNonSelfAssignment = targetAssigneeIds.some(id => id !== session.user.id)
+      if (hasNonSelfAssignment) {
+        throw new AuthorizationError('Members can only assign tasks to themselves unless they are project owners')
       }
+    }
 
-      // Check if all assignees are members of the project's workspace
-      const assigneeWorkspaceMembers = await db.workspaceMember.findMany({
+    // Check if all assignees are members of the project's workspace
+    const assigneeWorkspaceMembers = await withDatabase(async () => {
+      return db.workspaceMember.findMany({
         where: {
           userId: { in: targetAssigneeIds },
           workspaceId: projectWithWorkspace.workspaceId
         },
         select: { userId: true }
       })
+    }, 'validate assignee workspace membership')
 
-      const validAssigneeIds = assigneeWorkspaceMembers.map(m => m.userId)
-      const invalidAssigneeIds = targetAssigneeIds.filter(id => !validAssigneeIds.includes(id))
+    const validAssigneeIds = assigneeWorkspaceMembers.map(m => m.userId)
+    const invalidAssigneeIds = targetAssigneeIds.filter(id => !validAssigneeIds.includes(id))
 
-      if (invalidAssigneeIds.length > 0) {
-        return NextResponse.json(
-          { error: `Some assignees are not members of the project workspace: ${invalidAssigneeIds.join(', ')}` },
-          { status: 400 }
-        )
-      }
+    if (invalidAssigneeIds.length > 0) {
+      throw new ValidationError(`Some assignees are not members of the project workspace: ${invalidAssigneeIds.join(', ')}`)
     }
+  }
 
-    // Use first assignee for legacy assigneeId field
-    const finalAssigneeId = targetAssigneeIds.length > 0 ? targetAssigneeIds[0] : null
+  // Use first assignee for legacy assigneeId field
+  const finalAssigneeId = targetAssigneeIds.length > 0 ? targetAssigneeIds[0] : null
 
-    // Create the task
-    const task = await db.task.create({
+  // Create the task
+  const task = await withDatabase(async () => {
+    return db.task.create({
       data: {
         title,
         description,
@@ -232,10 +255,12 @@ export async function POST(request: NextRequest) {
         }
       }
     })
+  }, 'create task')
 
-    // Create multiple assignee records if we have multiple assignees
-    if (targetAssigneeIds.length > 0) {
-      await Promise.all(
+  // Create multiple assignee records if we have multiple assignees
+  if (targetAssigneeIds.length > 0) {
+    await withDatabase(async () => {
+      return Promise.all(
         targetAssigneeIds.map(assigneeUserId =>
           db.taskAssignee.create({
             data: {
@@ -246,64 +271,65 @@ export async function POST(request: NextRequest) {
           })
         )
       )
-    }
+    }, 'create task assignees')
+  }
 
-    // Create notifications for all assignees (except creator)
-    const nonCreatorAssignees = targetAssigneeIds.filter(id => id !== session.user.id)
-    if (nonCreatorAssignees.length > 0) {
-      try {
-        await Promise.all(
-          nonCreatorAssignees.map(assigneeUserId =>
-            NotificationService.createTaskNotification(
-              NotificationType.TASK_ASSIGNED,
-              assigneeUserId,
-              title,
-              task.id,
-              session.user.name || 'Someone'
-            )
+  // Create notifications for all assignees (except creator)
+  const nonCreatorAssignees = targetAssigneeIds.filter(id => id !== session.user.id)
+  if (nonCreatorAssignees.length > 0) {
+    try {
+      await Promise.all(
+        nonCreatorAssignees.map(assigneeUserId =>
+          NotificationService.createTaskNotification(
+            NotificationType.TASK_ASSIGNED,
+            assigneeUserId,
+            title,
+            task.id,
+            session.user.name || 'Someone'
           )
         )
-        console.log(`Task assignment notifications sent to ${nonCreatorAssignees.length} assignees`)
-      } catch (error) {
-        console.error('Failed to create task assignment notifications:', error)
-        // Don't fail the task creation if notification fails
-      }
-    }
-
-    // Create notification for task creator (self-notification for task creation confirmation)
-    try {
-      const createTaskNotification = {
-        title: 'Task Created',
-        message: `You created task "${title}"`,
-        type: NotificationType.TASK_ASSIGNED, // Reuse existing type for now
-        userId: session.user.id,
-        relatedId: task.id,
-        relatedUrl: `/tasks?id=${task.id}`,
-        senderName: session.user.name || 'You'
-      }
-      
-      await NotificationService.createNotification(createTaskNotification)
-      console.log(`Task creation notification sent to creator ${session.user.id}`)
+      )
+      requestLogger.info(`Task assignment notifications sent to ${nonCreatorAssignees.length} assignees`)
     } catch (error) {
-      console.error('Failed to create task creation notification:', error)
+      requestLogger.error('Failed to create task assignment notifications', error)
       // Don't fail the task creation if notification fails
     }
-
-    // Ensure notification count is synced after task creation
-    try {
-      await NotificationService.syncNotificationCountForUser(session.user.id)
-      console.log(`Synced notification count for user ${session.user.id} after task creation`)
-    } catch (error) {
-      console.error('Failed to sync notification count after task creation:', error)
-      // Don't fail the task creation if sync fails
-    }
-
-    return NextResponse.json(task, { status: 201 })
-  } catch (error) {
-    console.error('Error creating task:', error)
-    return NextResponse.json(
-      { error: 'Failed to create task' },
-      { status: 500 }
-    )
   }
-}
+
+  // Create notification for task creator (self-notification for task creation confirmation)
+  try {
+    const createTaskNotification = {
+      title: 'Task Created',
+      message: `You created task "${title}"`,
+      type: NotificationType.TASK_ASSIGNED, // Reuse existing type for now
+      userId: session.user.id,
+      relatedId: task.id,
+      relatedUrl: `/tasks?id=${task.id}`,
+      senderName: session.user.name || 'You'
+    }
+    
+    await NotificationService.createNotification(createTaskNotification)
+    requestLogger.info(`Task creation notification sent to creator`)
+  } catch (error) {
+    requestLogger.error('Failed to create task creation notification', error)
+    // Don't fail the task creation if notification fails
+  }
+
+  // Ensure notification count is synced after task creation
+  try {
+    await NotificationService.syncNotificationCountForUser(session.user.id)
+    requestLogger.info(`Synced notification count for user after task creation`)
+  } catch (error) {
+    requestLogger.error('Failed to sync notification count after task creation', error)
+    // Don't fail the task creation if sync fails
+  }
+
+  requestLogger.task('Task created successfully', { 
+    userId: session.user.id,
+    taskId: task.id,
+    projectId,
+    assigneeCount: targetAssigneeIds.length
+  })
+
+  return NextResponse.json(task, { status: 201 })
+})
