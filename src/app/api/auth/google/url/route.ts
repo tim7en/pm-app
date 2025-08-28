@@ -6,7 +6,9 @@ export async function GET() {
     // Check if Google OAuth environment variables are set
     const clientId = process.env.GOOGLE_CLIENT_ID
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET
-    const redirectUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/auth/google/callback`
+    
+    // Force production URL
+    const redirectUrl = 'https://tasken.uz/auth/google/callback'
 
     if (!clientId || !clientSecret) {
       return NextResponse.json({

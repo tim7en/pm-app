@@ -3,7 +3,7 @@
 
 {
     email admin@tasken.uz
-    auto_https on
+    auto_https disable_redirects
     servers {
         trusted_proxies static 172.20.0.0/16
     }
