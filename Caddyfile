@@ -1,126 +1,62 @@
-# Caddyfile for PM-App Production with HTTPS
-# Automatically handles SSL/TLS certificates via Let's Encrypt
+# Merged Caddyfile for PM-App Production
+# Supports both tasken.uz (domain) and direct IP access (198.163.207.39)
 
-# Define global options
 {
-    # Email for Let's Encrypt notifications
-    email admin@yourdomain.com
-    
-    # Enable ACME CA for automatic HTTPS
-    acme_ca https://acme-v02.api.letsencrypt.org/directory
-    
-    # Auto HTTPS
+    email admin@tasken.uz
     auto_https on
-    
-    # Server options
     servers {
         trusted_proxies static 172.20.0.0/16
     }
 }
 
-# Main production site configuration
-198.163.207.39 {
-    # Enable automatic HTTPS
-    tls {
-        protocols tls1.2 tls1.3
-    }
-    
+# Domain configuration (primary)
+tasken.uz {
+    tls admin@tasken.uz
+
     # Security headers
     header {
-        # Enable HSTS
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-        
-        # Prevent clickjacking
         X-Frame-Options "DENY"
-        
-        # Prevent MIME type sniffing
         X-Content-Type-Options "nosniff"
-        
-        # Enable XSS protection
         X-XSS-Protection "1; mode=block"
-        
-        # Referrer policy
         Referrer-Policy "strict-origin-when-cross-origin"
-        
-        # Content Security Policy
         Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' ws: wss:; frame-ancestors 'none';"
-        
-        # Remove server info
         -Server
     }
-    
-    # Rate limiting
-    rate_limit {
-        zone dynamic {
-            key {remote_host}
-            events 100
-            window 1m
-        }
-        zone api {
-            key {remote_host}
-            events 30
-            window 1m
-        }
-    }
-    
-    # Handle API routes with specific rate limiting
-    @api path /api/*
-    rate_limit @api api
-    
-    # Handle static assets with caching
-    @static {
-        path /_next/static/*
-        path /images/*
-        path /favicon.ico
-        path /robots.txt
-        path /sitemap.xml
-    }
-    
-    header @static {
-        Cache-Control "public, max-age=31536000, immutable"
-        Expires "1 year"
-    }
-    
-    # Handle Socket.IO WebSocket connections
+
+    encode gzip
+
+    # Static assets caching
+    @static path /_next/static/* /images/* /favicon.ico /robots.txt /sitemap.xml
+    header @static Cache-Control "public, max-age=31536000, immutable"
+
+    # Health check
+    @health path /api/health
+    respond @health "OK" 200
+
+    # WebSocket support (Socket.IO)
     @websocket {
         header Connection *Upgrade*
         header Upgrade websocket
         path /api/socketio*
     }
-    
-    # Health check endpoint (bypass rate limiting)
-    @health path /api/health
-    respond @health "OK" 200
-    
-    # Reverse proxy to Next.js application
+
     reverse_proxy pm-app:3000 {
-        # Health check
         health_uri /api/health
         health_interval 30s
         health_timeout 10s
-        
-        # Load balancing (for future scaling)
         lb_policy round_robin
-        
-        # Headers for proper proxying
         header_up Host {upstream_hostport}
         header_up X-Real-IP {remote_host}
         header_up X-Forwarded-For {remote_host}
         header_up X-Forwarded-Proto {scheme}
-        header_up X-Forwarded-Port {server_port}
-        
-        # WebSocket support
-        @websocket
-        
-        # Timeouts
         transport http {
             read_timeout 300s
             write_timeout 300s
             dial_timeout 30s
         }
     }
-    
-    # Logging
+
     log {
         output file /var/log/caddy/access.log {
             roll_size 100MB
@@ -130,27 +66,53 @@
         format json
         level INFO
     }
-    
-    # Error pages
+
     handle_errors {
         @5xx expression {http.error.status_code} >= 500
         @4xx expression {http.error.status_code} >= 400 && {http.error.status_code} < 500
-        
         respond @5xx "Internal Server Error" 500
         respond @4xx "Not Found" 404
     }
 }
 
-# HTTP redirect to HTTPS
-http://198.163.207.39 {
+# Direct IP access - use proxy, no automatic Let's Encrypt for IP
+198.163.207.39 {
+    # Don't attempt ACME for IP; use TLS with internal (or skip TLS if using external proxy)
+    tls internal
+
+    header {
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    @health path /api/health
+    respond @health "OK" 200
+
+    reverse_proxy pm-app:3000 {
+        header_up Host {upstream_hostport}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    log {
+        output file /var/log/caddy/ip-access.log {
+            roll_size 50MB
+            roll_keep 3
+            roll_keep_for 720h
+        }
+        format json
+        level INFO
+    }
+}
+
+# HTTP redirect to HTTPS for both domain and IP
+http://tasken.uz {
     redir https://{host}{uri} permanent
 }
 
-# Additional domain configurations (if you have a domain name)
-# yourdomain.com {
-#     import 198.163.207.39
-# }
-# 
-# www.yourdomain.com {
-#     redir https://yourdomain.com{uri} permanent
-# }
+http://198.163.207.39 {
+    redir https://198.163.207.39{uri} permanent
+}
