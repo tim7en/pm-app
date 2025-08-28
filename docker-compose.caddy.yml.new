@@ -1,0 +1,176 @@
+# Docker Compose for PM-App Production with Caddy
+# Production-ready configuration
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: pm-app-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=pmapp
+      - POSTGRES_USER=pmapp_user
+      - POSTGRES_PASSWORD=PmApp2025!SecureDb
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - pm-app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pmapp_user -d pmapp"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    security_opt:
+      - no-new-privileges:true
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: pm-app-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass PmApp2025!SecureRedis
+    volumes:
+      - redis_data:/data
+    networks:
+      - pm-app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "PmApp2025!SecureRedis", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    security_opt:
+      - no-new-privileges:true
+
+  # Main PM-App Application
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        NODE_ENV: production
+    container_name: pm-app
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - DATABASE_URL=postgresql://pmapp_user:PmApp2025!SecureDb@pm-app-db:5432/pmapp?schema=public
+      - REDIS_URL=redis://:PmApp2025!SecureRedis@pm-app-redis:6379
+      - NEXTAUTH_URL=https://tasken.uz
+      - NEXTAUTH_SECRET=aY9lIaA8wnEA6yyDaUMMM670ff4XkOkKE4QjygvILYw=
+      - JWT_SECRET=M7qS35fY2rSk7recXvSlol8cTkitQ0nkQaCJtOONyvA=
+      - ALLOWED_ORIGINS=https://tasken.uz,http://localhost:3000
+      - GOOGLE_CLIENT_ID=447386615051-991cas13orb6k1q826gn8h07qif3nhlr.apps.googleusercontent.com
+      - GOOGLE_CLIENT_SECRET=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
+      - GOOGLE_REDIRECT_URI=https://tasken.uz/auth/google/callback
+    volumes:
+      - app_logs:/app/logs
+      - app_uploads:/app/uploads
+    networks:
+      - pm-app-network
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('App is running')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    security_opt:
+      - no-new-privileges:true
+
+  # Caddy Reverse Proxy with Automatic HTTPS
+  caddy:
+    image: caddy:2.7-alpine
+    container_name: pm-app-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # For HTTP/3 support
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_logs:/var/log/caddy
+    networks:
+      - pm-app-network
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "caddy", "version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+
+# Named volumes for data persistence
+volumes:
+  db_data:
+    driver: local
+  redis_data:
+    driver: local
+  app_logs:
+    driver: local
+  app_uploads:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+  caddy_logs:
+    driver: local
+
+# Custom network for service isolation and communication
+networks:
+  pm-app-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
